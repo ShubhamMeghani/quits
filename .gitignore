@@ -1,7 +1,27 @@
-﻿node_modules/
-.next/
-.vercel/
+# dependencies
+/node_modules
+
+# testing
+/coverage
+
+# next.js
+/.next/
+/out/
+/build
+
+# env files (only the template is committed)
 .env*
 !.env.example
-transcript*
+
+# vercel
+.vercel
+
+# typescript
+*.tsbuildinfo
+next-env.d.ts
+
+# misc
+.DS_Store
+*.pem
 *.log
+transcript*

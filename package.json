@@ -1,0 +1,47 @@
+{
+  "name": "quits",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint",
+    "typecheck": "next typegen && tsc --noEmit",
+    "test": "vitest run",
+    "test:db": "node --env-file-if-exists=.env.local node_modules/vitest/vitest.mjs run --config vitest.db.config.mts",
+    "test:db:clean": "node --env-file-if-exists=.env.local --import tsx scripts/test-db-clean.ts",
+    "db:push": "node --env-file-if-exists=.env.local scripts/db-push.mjs",
+    "eval": "node --env-file-if-exists=.env.local --import tsx eval/run.ts",
+    "icons": "node scripts/gen-icons.mjs"
+  },
+  "dependencies": {
+    "@google/genai": "^2.30.0",
+    "@supabase/supabase-js": "^2.118.0",
+    "next": "16.4.2",
+    "qrcode": "^1.5.4",
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
+    "server-only": "^0.0.1",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@tailwindcss/turbopack": "^4",
+    "@types/node": "^24.19.2",
+    "@types/qrcode": "^1.5.6",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "eslint": "^9",
+    "eslint-config-next": "16.4.2",
+    "postgres": "^3.4.9",
+    "sharp": "^0.35.5",
+    "supabase": "^2.121.0",
+    "tailwindcss": "^4",
+    "tsx": "^4.23.15",
+    "typescript": "^5",
+    "vitest": "^5.0.5"
+  },
+  "engines": {
+    "node": ">=24 <25"
+  }
+}

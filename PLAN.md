@@ -199,22 +199,33 @@ No GitHub secrets are needed: CI runs only lint and unit tests, which make no ne
 
 ---
 
+## Proposed SPEC changes (awaiting approval)
+
+These are wording changes only; the code already follows them. Approving them makes SPEC v0.4.
+
+| ID | Where | Change | Why |
+|---|---|---|---|
+| SC-1 (task 1.15) | §4.3 Frankfurter v2 | **Request:** `GET https://api.frankfurter.dev/v2/rate/{BASE}/{QUOTE}?date=YYYY-MM-DD`.<br>**Response:** `{"date":"2026-10-01","base":"USD","quote":"INR","rate":95.98}`, where `rate` is a JSON number.<br>**Dates:** weekends and holidays return a blended rate for that same date; dates after today return 404, so those requests omit `date` and get the latest rate; an unknown currency returns 422. | Confirmed by probing in P1-7. D-17 still holds. |
+| SC-2 | §3 Stack, Gemini | `responseSchema` → `responseJsonSchema` | In `@google/genai` 2.x, `responseJsonSchema` is the field that takes a plain JSON Schema. Same behaviour: structured JSON output. |
+
+---
+
 ## AC status
 
 Rows P1-1 to P1-10 are the Phase 1 checks; each one de-risks the spec ACs shown in brackets. Every other row is a SPEC AC.
 
 | AC | Type | Phase | Status | Evidence |
 |---|---|---|---|---|
-| P1-1 Scaffold lint/test/build local [AC-45] | Script | 1 | Not run | |
-| P1-2 CI green on ubuntu-24.04 [AC-45] | Deploy | 1 | Not run | |
-| P1-3 Vercel prod deploy from GitHub | Deploy | 1 | Not run | |
-| P1-4 `/api/health` via Supabase, RLS on [AC-41, AC-44] | Deploy | 1 | Not run | |
-| P1-5 Keep-alive `workflow_dispatch` green [AC-44] | Script | 1 | Not run | |
-| P1-6 Phone photo < 1 MB → Gemini JSON [AC-20] | Phone | 1 | Not run | |
-| P1-7 Frankfurter v2 historical + weekend USD→INR [AC-8] | Script | 1 | Not run | |
-| P1-8 UPI link in GPay/PhonePe/Paytm + QR [AC-14, AC-15] | Phone | 1 | Not run | |
-| P1-9 PWA installs on Android [AC-40] | Phone | 1 | Not run | |
-| P1-10 No secrets in `.next/static` [AC-42] | Script | 1 | Not run | |
+| P1-1 Scaffold lint/test/build local [AC-45] | Script | 1 | Pass | `npm run lint` clean; `npm run typecheck` clean; `npm test` 1/1; `npm run build` OK (Next 16.4.2, React 19.3) |
+| P1-2 CI green on ubuntu-24.04 [AC-45] | Deploy | 1 | Pending (human) | `ci.yml` written (lint, typecheck, unit tests); needs push (1.4) |
+| P1-3 Vercel prod deploy from GitHub | Deploy | 1 | Pending (human) | needs Vercel import (1.5) |
+| P1-4 `/api/health` via Supabase, RLS on [AC-41, AC-44] | Deploy | 1 | Pending (human) | local pass: `db:push` applied `_health` (RLS on); `next start` → `GET /api/health` = `{"ok":true}` 200; prod check after 1.5 |
+| P1-5 Keep-alive `workflow_dispatch` green [AC-44] | Script | 1 | Pending (human) | `keepalive.yml` written; needs repo variable `APP_URL` + manual run (1.10) |
+| P1-6 Phone photo < 1 MB → Gemini JSON [AC-20] | Phone | 1 | Pending (human) | server part local pass: synthetic bill → `gemini-3.5-flash-lite` JSON in 4.3 s, items/tax/service/total exact; fake JPEG → 415; phone test is 1.13 |
+| P1-7 Frankfurter v2 historical + weekend USD→INR [AC-8] | Script | 1 | Pass | `GET /v2/rate/USD/INR?date=2026-10-01` → `{"date":"2026-10-01","base":"USD","quote":"INR","rate":95.98}`; Sunday 2026-10-04 → 96.19 (same date); future date → 404. SPEC wording awaits approval (SC-1, task 1.15) |
+| P1-8 UPI link in GPay/PhonePe/Paytm + QR [AC-14, AC-15] | Phone | 1 | Pending (human) | `/lab/upi` ready (link, QR, copy UPI ID); phone test is 1.17 |
+| P1-9 PWA installs on Android [AC-40] | Phone | 1 | Pending (human) | manifest + 4 icons served (200 locally); install test is 1.19 |
+| P1-10 No secrets in `.next/static` [AC-42] | Script | 1 | Pass | `grep -rE "sb_secret_\|AIza" .next/static` → no matches |
 | AC-1 | Unit | 2 | Not run | |
 | AC-2 | Unit | 2 | Not run | |
 | AC-3 | Unit | 2 | Not run | |

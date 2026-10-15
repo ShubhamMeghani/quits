@@ -1,0 +1,18 @@
+name: Keep-alive
+
+# R57: daily health ping so the Supabase free project does not pause.
+on:
+  schedule:
+    - cron: "30 3 * * *"
+  workflow_dispatch:
+
+jobs:
+  ping:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Ping /api/health
+        env:
+          APP_URL: ${{ vars.APP_URL }}
+        run: |
+          if [ -z "$APP_URL" ]; then echo "Repository variable APP_URL is not set"; exit 1; fi
+          curl --fail --silent --show-error --max-time 30 "$APP_URL/api/health"
