@@ -4,9 +4,9 @@
 
 | | |
 |---|---|
-| Version | v0.2 |
+| Version | v0.3 |
 | Date | 2026-10-16 |
-| Status | Draft. Decisions are recorded in §10.1; the remaining open questions in §10.2 use their proposed defaults until answered. |
+| Status | Ready for build. All open questions are decided (§10.1). Build order is in `PLAN.md`. |
 | Course | Applied Data Science & AI, IISc |
 | Build budget | About 3 days with Claude Code |
 
@@ -79,7 +79,11 @@ Quits is a free, mobile-first web app for Indian students to track shared expens
 
 **Secrets**
 - Secrets live only in `.env.local` (gitignored) and in Vercel env vars. `.env.example` lists names only.
-- Names: `SUPABASE_URL`, `SUPABASE_SECRET_KEY`, `GEMINI_API_KEY`, `GEMINI_MODEL`.
+- **Secret names:** `SUPABASE_URL`, `SUPABASE_SECRET_KEY`, `GEMINI_API_KEY`, and `SUPABASE_DB_URL`. `SUPABASE_DB_URL` is local only and is used just to apply migrations; it is never set in Vercel.
+- **Non-secret config:**
+  - `GEMINI_MODEL`.
+  - `SCAN_LIMIT_PER_GROUP` and `SCAN_LIMIT_PER_APP` (optional; defaults 30 and 300).
+  - The GitHub repository variable `APP_URL`, used by the keep-alive.
 - No `NEXT_PUBLIC_*` variable holds a secret.
 - Keys are never pasted into chat, code or commits.
 
@@ -297,7 +301,7 @@ upi://pay?pa={vpa}&pn={name}&am={rupees, 2 decimals}&cu=INR&tn={note}
 - **R30 [Must]** THE SYSTEM SHALL reject the following receipt requests **without calling Gemini**:
   - IF the file is > 1,048,576 bytes, THEN reply 413.
   - IF its magic bytes are not JPEG, PNG or WebP, THEN reply 415.
-  - IF the group has made more than 30 extract calls today (IST), or the whole app more than 300 (both set by env var), THEN reply 429 with "Daily scan limit reached — enter items manually".
+  - IF the group has made more than 30 extract calls today (IST), or the whole app more than 300 (set by `SCAN_LIMIT_PER_GROUP` and `SCAN_LIMIT_PER_APP`), THEN reply 429 with "Daily scan limit reached — enter items manually".
 - **R31 [Must]** WHEN a valid image is received, THE SYSTEM SHALL:
   1. Call Gemini with the §4.3 `responseSchema`.
   2. Validate the response with zod: all amounts ≥ 0 except `round_off`, and at least the `items` array present.
@@ -596,7 +600,8 @@ Unless marked *Should*, every AC is Must. Amounts are in ₹; the tests use pais
 | Migrations | `supabase/migrations/*.sql` (tables, constraints, RLS, RPC functions) |
 | Unit tests | `tests/**/*.test.ts`; `npm test` |
 | Eval | `eval/receipts/*.{jpg,json}`, `eval/run.ts` (`npm run eval`), `eval/results.json`, `eval/REPORT.md`; rendered on `/about` |
-| Keep-alive | `.github/workflows/keepalive.yml` |
+| Keep-alive | `.github/workflows/keepalive.yml` (calls `${{ vars.APP_URL }}/api/health`) |
+| CI | `.github/workflows/ci.yml`: on `ubuntu-24.04`, runs `npm ci`, lint and `npm test` on every push |
 | Env template | `.env.example` (names only) |
 | PWA assets | `public/manifest.webmanifest`, icons (Should) |
 | README | live URL, demo steps, local setup, env variable names, deploy steps, test and eval commands, UPI app results (AC-14), known limitations (incl. last write wins), AC status checklist |
@@ -656,14 +661,13 @@ Unless marked *Should*, every AC is Must. Amounts are in ₹; the tests use pais
 | D-12 | OQ-12 | Running the eval script and reporting precision, recall and reconciliation is Must (R37, R38). The quality targets are Should (R39). |
 | D-13 | OQ-13 | Partial settlements need no special handling; the amount is editable. |
 | D-14 | OQ-14 | At least one of GPay, PhonePe or Paytm must pass AC-14, with all three recorded. The UPI QR fallback is **Must** (R24, AC-15). |
+| D-15 | OQ-15 | `/api/health` is public with no secret. It runs one trivial query and returns only `{"ok":true}` (R57). |
+| D-16 | OQ-16 | No extra confirmation when finalizing a receipt with \|diff\| > ₹1; the banner on the review screen and the badge on the expense are enough (R33, R35). |
+| D-17 | OQ-17 | When Frankfurter v2 has no rate for the exact date, use the most recent rate on or before `expense_date`, and store and show its `fx_rate_date` (R16). |
 
-### 10.2 Open questions (proposed defaults apply)
+### 10.2 Open questions
 
-| ID | Question | Proposed default |
-|---|---|---|
-| OQ-15 | Should `/api/health` require a secret, given that it is public? | No. It runs one trivial query and returns only `{"ok":true}`, so it has no secret to manage. |
-| OQ-16 | Should finalizing a receipt with \|diff\| > ₹1 need an extra confirmation, beyond the banner and badge? | No. The banner on the review screen and the badge on the expense are enough. |
-| OQ-17 | If Frankfurter v2 has no rate for the exact date (weekend or holiday), which rate is used? | The most recent rate on or before `expense_date`, with its `fx_rate_date` stored and shown. |
+None open. New questions found during the build are added here with a proposed default (see the `PLAN.md` rules).
 
 ## 11. Changelog
 
@@ -671,3 +675,4 @@ Unless marked *Should*, every AC is Must. Amounts are in ₹; the tests use pais
 |---|---|---|
 | v0.1 | 2026-10-16 | Initial draft |
 | v0.2 | 2026-10-16 | **Scope cut for a 3-day build:** 102 → 58 requirements (43 Must, 15 Should); 73 → 45 ACs (39 Must, 6 Should); overlapping requirements merged. **Moved to non-goals:** version-conflict checks (now last write wins, stated explicitly) and Vercel Cron. **Made Should:** drag-and-drop upload, QR of the group link, Restore, multi-device item claiming (single-device claiming stays Must). **Recurring expenses:** now created lazily on group open, with no cron. **Keep-alive:** the GitHub Action only, calling `/api/health`; `CRON_SECRET` removed. **Greedy:** defined exactly, with the deterministic 4-vs-3 example sequence in AC-9; the optimal partition is now recovered deterministically. **Decisions:** OQ-1 to OQ-14 resolved as D-1 to D-14. D-3 changes receipt finalize to use the printed total, with a mismatch badge, and adds a printed-total case to AC-18. D-5 adds lazy cleanup of old demos; D-14 makes the UPI QR code Must. **§1:** rewritten with Splitwise free/Pro details, Spliit and Tricount, and Quits' edge. **Exchange rates:** Frankfurter v1 replaced by v2 (endpoint confirmed in Phase 1; new risk K6); added K13 and OQ-15 to OQ-17. **Kept:** every Must test of money maths, the balance invariant, simplification, the UPI link, reconciliation, security and demo mode. The only ACs dropped were for version conflicts (now a non-goal) and member archiving (Should). |
+| v0.3 | 2026-10-16 | **Decisions:** OQ-15 to OQ-17 accepted as D-15 to D-17 (public `/api/health`; no extra confirmation for receipt mismatches; nearest earlier rate for weekend and holiday dates). **Env names (§3):** listed in full, adding `SUPABASE_DB_URL` (local only, for migrations), `SCAN_LIMIT_PER_GROUP`, `SCAN_LIMIT_PER_APP` and the repo variable `APP_URL`. **Deliverables:** CI workflow (`ci.yml`, ubuntu-24.04) added. Counts unchanged: 58 requirements (43 Must, 15 Should), 45 ACs. `PLAN.md` created. |
