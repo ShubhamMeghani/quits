@@ -74,19 +74,20 @@ export function convertMinor(amountMinor: Minor, from: string, to: string, rate:
 
 /**
  * Converts an expense's total, then derives payer/split base amounts by allocating the
- * converted total in proportion to their original-currency amounts (R17), so sums stay exact.
+ * converted total in proportion to their original-currency weights (R17), so sums stay exact.
+ * Weights are the exact proportions (payer amounts, or a split's own weights), not rounded shares.
  */
 export function convertParts(
   totalMinor: Minor,
-  parts: readonly Minor[],
+  weights: readonly number[],
   from: string,
   to: string,
   rate: string,
 ): { baseTotal: Minor; baseParts: Minor[] } {
   const baseTotal = from === to ? totalMinor : convertMinor(totalMinor, from, to, rate);
-  if (parts.length === 0) return { baseTotal, baseParts: [] };
-  if (parts.every((p) => p === 0)) return { baseTotal, baseParts: parts.map(() => 0) };
-  return { baseTotal, baseParts: allocate(baseTotal, parts.map((p) => Math.abs(p))) };
+  if (weights.length === 0) return { baseTotal, baseParts: [] };
+  if (weights.every((w) => w === 0)) return { baseTotal, baseParts: weights.map(() => 0) };
+  return { baseTotal, baseParts: allocate(baseTotal, weights.map((w) => Math.abs(w))) };
 }
 
 // ---------- Frankfurter v2 adapter (confirmed in Phase 1, P1-7) ----------

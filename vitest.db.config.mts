@@ -6,8 +6,8 @@ import path from "node:path";
 export default defineConfig({
   resolve: {
     alias: {
-      "@": path.resolve(__dirname, "."),
-      "server-only": path.resolve(__dirname, "tests/db/server-only-shim.ts"),
+      "@": path.resolve(import.meta.dirname, "."),
+      "server-only": path.resolve(import.meta.dirname, "tests/db/server-only-shim.ts"),
     },
   },
   test: {

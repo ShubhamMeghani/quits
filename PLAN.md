@@ -207,6 +207,7 @@ These are wording changes only; the code already follows them. Approving them ma
 |---|---|---|---|
 | SC-1 (task 1.15) | §4.3 Frankfurter v2 | **Request:** `GET https://api.frankfurter.dev/v2/rate/{BASE}/{QUOTE}?date=YYYY-MM-DD`.<br>**Response:** `{"date":"2026-10-01","base":"USD","quote":"INR","rate":95.98}`, where `rate` is a JSON number.<br>**Dates:** weekends and holidays return a blended rate for that same date; dates after today return 404, so those requests omit `date` and get the latest rate; an unknown currency returns 422. | Confirmed by probing in P1-7. D-17 still holds. |
 | SC-2 | §3 Stack, Gemini | `responseSchema` → `responseJsonSchema` | In `@google/genai` 2.x, `responseJsonSchema` is the field that takes a plain JSON Schema. Same behaviour: structured JSON output. |
+| SC-3 | R17 | "weighted by their original-currency amounts" → "weighted by their exact original-currency proportions: payer amounts, or the split's own weights (1 per person for equal, basis points, shares, or exact amounts)" | AC-6 expects an equal USD split to stay equal in INR (`[34329, 34329, 34328]`). Weighting by the *rounded* cent shares (412/411/411) would give `[34384, 34301, 34301]`. The code uses the exact proportions, which satisfies both AC-6 and the intent of R17. |
 
 ---
 
@@ -226,42 +227,42 @@ Rows P1-1 to P1-10 are the Phase 1 checks; each one de-risks the spec ACs shown 
 | P1-8 UPI link in GPay/PhonePe/Paytm + QR [AC-14, AC-15] | Phone | 1 | Pending (human) | `/lab/upi` ready (link, QR, copy UPI ID); phone test is 1.17 |
 | P1-9 PWA installs on Android [AC-40] | Phone | 1 | Pending (human) | manifest + 4 icons served (200 locally); install test is 1.19 |
 | P1-10 No secrets in `.next/static` [AC-42] | Script | 1 | Pass | `grep -rE "sb_secret_\|AIza" .next/static` → no matches |
-| AC-1 | Unit | 2 | Not run | |
-| AC-2 | Unit | 2 | Not run | |
-| AC-3 | Unit | 2 | Not run | |
-| AC-4 | Unit | 2 | Not run | |
-| AC-5 | Unit | 2 | Not run | |
-| AC-6 | Unit | 2 | Not run | |
-| AC-7 | Unit | 2 | Not run | |
+| AC-1 | Unit | 2 | Pass | tests/unit/splits.test.ts › AC-1 (equal ₹100/3, 100 paise/7); tests/unit/money.test.ts › AC-1 |
+| AC-2 | Unit | 2 | Pass | tests/unit/splits.test.ts › AC-2 (percent 999 → [499,250,250]; shares 1001 → [501,250,250]) |
+| AC-3 | Unit | 2 | Pass | tests/unit/splits.test.ts › AC-3 (EXACT_MISMATCH diff 1; PERCENT_MISMATCH 99.99) |
+| AC-4 | Unit | 2 | Pass | tests/unit/splits.test.ts › AC-4 (3 cases incl. multi-payer and soft delete) |
+| AC-5 | Unit | 2 | Pass | tests/unit/invariants.test.ts › AC-5 (1,000 groups, >10,000 expenses, 5 split types, 5 currencies) |
+| AC-6 | Unit | 2 | Pass | tests/unit/currency.test.ts › AC-6 (USD 102986 → [34329,34329,34328]; THB 2362; JPY 56120). See SC-3 |
+| AC-7 | Unit | 2 | Pass | tests/unit/currency.test.ts › AC-7 (timeout → RATE_UNAVAILABLE; manual rate source = manual) |
 | AC-8 | Deploy | 6 | Not run | |
-| AC-9 | Unit | 2 | Not run | |
-| AC-10 | Unit | 2 | Not run | |
-| AC-11 | Unit | 2 | Not run | |
-| AC-12 | Unit | 2 | Not run | |
-| AC-13 | Unit | 2 | Not run | |
+| AC-9 | Unit | 2 | Pass | tests/unit/simplify.test.ts › AC-9 (greedy 4 exact sequence; optimal 3 exact sequence; both zero balances) |
+| AC-10 | Unit | 2 | Pass | tests/unit/simplify.test.ts › AC-10 (naive 3, greedy 1, optimal 1) |
+| AC-11 | Unit | 2 | Pass | tests/unit/simplify.test.ts › AC-11 (edge cases; 300 random n ≤ 8 = brute force) |
+| AC-12 | Unit | 2 | Pass | tests/unit/simplify.test.ts › AC-12 (18 balances well under 2 s; 19 → greedy/null; deterministic) |
+| AC-13 | Unit | 2 | Pass | tests/unit/misc.test.ts › AC-13 (exact link string; UPI ID accept/reject list) |
 | AC-14 | Phone | 4 | Not run | |
 | AC-15 | Desktop + Phone | 4 | Not run | |
 | AC-16 | Deploy | 4 | Not run | |
-| AC-17 | Unit | 2 | Not run | |
-| AC-18 | Unit | 2 | Not run | |
-| AC-19 | Unit | 2 | Not run | |
+| AC-17 | Unit | 2 | Pass | tests/unit/receipt.test.ts › AC-17 (diff 0 / +150; 100 not flagged, 101 flagged) |
+| AC-18 | Unit | 2 | Pass | tests/unit/receipt.test.ts › AC-18 (₹840 and ₹845 cases, shared ₹100 item, negative remainder) |
+| AC-19 | Unit | 2 | Pass | tests/unit/receipt.test.ts › AC-19 (12.5 → 1250; missing items / negative rejected; timeout → EXTRACT_FAILED) |
 | AC-20 | Phone + Desktop | 5 | Not run | |
 | AC-21 | Script | 5 | Not run | |
 | AC-22 | Deploy | 5 | Not run | |
-| AC-23 | Unit | 2 | Not run | |
+| AC-23 | Unit | 2 | Pass | tests/unit/receipt.test.ts › AC-23 (P 0.667, R 0.5, F1 0.571; Paneer Tikka match) |
 | AC-24 | Script + Deploy | 7 | Not run | |
 | AC-25 (Should) | Script | 7 | Not run | |
-| AC-26 | Unit + Deploy | 2 / 7 | Not run | |
+| AC-26 | Unit + Deploy | 2 / 7 | Partial | unit part Pass: tests/unit/misc.test.ts › AC-26 (10,000 unique tokens); 404 part is Deploy (Phase 3 route + human) |
 | AC-27 | Desktop + Phone | 4 | Not run | |
 | AC-28 | Deploy | 4 | Not run | |
 | AC-29 | Deploy | 4 | Not run | |
 | AC-30 (Should) | Deploy | 4 | Not run | |
 | AC-31 | Deploy | 6 | Not run | |
-| AC-32 | Unit | 2 | Not run | |
+| AC-32 | Unit | 2 | Pass | tests/unit/misc.test.ts › AC-32 (BOM + header, formula guard, RFC 4180, deleted rows absent) |
 | AC-33 (Should) | Desktop | 6 | Not run | |
-| AC-34 (Should) | Unit | 2 | Not run | |
+| AC-34 (Should) | Unit | 2 | Pass | tests/unit/misc.test.ts › AC-34 (Jan 31 clamping; idempotent second call) |
 | AC-35 (Should) | Deploy | 6 | Not run | |
-| AC-36 | Unit | 2 | Not run | |
+| AC-36 | Unit | 2 | Pass | tests/unit/misc.test.ts › AC-36 (seed balances exact; greedy 4, optimal 3) |
 | AC-37 | Desktop | 6 / 7 | Not run | |
 | AC-38 | Deploy | 6 | Not run | |
 | AC-39 | Phone + Desktop | 7 | Not run | |
