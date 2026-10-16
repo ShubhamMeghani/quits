@@ -4,7 +4,7 @@
 
 | | |
 |---|---|
-| Version | v0.9 |
+| Version | v1.0 |
 | Date | 2026-10-16 |
 | Status | Ready for build. All open questions are decided (§10.1). Build order is in `PLAN.md`. |
 | Course | Applied Data Science & AI, IISc |
@@ -480,7 +480,7 @@ Requirement IDs are stable. R59 and R60 were added in v0.5 and sit in their topi
   - It returns description, amount, currency, payer, participants, split type and values, category and date.
   - Voice input works through the phone keyboard's mic; Quits has no speech code.
   - When the Add expense screen opens for a new expense, the cursor starts in the "Type it" box (D-25).
-  - On a transient model error, the route retries the Gemini call **once**, inside the same 15 s limit (R64). There is no retry after a timeout or after invalid output.
+  - On a model error (e.g. HTTP 503 "high demand"), the route waits about 1 s and retries the Gemini call **once**, inside the same 20 s limit (R64, D-29). There is no retry after a timeout or after invalid output.
 - **R62 [Must]** THE SYSTEM SHALL map names deterministically in the pure module `lib/nlparse.ts`:
   - A name matches a member when it equals the member's first name or full name, ignoring case and surrounding spaces.
   - "me", "I", "main", "maine", "mujhe" and "mera" (any case) mean the current member. Matching these words is done in code, not left to Gemini (D-24).
@@ -492,13 +492,17 @@ Requirement IDs are stable. R59 and R60 were added in v0.5 and sit in their topi
   - **Date:** must be a real date that is not in the future and not more than a year in the past.
   - **Category:** must be from the R8 list.
   - **Split:** exact amounts must sum to the total and percentages to 100.00. If the split is invalid, or names any blank participant, the split values are left blank.
-- **R64 [Must]** THE SYSTEM SHALL NOT save anything from type-to-add. It only fills the normal expense form; blank or ambiguous fields are highlighted and must be completed. The user reviews and saves through R8–R10. A parse that fails or times out (15 s) shows "Couldn't understand that — fill in the form" and leaves the form unchanged.
+- **R64 [Must]** THE SYSTEM SHALL NOT save anything from type-to-add. It only fills the normal expense form; blank or ambiguous fields are highlighted and must be completed. The user reviews and saves through R8–R10. The form is never changed by a failed parse.
+  - IF the parse fails or times out (**20 s**), THEN THE SYSTEM SHALL show "Couldn't read that — try again", a **Try again** button that resends the same text, and a smaller "or fill in the form" (D-28, D-29).
+  - WHILE a parse has been running for more than about 6 s, THE SYSTEM SHALL show "Still reading… Gemini is busy".
+  - The daily-limit reply (R65) shows "Daily limit reached — fill in the form", with no Try again.
 - **R65 [Must]** IF a group has made more than `NL_LIMIT_PER_GROUP` (default 50) type-to-add calls today (IST), or the app has exceeded the shared daily AI limit (`SCAN_LIMIT_PER_APP`, counting scans and type-to-add together), THEN THE SYSTEM SHALL reply 429 without calling Gemini. IF the text is empty or longer than 300 chars, THEN it SHALL reply 400.
 - **R66 [Must]** THE SYSTEM SHALL include `eval/nl/` with about 30 sentences, each with a ground-truth JSON. About 5 are deliberately ambiguous, where the correct result is a blank field.
   - WHEN `npm run eval:nl` is run, it SHALL use the same prompt, schema, model and post-processing as the app.
   - It SHALL report field accuracy (amount, payer, participant set, split type), the exact-match rate, and the correct-abstention rate on the ambiguous sentences.
   - **Exact match** means amount, payer and participant set are correct, and the two splits are **equivalent** (D-27): they give every participant the same amount in paise. Split-type accuracy is still reported separately.
   - It SHALL write `eval/nl/results.json` and `eval/nl/REPORT.md`, and `/about` SHALL show the results next to the receipt eval, with no live call.
+  - For every sentence it SHALL record the predicted values, and for every failure the reason (`timeout`, `model_error` or `invalid_output`) with Gemini's real HTTP status when there is one (D-30). Earlier runs are kept alongside the latest one, never overwritten.
 - **R67 [Should]** THE SYSTEM SHALL reach amount accuracy ≥ 95% and an exact-match rate ≥ 80% on the NL eval set.
 
 ### 5.16 WhatsApp share and nudge (v0.7)
@@ -699,7 +703,7 @@ Unless marked *Should*, every AC is Must. Amounts are in ₹; the tests use pais
   - Category "Party" → blank.
 - **AC-50 [Unit] (R61, R64, R65):** with the Gemini client mocked:
   - The route returns the expected prefill for "Rahul Singh paid 600 for pizza, split with Amit and me", and calls no write function.
-  - 301 chars → 400. The per-group limit exceeded → 429, with no Gemini call. A mocked timeout → 502 with the "Couldn't understand that" message.
+  - 301 chars → 400. The per-group limit exceeded → 429, with no Gemini call. A mocked timeout → 502 with the "Couldn't read that — try again" message. A mocked 503 is retried once after the delay and reports `status: 503` if it fails again.
 - **AC-51 [Script + Deploy] (R66):**
   - `eval/nl/` holds about 30 sentence/ground-truth pairs: 20 drafted by Claude (about 5 ambiguous) and about 10 written by the human, all reviewed by the human.
   - `npm run eval:nl` exits 0 and writes `eval/nl/results.json` with `model, runAt, n, amountAccuracy, payerAccuracy, participantsAccuracy, splitTypeAccuracy, exactMatchRate, abstentionRate, perSentence[]`, plus `REPORT.md`.
@@ -807,6 +811,9 @@ Unless marked *Should*, every AC is Must. Amounts are in ₹; the tests use pais
 | D-25 | Build (2026-10-17) | On the Add expense screen for a new expense, the cursor starts in the **"Type it"** box, not Description (R61). |
 | D-26 | Build (2026-10-17) | Share and reminder messages in **non-INR groups** use that currency's standard format (e.g. `$12.50`). The ₹ wording of D-22 applies to INR groups (R70, AC-54). |
 | D-27 | NL review (2026-10-17) | In the NL eval, two splits **match** when they give every participant the same amount in paise (the R13 allocation of the total, in member order). So shares 2:2:1:1:1 of ₹140 equals exact ₹40/40/20/20/20. When the amount is blank, splits match only if they have the same type and values. A blank split (invalid values) matches only a blank split. Split-type accuracy is still reported on its own. |
+| D-28 | Investigation (2026-10-17) | A failed type-to-add parse is usually temporary (Gemini 503 "high demand"), so the message is "Couldn't read that — try again", with a **Try again** button (resends the same text) and a smaller "or fill in the form". After about 6 s the box says "Still reading… Gemini is busy". The daily limit keeps its own message, without Try again (R64). |
+| D-29 | Investigation (2026-10-17) | The type-to-add limit rises from 15 s to **20 s**, and the single retry waits about 1 s first. In a 60-call probe no answered call took longer than 12.4 s, and every error was HTTP 503, some arriving after 12 s. So 15 s left the retry too little time (R61, R64). The thinking level stays at the model default: it used 0 thinking tokens either way, and `thinkingBudget: 0` is rejected. |
+| D-30 | Investigation (2026-10-17) | Failures record Gemini's real HTTP status: in the route log, and per sentence in the NL eval results (e.g. `model_error 503`) (R66). No fallback model (Q4 rejected). |
 | D-22 | OQ-19 (2026-10-17) | Share and reminder messages use **"₹"** (e.g. `₹1,20,000`), not "Rs", to match the rest of the app. The exact strings in §4.3 are updated. |
 | D-17 | OQ-17 | When Frankfurter v2 has no rate for the exact date, use the most recent rate on or before `expense_date`, and store and show its `fx_rate_date` (R16). |
 
@@ -827,3 +834,4 @@ None open. New questions found during the build are added here with a proposed d
 | v0.7 | 2026-10-17 | **Two features added; specification only, no code yet.**<br>**Feature A, type-to-add (Must):** R61 "Type it" box and parse route (Gemini `responseJsonSchema`); R62 deterministic name matching and "me" words in `lib/nlparse.ts`, never creating members; R63 validation, leaving invalid values blank; R64 never saves, only fills the form; R65 per-group NL limit (`NL_LIMIT_PER_GROUP`) plus the shared daily AI limit; R66 NL eval (`eval/nl/`, about 30 sentences, field accuracy, exact match, abstention) shown on `/about`. R67 (Should): targets of amount ≥ 95% and exact match ≥ 80%.<br>**Feature B, WhatsApp share and nudge (Should):** R68 Share summary (Web Share, `wa.me`, Copy), R69 Remind (no stored phone numbers), R70 `lib/share.ts` with exact strings.<br>**New ACs:** AC-47 to AC-55.<br>**Elsewhere:** §1, §2 (S8, S9), §3 env, §4.2, §4.3 (NL schema, message formats), deliverables, non-goals, K14, K15, K11 cut order, and OQ-18/OQ-19 with defaults.<br>**Decisions (same day):** OQ-18 → D-21 (the payer is included unless the text excludes them); OQ-19 → D-22 ("₹" in share messages, not "Rs"; §4.3, S9, R70 and AC-54 updated, with AC-54 also checking that "₹" encodes as `%E2%82%B9`).<br>**Counts:** 70 requirements (49 Must, 21 Should; R46 partially met); 55 ACs (45 Must, 10 Should). |
 | v0.8 | 2026-10-17 | **Decisions from the Phase 8 build.** D-23: everyone/all/sab/sabhi mean all active members. D-24: "main" added to the me-words, matched in code. D-25: the cursor starts in "Type it" on a new expense. D-26: non-INR groups' share messages use the currency's standard format. R61 now records the single retry on a transient Gemini error within the 15 s limit. R62, R70, §4.3, AC-48 and AC-54 updated. Counts unchanged: 70 requirements (49 Must, 21 Should), 55 ACs (45 Must, 10 Should). |
 | v0.9 | 2026-10-17 | **NL eval review.** D-21 clarified: an explicit per-person list of shares or amounts is the complete split, so the payer is not added; a "treat" means the payer is the only participant. The NL prompt gets one matching line, added before the first eval run. D-27: NL splits are scored by the amounts they give each participant (in paise), with split-type accuracy still reported separately; R66 updated. Ground truth: human-09 is now participants = Rahul only and not ambiguous; the leading "." is removed from human-06 and human-07; all 30 sentences reviewed. Counts unchanged: 70 requirements, 55 ACs. |
+| v1.0 | 2026-10-17 | **Type-to-add reliability, after investigating the eval failures** (all errors were HTTP 503 "high demand"; no 429; thinking is not the cause).<br>**D-28 (Q1):** "Couldn't read that — try again" with a Try again button, a smaller "or fill in the form", and "Still reading… Gemini is busy" after about 6 s.<br>**D-29 (Q2):** the limit rises from 15 s to 20 s, and the single retry waits about 1 s.<br>**D-30 (Q3):** Gemini's real HTTP status is recorded in the route log and in the NL eval results.<br>**Updated:** R61, R64 (wording and limit), R66 (failure reasons recorded; earlier runs kept), AC-50.<br>**Not applied:** Q4 (fallback model); the thinking level stays at the default.<br>Counts unchanged: 70 requirements (49 Must, 21 Should), 55 ACs. |

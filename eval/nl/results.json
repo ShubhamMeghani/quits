@@ -1,42 +1,58 @@
 {
   "status": "ok",
-  "run": 2,
+  "run": 3,
   "evalSetupFixes": [
-    "P1: each sentence goes through the app's own parse handler (same prompt, schema, model and post-processing, 15 s deadline, one retry on a transient model error), with ~2 s between calls. Run 1 called Gemini directly, without the app's retry, back-to-back."
+    "Q3 (D-30): every failure now records the reason with Gemini's real HTTP status (e.g. model_error 503), and every sentence its predicted values. Run 2's setup is otherwise unchanged: the app's own parse handler, ~2 s between calls."
   ],
   "codeFixes": [
-    "P3: two names for the same person in one split (e.g. \"me\" and \"Aarav\") now leave the split blank instead of being added together. Found by the eval (human-05 in run 1)."
+    "Q2 (D-29): the type-to-add limit rises from 15 s to 20 s, and the single retry now waits about 1 s first. Prompted by the investigation of runs 1-2: all errors were HTTP 503 \"high demand\", some arriving after 12 s, which left the retry too little time.",
+    "Q1 (D-28): the UI now says \"Couldn't read that — try again\" with a Try again button. This changes nothing the eval measures.",
+    "Carried over from run 2: P3 (two names for one person in a split leave the split blank)."
   ],
-  "blindness": "Run 2 is NOT blind for P3: that fix was made after seeing run 1's result on human-05. P1 changes how the eval calls the app, not the app. The prompt is unchanged since run 1 (P4 was not applied).",
+  "blindness": "Run 3 is NOT blind for P3 (from run 1) or for Q2 (chosen after seeing runs 1-2's failures). The prompt is unchanged since run 1 (P4 not applied); the thinking level stays at the model default (Q4 not applied).",
   "model": "gemini-3.5-flash-lite",
-  "runAt": "2026-10-16T18:47:11.794Z",
+  "runAt": "2026-10-16T19:35:36.346Z",
   "authors": {
     "claude": 20,
     "human": 10
   },
   "n": 30,
-  "amountAccuracy": 0.867,
-  "payerAccuracy": 0.833,
-  "participantsAccuracy": 0.9,
-  "splitTypeAccuracy": 0.9,
-  "exactMatchRate": 0.833,
+  "amountAccuracy": 0.767,
+  "payerAccuracy": 0.767,
+  "participantsAccuracy": 0.8,
+  "splitTypeAccuracy": 0.8,
+  "exactMatchRate": 0.767,
   "ambiguousN": 7,
-  "abstentionRate": 0.714,
-  "meanLatencySec": 6.276,
+  "abstentionRate": 0.571,
+  "meanLatencySec": 9.367,
   "perSentence": [
     {
       "id": "claude-01",
-      "amount": false,
-      "payer": false,
-      "participants": false,
-      "splitType": false,
-      "exact": false,
+      "amount": true,
+      "payer": true,
+      "participants": true,
+      "splitType": true,
+      "exact": true,
       "ambiguous": false,
       "abstained": null,
-      "error": true,
-      "latencySec": 15.026,
-      "status": 502,
-      "reason": "timeout"
+      "error": false,
+      "latencySec": 4.667,
+      "status": 200,
+      "predicted": {
+        "amount": 600,
+        "currency": "INR",
+        "payer": "Rahul",
+        "participants": [
+          "Aarav",
+          "Rahul",
+          "Amit"
+        ],
+        "splitType": "equal",
+        "splitValues": null,
+        "category": "Food & Drinks",
+        "date": null,
+        "flags": []
+      }
     },
     {
       "id": "claude-02",
@@ -48,7 +64,7 @@
       "ambiguous": false,
       "abstained": null,
       "error": false,
-      "latencySec": 5.453,
+      "latencySec": 7.818,
       "status": 200,
       "predicted": {
         "amount": 450,
@@ -78,7 +94,7 @@
       "ambiguous": false,
       "abstained": null,
       "error": false,
-      "latencySec": 7.183,
+      "latencySec": 3.734,
       "status": 200,
       "predicted": {
         "amount": 1200,
@@ -98,33 +114,17 @@
     },
     {
       "id": "claude-04",
-      "amount": true,
-      "payer": true,
-      "participants": true,
-      "splitType": true,
-      "exact": true,
+      "amount": false,
+      "payer": false,
+      "participants": false,
+      "splitType": false,
+      "exact": false,
       "ambiguous": false,
       "abstained": null,
-      "error": false,
-      "latencySec": 4.631,
-      "status": 200,
-      "predicted": {
-        "amount": 999,
-        "currency": "INR",
-        "payer": "Priya",
-        "participants": [
-          "Aarav",
-          "Priya",
-          "Rahul",
-          "Amit",
-          "Sneha"
-        ],
-        "splitType": "equal",
-        "splitValues": null,
-        "category": "Utilities",
-        "date": null,
-        "flags": []
-      }
+      "error": true,
+      "latencySec": 20.015,
+      "status": 502,
+      "reason": "timeout"
     },
     {
       "id": "claude-05",
@@ -136,7 +136,7 @@
       "ambiguous": false,
       "abstained": null,
       "error": false,
-      "latencySec": 4.621,
+      "latencySec": 6.066,
       "status": 200,
       "predicted": {
         "amount": 300,
@@ -163,7 +163,7 @@
       "ambiguous": false,
       "abstained": null,
       "error": false,
-      "latencySec": 4.712,
+      "latencySec": 8.896,
       "status": 200,
       "predicted": {
         "amount": 1000,
@@ -179,7 +179,7 @@
           "Rahul": "600.00"
         },
         "category": "Food & Drinks",
-        "date": null,
+        "date": "2026-10-17",
         "flags": []
       }
     },
@@ -193,7 +193,7 @@
       "ambiguous": false,
       "abstained": null,
       "error": false,
-      "latencySec": 6.046,
+      "latencySec": 13.682,
       "status": 200,
       "predicted": {
         "amount": 3000,
@@ -225,7 +225,7 @@
       "ambiguous": false,
       "abstained": null,
       "error": false,
-      "latencySec": 4.55,
+      "latencySec": 3.913,
       "status": 200,
       "predicted": {
         "amount": 3000,
@@ -249,31 +249,17 @@
     },
     {
       "id": "claude-09",
-      "amount": true,
-      "payer": true,
-      "participants": true,
-      "splitType": true,
-      "exact": true,
+      "amount": false,
+      "payer": false,
+      "participants": false,
+      "splitType": false,
+      "exact": false,
       "ambiguous": false,
       "abstained": null,
-      "error": false,
-      "latencySec": 4.896,
-      "status": 200,
-      "predicted": {
-        "amount": 750,
-        "currency": "INR",
-        "payer": "Priya",
-        "participants": [
-          "Aarav",
-          "Priya",
-          "Sneha"
-        ],
-        "splitType": "equal",
-        "splitValues": null,
-        "category": "Food & Drinks",
-        "date": "2026-10-16",
-        "flags": []
-      }
+      "error": true,
+      "latencySec": 20.014,
+      "status": 502,
+      "reason": "timeout"
     },
     {
       "id": "claude-10",
@@ -285,7 +271,7 @@
       "ambiguous": false,
       "abstained": null,
       "error": false,
-      "latencySec": 4.623,
+      "latencySec": 4.112,
       "status": 200,
       "predicted": {
         "amount": 40,
@@ -312,7 +298,7 @@
       "ambiguous": false,
       "abstained": null,
       "error": false,
-      "latencySec": 5.33,
+      "latencySec": 3.674,
       "status": 200,
       "predicted": {
         "amount": 899,
@@ -334,30 +320,18 @@
     },
     {
       "id": "claude-12",
-      "amount": true,
-      "payer": true,
-      "participants": true,
-      "splitType": true,
-      "exact": true,
+      "amount": false,
+      "payer": false,
+      "participants": false,
+      "splitType": false,
+      "exact": false,
       "ambiguous": false,
       "abstained": null,
-      "error": false,
-      "latencySec": 7.575,
-      "status": 200,
-      "predicted": {
-        "amount": 500,
-        "currency": "INR",
-        "payer": "Sneha",
-        "participants": [
-          "Rahul",
-          "Sneha"
-        ],
-        "splitType": "equal",
-        "splitValues": null,
-        "category": "Transport",
-        "date": null,
-        "flags": []
-      }
+      "error": true,
+      "latencySec": 4.447,
+      "status": 502,
+      "reason": "model_error",
+      "geminiStatus": 503
     },
     {
       "id": "claude-13",
@@ -369,7 +343,7 @@
       "ambiguous": false,
       "abstained": null,
       "error": false,
-      "latencySec": 5.052,
+      "latencySec": 4.588,
       "status": 200,
       "predicted": {
         "amount": 1250,
@@ -396,7 +370,7 @@
       "ambiguous": false,
       "abstained": null,
       "error": false,
-      "latencySec": 6.016,
+      "latencySec": 3.167,
       "status": 200,
       "predicted": {
         "amount": 2000,
@@ -418,17 +392,29 @@
     },
     {
       "id": "claude-15",
-      "amount": false,
-      "payer": false,
-      "participants": false,
-      "splitType": false,
-      "exact": false,
+      "amount": true,
+      "payer": true,
+      "participants": true,
+      "splitType": true,
+      "exact": true,
       "ambiguous": false,
       "abstained": null,
-      "error": true,
-      "latencySec": 4.914,
-      "status": 502,
-      "reason": "model_error"
+      "error": false,
+      "latencySec": 19.23,
+      "status": 200,
+      "predicted": {
+        "amount": 120,
+        "currency": "INR",
+        "payer": "Rahul",
+        "participants": [
+          "Aarav"
+        ],
+        "splitType": "equal",
+        "splitValues": null,
+        "category": "Transport",
+        "date": null,
+        "flags": []
+      }
     },
     {
       "id": "claude-16",
@@ -440,7 +426,7 @@
       "ambiguous": true,
       "abstained": true,
       "error": false,
-      "latencySec": 4.649,
+      "latencySec": 7.052,
       "status": 200,
       "predicted": {
         "amount": 500,
@@ -453,7 +439,7 @@
         "splitType": "equal",
         "splitValues": null,
         "category": "Food & Drinks",
-        "date": null,
+        "date": "2026-10-17",
         "flags": [
           "payer:ambiguous(Rahul)",
           "participants:ambiguous(Rahul)",
@@ -471,7 +457,7 @@
       "ambiguous": true,
       "abstained": true,
       "error": false,
-      "latencySec": 4.842,
+      "latencySec": 4.183,
       "status": 200,
       "predicted": {
         "amount": 300,
@@ -501,7 +487,7 @@
       "ambiguous": true,
       "abstained": true,
       "error": false,
-      "latencySec": 4.157,
+      "latencySec": 14.339,
       "status": 200,
       "predicted": {
         "amount": null,
@@ -530,7 +516,7 @@
       "ambiguous": true,
       "abstained": true,
       "error": false,
-      "latencySec": 8.414,
+      "latencySec": 7.387,
       "status": 200,
       "predicted": {
         "amount": 900,
@@ -551,32 +537,18 @@
     },
     {
       "id": "claude-20",
-      "amount": true,
-      "payer": true,
-      "participants": true,
-      "splitType": true,
-      "exact": true,
+      "amount": false,
+      "payer": false,
+      "participants": false,
+      "splitType": false,
+      "exact": false,
       "ambiguous": true,
-      "abstained": true,
-      "error": false,
-      "latencySec": 13.695,
-      "status": 200,
-      "predicted": {
-        "amount": 450,
-        "currency": "INR",
-        "payer": null,
-        "participants": [
-          "Aarav",
-          "Amit"
-        ],
-        "splitType": "equal",
-        "splitValues": null,
-        "category": "Transport",
-        "date": null,
-        "flags": [
-          "payer:missing"
-        ]
-      }
+      "abstained": false,
+      "error": true,
+      "latencySec": 20.015,
+      "status": 502,
+      "reason": "timeout",
+      "geminiStatus": 503
     },
     {
       "id": "human-01",
@@ -588,7 +560,7 @@
       "ambiguous": false,
       "abstained": null,
       "error": false,
-      "latencySec": 5.936,
+      "latencySec": 16.582,
       "status": 200,
       "predicted": {
         "amount": 300,
@@ -604,7 +576,7 @@
         "splitType": "equal",
         "splitValues": null,
         "category": "Food & Drinks",
-        "date": null,
+        "date": "2026-10-17",
         "flags": []
       }
     },
@@ -618,7 +590,7 @@
       "ambiguous": false,
       "abstained": null,
       "error": false,
-      "latencySec": 5.309,
+      "latencySec": 5.127,
       "status": 200,
       "predicted": {
         "amount": 250,
@@ -646,7 +618,7 @@
       "ambiguous": false,
       "abstained": null,
       "error": false,
-      "latencySec": 5.062,
+      "latencySec": 5.79,
       "status": 200,
       "predicted": {
         "amount": 1600,
@@ -674,7 +646,7 @@
       "ambiguous": false,
       "abstained": null,
       "error": false,
-      "latencySec": 5.248,
+      "latencySec": 4.558,
       "status": 200,
       "predicted": {
         "amount": 1000,
@@ -704,10 +676,10 @@
       "ambiguous": true,
       "abstained": false,
       "error": false,
-      "latencySec": 5.73,
+      "latencySec": 4.789,
       "status": 200,
       "predicted": {
-        "amount": null,
+        "amount": 20,
         "currency": "INR",
         "payer": "Aarav",
         "participants": [
@@ -718,42 +690,31 @@
           "Sneha"
         ],
         "splitType": "shares",
-        "splitValues": null,
+        "splitValues": {
+          "Aarav": "2",
+          "Priya": "2",
+          "Rahul": "1",
+          "Amit": "1",
+          "Sneha": "1"
+        },
         "category": "Food & Drinks",
         "date": "2026-10-17",
-        "flags": [
-          "amount:missing",
-          "split:duplicate(Aarav)",
-          "split:invalid"
-        ]
+        "flags": []
       }
     },
     {
       "id": "human-06",
-      "amount": true,
+      "amount": false,
       "payer": false,
-      "participants": true,
-      "splitType": true,
+      "participants": false,
+      "splitType": false,
       "exact": false,
       "ambiguous": true,
       "abstained": false,
-      "error": false,
-      "latencySec": 5.153,
-      "status": 200,
-      "predicted": {
-        "amount": null,
-        "currency": "INR",
-        "payer": "Aarav",
-        "participants": [],
-        "splitType": "equal",
-        "splitValues": null,
-        "category": "Entertainment",
-        "date": null,
-        "flags": [
-          "amount:missing",
-          "participants:missing"
-        ]
-      }
+      "error": true,
+      "latencySec": 20.012,
+      "status": 502,
+      "reason": "timeout"
     },
     {
       "id": "human-07",
@@ -765,7 +726,7 @@
       "ambiguous": false,
       "abstained": null,
       "error": false,
-      "latencySec": 4.989,
+      "latencySec": 7.883,
       "status": 200,
       "predicted": {
         "amount": 1500,
@@ -795,7 +756,7 @@
       "ambiguous": false,
       "abstained": null,
       "error": false,
-      "latencySec": 4.713,
+      "latencySec": 4.583,
       "status": 200,
       "predicted": {
         "amount": 250,
@@ -815,20 +776,6 @@
     },
     {
       "id": "human-09",
-      "amount": false,
-      "payer": false,
-      "participants": false,
-      "splitType": false,
-      "exact": false,
-      "ambiguous": false,
-      "abstained": null,
-      "error": true,
-      "latencySec": 15.003,
-      "status": 502,
-      "reason": "timeout"
-    },
-    {
-      "id": "human-10",
       "amount": true,
       "payer": true,
       "participants": true,
@@ -837,15 +784,14 @@
       "ambiguous": false,
       "abstained": null,
       "error": false,
-      "latencySec": 4.761,
+      "latencySec": 10.687,
       "status": 200,
       "predicted": {
-        "amount": 200,
+        "amount": 1000,
         "currency": "INR",
-        "payer": "Aarav",
+        "payer": "Rahul",
         "participants": [
-          "Aarav",
-          "Sneha"
+          "Rahul"
         ],
         "splitType": "equal",
         "splitValues": null,
@@ -853,6 +799,20 @@
         "date": null,
         "flags": []
       }
+    },
+    {
+      "id": "human-10",
+      "amount": false,
+      "payer": false,
+      "participants": false,
+      "splitType": false,
+      "exact": false,
+      "ambiguous": false,
+      "abstained": null,
+      "error": true,
+      "latencySec": 20.008,
+      "status": 502,
+      "reason": "timeout"
     }
   ]
 }

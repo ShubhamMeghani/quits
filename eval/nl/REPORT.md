@@ -1,5 +1,69 @@
 # Type-to-add eval
 
+## Run 3 (main result)
+
+- Model: `gemini-3.5-flash-lite` · run 2026-10-16T19:35:36.346Z
+- Sentences: 30 (7 ambiguous) · by Claude 20, by the human 10
+
+**Eval-setup fixes since run 1 (how the eval calls the app):**
+
+- Q3 (D-30): every failure now records the reason with Gemini's real HTTP status (e.g. model_error 503), and every sentence its predicted values. Run 2's setup is otherwise unchanged: the app's own parse handler, ~2 s between calls.
+
+**Code fixes found by the eval (the app changed):**
+
+- Q2 (D-29): the type-to-add limit rises from 15 s to 20 s, and the single retry now waits about 1 s first. Prompted by the investigation of runs 1-2: all errors were HTTP 503 "high demand", some arriving after 12 s, which left the retry too little time.
+- Q1 (D-28): the UI now says "Couldn't read that — try again" with a Try again button. This changes nothing the eval measures.
+- Carried over from run 2: P3 (two names for one person in a split leave the split blank).
+
+**Blindness:** Run 3 is NOT blind for P3 (from run 1) or for Q2 (chosen after seeing runs 1-2's failures). The prompt is unchanged since run 1 (P4 not applied); the thinking level stays at the model default (Q4 not applied).
+
+| Metric | Value |
+|---|---|
+| Amount accuracy | 76.7% |
+| Payer accuracy | 76.7% |
+| Participant-set accuracy | 80.0% |
+| Split-type accuracy | 80.0% |
+| Exact match (D-27) | 76.7% |
+| Correct abstention (ambiguous) | 57.1% |
+| Mean latency | 9.37 s |
+
+| Sentence | Amount | Payer | Participants | Split type | Exact | Abstained | Predicted (amount · payer · participants · split) |
+|---|---|---|---|---|---|---|---|
+| claude-01 | ✓ | ✓ | ✓ | ✓ | ✓ | — | 600 · Rahul · Aarav, Rahul, Amit · equal |
+| claude-02 | ✓ | ✓ | ✓ | ✓ | ✓ | — | 450 · Aarav · Aarav, Priya, Rahul, Amit, Sneha · equal |
+| claude-03 | ✓ | ✓ | ✓ | ✓ | ✓ | — | 1200 · Aarav · Aarav, Priya, Sneha · equal |
+| claude-04 (failed) | ✗ | ✗ | ✗ | ✗ | ✗ | — | no answer (timeout, 20.015 s) |
+| claude-05 | ✓ | ✓ | ✓ | ✓ | ✓ | — | 300 · Amit · Aarav, Amit · equal |
+| claude-06 | ✓ | ✓ | ✓ | ✓ | ✓ | — | 1000 · Sneha · Aarav, Rahul · exact {"Aarav":"400.00","Rahul":"600.00"} |
+| claude-07 | ✓ | ✓ | ✓ | ✓ | ✓ | — | 3000 · Aarav · Aarav, Priya, Amit · percent {"Aarav":"50","Priya":"25","Amit":"25"} |
+| claude-08 | ✓ | ✓ | ✓ | ✓ | ✓ | — | 3000 · Rahul · Aarav, Priya, Rahul · shares {"Aarav":"1","Priya":"1","Rahul":"2"} |
+| claude-09 (failed) | ✗ | ✗ | ✗ | ✗ | ✗ | — | no answer (timeout, 20.014 s) |
+| claude-10 | ✓ | ✓ | ✓ | ✓ | ✓ | — | 40 · Amit · Aarav, Amit · equal |
+| claude-11 | ✓ | ✓ | ✓ | ✓ | ✓ | — | 899 · Aarav · Aarav, Priya, Rahul, Amit, Sneha · equal |
+| claude-12 (failed) | ✗ | ✗ | ✗ | ✗ | ✗ | — | no answer (model_error, Gemini HTTP 503, 4.447 s) |
+| claude-13 | ✓ | ✓ | ✓ | ✓ | ✓ | — | 1250 · Priya · Priya, Amit · equal |
+| claude-14 | ✓ | ✓ | ✓ | ✓ | ✓ | — | 2000 · Aarav · Aarav, Priya, Rahul, Amit, Sneha · equal |
+| claude-15 | ✓ | ✓ | ✓ | ✓ | ✓ | — | 120 · Rahul · Aarav · equal |
+| claude-16 | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | 500 · — · Aarav, Priya · equal |
+| claude-17 | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | 300 · — · Aarav · equal |
+| claude-18 | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | — · Aarav · Aarav, Priya · equal |
+| claude-19 | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | 900 · Rahul · Aarav, Priya · exact |
+| claude-20 (failed) | ✗ | ✗ | ✗ | ✗ | ✗ | ✗ | no answer (timeout, Gemini HTTP 503, 20.015 s) |
+| human-01 | ✓ | ✓ | ✓ | ✓ | ✓ | — | 300 · Aarav · Aarav, Priya, Rahul, Amit, Sneha · equal |
+| human-02 | ✓ | ✓ | ✓ | ✓ | ✓ | — | 250 · Sneha · Aarav, Priya, Sneha · equal |
+| human-03 | ✓ | ✓ | ✓ | ✓ | ✓ | — | 1600 · Amit · Aarav, Priya, Amit · equal |
+| human-04 | ✓ | ✓ | ✓ | ✓ | ✓ | — | 1000 · Priya · Aarav, Rahul · shares {"Aarav":"1","Rahul":"2"} |
+| human-05 | ✗ | ✗ | ✓ | ✓ | ✗ | ✗ | 20 · Aarav · Aarav, Priya, Rahul, Amit, Sneha · shares {"Aarav":"2","Priya":"2","Rahul":"1","Amit":"1","Sneha":"1"} |
+| human-06 (failed) | ✗ | ✗ | ✗ | ✗ | ✗ | ✗ | no answer (timeout, 20.012 s) |
+| human-07 | ✓ | ✓ | ✓ | ✓ | ✓ | — | 1500 · Amit · Aarav, Priya, Rahul, Amit, Sneha · equal |
+| human-08 | ✓ | ✓ | ✓ | ✓ | ✓ | — | 250 · Sneha · Aarav, Priya, Sneha · equal |
+| human-09 | ✓ | ✓ | ✓ | ✓ | ✓ | — | 1000 · Rahul · Rahul · equal |
+| human-10 (failed) | ✗ | ✗ | ✗ | ✗ | ✗ | — | no answer (timeout, 20.008 s) |
+
+## Run 2 (kept exactly as run; `results-run2.json`)
+
+_Run 2's report section, verbatim (it says "main result" because it was the main result then)._
+
 ## Run 2 (main result)
 
 - Model: `gemini-3.5-flash-lite` · run 2026-10-16T18:47:11.794Z

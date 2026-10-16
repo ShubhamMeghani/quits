@@ -30,6 +30,7 @@ function deps(overrides: Partial<ParseDeps> = {}) {
       });
     },
     today: () => "2026-10-17",
+    retryDelayMs: 0,
     ...overrides,
   };
   return { d, calls };
@@ -83,6 +84,33 @@ describe("AC-50: parse route with a mocked Gemini (R61, R64, R65)", () => {
     expect(await res.json()).toMatchObject({ error: NL_FAILED, reason: "timeout" });
     const junk = deps({ callModel: async () => "nope" });
     expect((await createParseHandler(junk.d)(post({ text: "Amit paid 100" }), "tok")).status).toBe(502);
+  });
+
+  it("D-29/D-30: waits before the single retry; a repeated 503 reports status 503; a timeout after a 503 keeps it", async () => {
+    const http503 = () => Object.assign(new Error("high demand"), { status: 503 });
+    let calls = 0;
+    const stamps: number[] = [];
+    const ok = deps().d.callModel;
+    const delayed = deps({
+      retryDelayMs: 60,
+      callModel: async (req) => {
+        stamps.push(Date.now());
+        if (++calls === 1) throw http503();
+        return ok(req);
+      },
+    });
+    expect((await createParseHandler(delayed.d)(post({ text: "Amit paid 100" }), "tok")).status).toBe(200);
+    expect(stamps[1] - stamps[0]).toBeGreaterThanOrEqual(55);
+    const always503 = deps({ callModel: async () => { throw http503(); } });
+    const res = await createParseHandler(always503.d)(post({ text: "Amit paid 100" }), "tok");
+    expect(res.status).toBe(502);
+    expect(await res.json()).toEqual({ error: "Couldn't read that — try again", reason: "model_error", status: 503 });
+    let n = 0;
+    const thenHang = deps({
+      timeoutMs: 40,
+      callModel: () => (++n === 1 ? Promise.reject(http503()) : new Promise<string>(() => undefined)),
+    });
+    expect(await (await createParseHandler(thenHang.d)(post({ text: "Amit paid 100" }), "tok")).json()).toMatchObject({ reason: "timeout", status: 503 });
   });
 
   it("retries once on a transient model error inside the same deadline", async () => {

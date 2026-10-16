@@ -2,9 +2,9 @@
 //                                          npm run eval:nl -- --check  (validates the files only)
 // Each eval/nl/{claude,human}-NN.json holds one sentence, its group context and the ground truth
 // (see README.md). Since run 2, every sentence goes through the app's own parse handler
-// (server/nl-handler.ts: same prompt, schema, model, 15 s deadline, one retry on a transient error,
+// (server/nl-handler.ts: same prompt, schema, model, 20 s deadline, one delayed retry on a model error,
 // lib/nlparse post-processing), with ~2 s between calls. Writes results.json (latest run) and
-// REPORT.md (latest run, then run 1 kept exactly as run from REPORT-run1.md).
+// REPORT.md (latest run, then earlier runs kept exactly as run from REPORT-run2.md and REPORT-run1.md).
 // The env (GEMINI_API_KEY, GEMINI_MODEL) is loaded by `node --env-file-if-exists`.
 import fs from "node:fs";
 import path from "node:path";
@@ -20,14 +20,16 @@ const FIELDS = ["description", "amount", "currency", "payer", "participants", "s
 
 /** What changed since run 1, labelled as the user asked (results.json and REPORT.md). */
 const RUN = {
-  run: 2,
+  run: 3,
   evalSetupFixes: [
-    "P1: each sentence goes through the app's own parse handler (same prompt, schema, model and post-processing, 15 s deadline, one retry on a transient model error), with ~2 s between calls. Run 1 called Gemini directly, without the app's retry, back-to-back.",
+    "Q3 (D-30): every failure now records the reason with Gemini's real HTTP status (e.g. model_error 503), and every sentence its predicted values. Run 2's setup is otherwise unchanged: the app's own parse handler, ~2 s between calls.",
   ],
   codeFixes: [
-    "P3: two names for the same person in one split (e.g. \"me\" and \"Aarav\") now leave the split blank instead of being added together. Found by the eval (human-05 in run 1).",
+    "Q2 (D-29): the type-to-add limit rises from 15 s to 20 s, and the single retry now waits about 1 s first. Prompted by the investigation of runs 1-2: all errors were HTTP 503 \"high demand\", some arriving after 12 s, which left the retry too little time.",
+    "Q1 (D-28): the UI now says \"Couldn't read that — try again\" with a Try again button. This changes nothing the eval measures.",
+    "Carried over from run 2: P3 (two names for one person in a split leave the split blank).",
   ],
-  blindness: "Run 2 is NOT blind for P3: that fix was made after seeing run 1's result on human-05. P1 changes how the eval calls the app, not the app. The prompt is unchanged since run 1 (P4 was not applied).",
+  blindness: "Run 3 is NOT blind for P3 (from run 1) or for Q2 (chosen after seeing runs 1-2's failures). The prompt is unchanged since run 1 (P4 not applied); the thinking level stays at the model default (Q4 not applied).",
 };
 
 const fileSchema = z.object({
@@ -125,7 +127,7 @@ async function main() {
   const { geminiModel, geminiTextJson } = await import("@/server/gemini");
 
   const scored: NlEvalCase[] = [];
-  const details: Record<string, { status: number; reason?: string; predicted?: Record<string, unknown> }> = {};
+  const details: Record<string, { status: number; reason?: string; geminiStatus?: number; predicted?: Record<string, unknown> }> = {};
   for (const [i, c] of cases.entries()) {
     if (i > 0) await sleep(PACE_MS);
     const members = c.members.map((name, k) => ({ id: uuidFor(k), name, archived: false }));
@@ -146,7 +148,7 @@ async function main() {
       "eval",
     );
     const latencyMs = Date.now() - t0;
-    const body = (await res.json().catch(() => ({}))) as Partial<NlResult> & { reason?: string };
+    const body = (await res.json().catch(() => ({}))) as Partial<NlResult> & { reason?: string; status?: number };
     const predicted = res.ok && body.prefill ? ({ prefill: body.prefill, flags: body.flags ?? [] } as NlResult) : null;
     scored.push({ id: c.id, gold: gold(c, id), predicted, ambiguous: c.ambiguous, blank: c.blank as NlField[], latencyMs, memberOrder: members.map((m) => m.id) });
     // P2: keep what was predicted, with names instead of ids.
@@ -154,6 +156,7 @@ async function main() {
     details[c.id] = {
       status: res.status,
       ...(body.reason ? { reason: body.reason } : {}),
+      ...(body.status ? { geminiStatus: body.status } : {}),
       ...(p
         ? {
             predicted: {
@@ -170,7 +173,7 @@ async function main() {
           }
         : {}),
     };
-    console.log(`${c.id}: ${predicted ? "ok" : `FAILED (${res.status} ${body.reason ?? ""})`} in ${(latencyMs / 1000).toFixed(1)} s`);
+    console.log(`${c.id}: ${predicted ? "ok" : `FAILED (${res.status} ${body.reason ?? ""}${body.status ? ` gemini ${body.status}` : ""})`} in ${(latencyMs / 1000).toFixed(1)} s`);
   }
 
   const s = scoreNl(scored);
@@ -186,7 +189,7 @@ async function main() {
   fs.writeFileSync(path.join(DIR, "results.json"), JSON.stringify(results, null, 2) + "\n");
 
   const show = (v: unknown) => (v === null || v === undefined ? "—" : Array.isArray(v) ? v.join(", ") || "—" : typeof v === "object" ? JSON.stringify(v) : String(v));
-  const run1 = fs.existsSync(path.join(DIR, "REPORT-run1.md")) ? fs.readFileSync(path.join(DIR, "REPORT-run1.md"), "utf8") : "";
+  const kept = (n: number) => (fs.existsSync(path.join(DIR, `REPORT-run${n}.md`)) ? fs.readFileSync(path.join(DIR, `REPORT-run${n}.md`), "utf8").trimEnd() : "");
   const report = [
     "# Type-to-add eval",
     "",
@@ -220,13 +223,19 @@ async function main() {
     ...results.perSentence.map((r) => {
       const d = details[r.id];
       const p = d.predicted as Record<string, unknown> | undefined;
-      const pred = p ? `${show(p.amount)} · ${show(p.payer)} · ${show(p.participants)} · ${show(p.splitType)}${p.splitValues ? ` ${show(p.splitValues)}` : ""}` : `no answer (${d.status} ${d.reason ?? ""})`;
+      const pred = p ? `${show(p.amount)} · ${show(p.payer)} · ${show(p.participants)} · ${show(p.splitType)}${p.splitValues ? ` ${show(p.splitValues)}` : ""}` : `no answer (${d.reason ?? d.status}${d.geminiStatus ? `, Gemini HTTP ${d.geminiStatus}` : ""}, ${r.latencySec} s)`;
       return `| ${r.id}${r.error ? " (failed)" : ""} | ${r.amount ? "✓" : "✗"} | ${r.payer ? "✓" : "✗"} | ${r.participants ? "✓" : "✗"} | ${r.splitType ? "✓" : "✗"} | ${r.exact ? "✓" : "✗"} | ${r.abstained === null ? "—" : r.abstained ? "✓" : "✗"} | ${pred.replace(/\|/g, "\\|")} |`;
     }),
     "",
+    "## Run 2 (kept exactly as run; `results-run2.json`)",
+    "",
+    "_Run 2's report section, verbatim (it says \"main result\" because it was the main result then)._",
+    "",
+    kept(2),
+    "",
     "## Run 1 (kept exactly as run; `results-run1.json`)",
     "",
-    run1.trimEnd(),
+    kept(1),
     "",
   ].join("\n");
   fs.writeFileSync(path.join(DIR, "REPORT.md"), report);

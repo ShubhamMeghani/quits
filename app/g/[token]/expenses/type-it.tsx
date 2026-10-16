@@ -2,7 +2,7 @@
 
 // R61, R64: "Type it" — a sentence in English or Hinglish (or dictated via the keyboard mic) is
 // parsed on the server and only fills the form below. Nothing is saved until the user taps Save.
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button, Notice, textareaClass } from "@/app/_components/ui";
 import { NL_MAX_CHARS, type NlFlag, type NlResult } from "@/lib/nlparse";
 
@@ -34,14 +34,25 @@ export function flagMessage(f: NlFlag, baseCurrency: string): string {
   }
 }
 
+const TRY_AGAIN = "Couldn't read that — try again";
+
 export function TypeIt({ token, me, onFill }: { token: string; me: string | null; onFill: (r: NlResult) => void }) {
   const [text, setText] = useState("");
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  // D-28: a failed parse is usually temporary, so it offers Try again; the daily limit does not.
+  const [error, setError] = useState<{ text: string; retry: boolean } | null>(null);
   const [filled, setFilled] = useState(false);
+  const [slow, setSlow] = useState(false);
+
+  useEffect(() => {
+    if (!busy) return;
+    const t = setTimeout(() => setSlow(true), 6000);
+    return () => clearTimeout(t);
+  }, [busy]);
 
   const fill = async () => {
     setBusy(true);
+    setSlow(false);
     setError(null);
     setFilled(false);
     try {
@@ -52,15 +63,18 @@ export function TypeIt({ token, me, onFill }: { token: string; me: string | null
       });
       const body = (await res.json().catch(() => ({}))) as Partial<NlResult> & { error?: string };
       if (!res.ok || !body.prefill) {
-        setError(body.error ?? "Couldn't understand that — fill in the form");
+        if (res.status === 429) setError({ text: body.error ?? "Daily limit reached — fill in the form", retry: false });
+        else if (res.status === 400 || res.status === 404) setError({ text: body.error ?? "Check what you typed", retry: false });
+        else setError({ text: TRY_AGAIN, retry: true });
         return;
       }
       onFill({ prefill: body.prefill, flags: body.flags ?? [] });
       setFilled(true);
     } catch {
-      setError("Couldn't understand that — fill in the form");
+      setError({ text: TRY_AGAIN, retry: true });
     } finally {
       setBusy(false);
+      setSlow(false);
     }
   };
 
@@ -88,7 +102,26 @@ export function TypeIt({ token, me, onFill }: { token: string; me: string | null
           {busy ? "Reading…" : "Fill form"}
         </Button>
       </div>
-      {error && <Notice tone="error">{error}</Notice>}
+      {busy && slow && (
+        <p className="text-sm text-muted" role="status">
+          Still reading… Gemini is busy
+        </p>
+      )}
+      {error && (
+        <div className="flex flex-col gap-2">
+          <Notice tone="error">{error.text}</Notice>
+          {error.retry && (
+            <div className="flex items-center gap-3">
+              <Button onClick={fill} disabled={busy || !text.trim()}>
+                Try again
+              </Button>
+              <button type="button" className="min-h-11 text-sm text-muted underline" onClick={() => document.getElementById("desc")?.focus()}>
+                or fill in the form
+              </button>
+            </div>
+          )}
+        </div>
+      )}
       {filled && <Notice tone="ok">Filled in — check everything below, then tap Add expense.</Notice>}
     </section>
   );

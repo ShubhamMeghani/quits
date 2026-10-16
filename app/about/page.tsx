@@ -3,6 +3,7 @@ import Link from "next/link";
 import results from "@/eval/results.json";
 import nlResults from "@/eval/nl/results.json";
 import nlRun1 from "@/eval/nl/results-run1.json";
+import nlRun2 from "@/eval/nl/results-run2.json";
 import { Card, Notice } from "@/app/_components/ui";
 
 export const metadata: Metadata = { title: "About — Quits" };
@@ -48,6 +49,7 @@ type NlResults =
 function NlEvalSection() {
   const r = nlResults as unknown as NlResults;
   const run1 = nlRun1 as unknown as Extract<NlResults, { status: "ok" }>;
+  const run2 = nlRun2 as unknown as Extract<NlResults, { status: "ok" }>;
   return (
     <section className="flex flex-col gap-2" aria-labelledby="nl-eval-h">
       <h2 id="nl-eval-h" className="text-xl font-bold">
@@ -81,35 +83,44 @@ function NlEvalSection() {
             ))}
           </div>
           <p className="text-sm">
-            Run 2 calls the app exactly as people use it and includes one bug fix found by run 1, so it is not blind for that fix.{" "}
-            <a href="#nl-run1" className="font-semibold text-brand underline">
-              Run 1 numbers
+            Run 3 gives Gemini up to 20 s and waits before its one retry. It is not blind for two fixes chosen after earlier runs.{" "}
+            <a href="#nl-earlier" className="font-semibold text-brand underline">
+              Earlier runs
             </a>
           </p>
         </>
       )}
-      <details id="nl-run1" className="rounded-2xl border border-border bg-card p-3 text-sm">
-        <summary className="min-h-11 cursor-pointer content-center font-semibold">Run 1 (first run, kept as it was)</summary>
-        <ul className="mt-2 grid grid-cols-2 gap-1 sm:grid-cols-3">
-          {(
-            [
-              ["Amount", run1.amountAccuracy],
-              ["Payer", run1.payerAccuracy],
-              ["Who shares", run1.participantsAccuracy],
-              ["Split type", run1.splitTypeAccuracy],
-              ["Exact match", run1.exactMatchRate],
-              ["Correctly left blank", run1.abstentionRate],
-            ] as const
-          ).map(([k, v]) => (
-            <li key={k}>
-              {k}: <span className="font-semibold">{pct(v)}</span>
-            </li>
-          ))}
-        </ul>
-        <p className="mt-2 text-muted">
-          {run1.n} sentences, {run1.runAt.slice(0, 10)}. Four sentences got no answer (two timeouts, two API errors) because that run called Gemini without the app&apos;s
-          retry.
-        </p>
+      <details id="nl-earlier" className="rounded-2xl border border-border bg-card p-3 text-sm">
+        <summary className="min-h-11 cursor-pointer content-center font-semibold">Earlier runs (kept as they were)</summary>
+        {(
+          [
+            ["Run 2", run2, "Through the app's own handler with one retry and a 15 s limit; three sentences got no answer."],
+            ["Run 1", run1, "Called Gemini without the app's retry; four sentences got no answer (two timeouts, two server errors)."],
+          ] as const
+        ).map(([label, run, note]) => (
+          <div key={label} className="mt-2">
+            <p className="font-semibold">
+              {label} · {run.n} sentences · {run.runAt.slice(0, 10)}
+            </p>
+            <ul className="mt-1 grid grid-cols-2 gap-1 sm:grid-cols-3">
+              {(
+                [
+                  ["Amount", run.amountAccuracy],
+                  ["Payer", run.payerAccuracy],
+                  ["Who shares", run.participantsAccuracy],
+                  ["Split type", run.splitTypeAccuracy],
+                  ["Exact match", run.exactMatchRate],
+                  ["Correctly left blank", run.abstentionRate],
+                ] as const
+              ).map(([k, v]) => (
+                <li key={k}>
+                  {k}: <span className="font-semibold">{pct(v)}</span>
+                </li>
+              ))}
+            </ul>
+            <p className="text-muted">{note}</p>
+          </div>
+        ))}
       </details>
       <p className="text-sm text-muted">
         Method: about 30 English and Hinglish sentences with hand-checked answers, about 5 of them deliberately unclear (for example two people with the same name). A

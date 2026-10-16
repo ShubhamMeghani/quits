@@ -1,0 +1,858 @@
+{
+  "status": "ok",
+  "run": 2,
+  "evalSetupFixes": [
+    "P1: each sentence goes through the app's own parse handler (same prompt, schema, model and post-processing, 15 s deadline, one retry on a transient model error), with ~2 s between calls. Run 1 called Gemini directly, without the app's retry, back-to-back."
+  ],
+  "codeFixes": [
+    "P3: two names for the same person in one split (e.g. \"me\" and \"Aarav\") now leave the split blank instead of being added together. Found by the eval (human-05 in run 1)."
+  ],
+  "blindness": "Run 2 is NOT blind for P3: that fix was made after seeing run 1's result on human-05. P1 changes how the eval calls the app, not the app. The prompt is unchanged since run 1 (P4 was not applied).",
+  "model": "gemini-3.5-flash-lite",
+  "runAt": "2026-10-16T18:47:11.794Z",
+  "authors": {
+    "claude": 20,
+    "human": 10
+  },
+  "n": 30,
+  "amountAccuracy": 0.867,
+  "payerAccuracy": 0.833,
+  "participantsAccuracy": 0.9,
+  "splitTypeAccuracy": 0.9,
+  "exactMatchRate": 0.833,
+  "ambiguousN": 7,
+  "abstentionRate": 0.714,
+  "meanLatencySec": 6.276,
+  "perSentence": [
+    {
+      "id": "claude-01",
+      "amount": false,
+      "payer": false,
+      "participants": false,
+      "splitType": false,
+      "exact": false,
+      "ambiguous": false,
+      "abstained": null,
+      "error": true,
+      "latencySec": 15.026,
+      "status": 502,
+      "reason": "timeout"
+    },
+    {
+      "id": "claude-02",
+      "amount": true,
+      "payer": true,
+      "participants": true,
+      "splitType": true,
+      "exact": true,
+      "ambiguous": false,
+      "abstained": null,
+      "error": false,
+      "latencySec": 5.453,
+      "status": 200,
+      "predicted": {
+        "amount": 450,
+        "currency": "INR",
+        "payer": "Aarav",
+        "participants": [
+          "Aarav",
+          "Priya",
+          "Rahul",
+          "Amit",
+          "Sneha"
+        ],
+        "splitType": "equal",
+        "splitValues": null,
+        "category": "Transport",
+        "date": null,
+        "flags": []
+      }
+    },
+    {
+      "id": "claude-03",
+      "amount": true,
+      "payer": true,
+      "participants": true,
+      "splitType": true,
+      "exact": true,
+      "ambiguous": false,
+      "abstained": null,
+      "error": false,
+      "latencySec": 7.183,
+      "status": 200,
+      "predicted": {
+        "amount": 1200,
+        "currency": "INR",
+        "payer": "Aarav",
+        "participants": [
+          "Aarav",
+          "Priya",
+          "Sneha"
+        ],
+        "splitType": "equal",
+        "splitValues": null,
+        "category": "Groceries",
+        "date": null,
+        "flags": []
+      }
+    },
+    {
+      "id": "claude-04",
+      "amount": true,
+      "payer": true,
+      "participants": true,
+      "splitType": true,
+      "exact": true,
+      "ambiguous": false,
+      "abstained": null,
+      "error": false,
+      "latencySec": 4.631,
+      "status": 200,
+      "predicted": {
+        "amount": 999,
+        "currency": "INR",
+        "payer": "Priya",
+        "participants": [
+          "Aarav",
+          "Priya",
+          "Rahul",
+          "Amit",
+          "Sneha"
+        ],
+        "splitType": "equal",
+        "splitValues": null,
+        "category": "Utilities",
+        "date": null,
+        "flags": []
+      }
+    },
+    {
+      "id": "claude-05",
+      "amount": true,
+      "payer": true,
+      "participants": true,
+      "splitType": true,
+      "exact": true,
+      "ambiguous": false,
+      "abstained": null,
+      "error": false,
+      "latencySec": 4.621,
+      "status": 200,
+      "predicted": {
+        "amount": 300,
+        "currency": "INR",
+        "payer": "Amit",
+        "participants": [
+          "Aarav",
+          "Amit"
+        ],
+        "splitType": "equal",
+        "splitValues": null,
+        "category": "Food & Drinks",
+        "date": null,
+        "flags": []
+      }
+    },
+    {
+      "id": "claude-06",
+      "amount": true,
+      "payer": true,
+      "participants": true,
+      "splitType": true,
+      "exact": true,
+      "ambiguous": false,
+      "abstained": null,
+      "error": false,
+      "latencySec": 4.712,
+      "status": 200,
+      "predicted": {
+        "amount": 1000,
+        "currency": "INR",
+        "payer": "Sneha",
+        "participants": [
+          "Aarav",
+          "Rahul"
+        ],
+        "splitType": "exact",
+        "splitValues": {
+          "Aarav": "400.00",
+          "Rahul": "600.00"
+        },
+        "category": "Food & Drinks",
+        "date": null,
+        "flags": []
+      }
+    },
+    {
+      "id": "claude-07",
+      "amount": true,
+      "payer": true,
+      "participants": true,
+      "splitType": true,
+      "exact": true,
+      "ambiguous": false,
+      "abstained": null,
+      "error": false,
+      "latencySec": 6.046,
+      "status": 200,
+      "predicted": {
+        "amount": 3000,
+        "currency": "INR",
+        "payer": "Aarav",
+        "participants": [
+          "Aarav",
+          "Priya",
+          "Amit"
+        ],
+        "splitType": "percent",
+        "splitValues": {
+          "Aarav": "50",
+          "Priya": "25",
+          "Amit": "25"
+        },
+        "category": "Rent",
+        "date": "2026-10-16",
+        "flags": []
+      }
+    },
+    {
+      "id": "claude-08",
+      "amount": true,
+      "payer": true,
+      "participants": true,
+      "splitType": true,
+      "exact": true,
+      "ambiguous": false,
+      "abstained": null,
+      "error": false,
+      "latencySec": 4.55,
+      "status": 200,
+      "predicted": {
+        "amount": 3000,
+        "currency": "INR",
+        "payer": "Rahul",
+        "participants": [
+          "Aarav",
+          "Priya",
+          "Rahul"
+        ],
+        "splitType": "shares",
+        "splitValues": {
+          "Aarav": "1",
+          "Priya": "1",
+          "Rahul": "2"
+        },
+        "category": "Travel",
+        "date": null,
+        "flags": []
+      }
+    },
+    {
+      "id": "claude-09",
+      "amount": true,
+      "payer": true,
+      "participants": true,
+      "splitType": true,
+      "exact": true,
+      "ambiguous": false,
+      "abstained": null,
+      "error": false,
+      "latencySec": 4.896,
+      "status": 200,
+      "predicted": {
+        "amount": 750,
+        "currency": "INR",
+        "payer": "Priya",
+        "participants": [
+          "Aarav",
+          "Priya",
+          "Sneha"
+        ],
+        "splitType": "equal",
+        "splitValues": null,
+        "category": "Food & Drinks",
+        "date": "2026-10-16",
+        "flags": []
+      }
+    },
+    {
+      "id": "claude-10",
+      "amount": true,
+      "payer": true,
+      "participants": true,
+      "splitType": true,
+      "exact": true,
+      "ambiguous": false,
+      "abstained": null,
+      "error": false,
+      "latencySec": 4.623,
+      "status": 200,
+      "predicted": {
+        "amount": 40,
+        "currency": "USD",
+        "payer": "Amit",
+        "participants": [
+          "Aarav",
+          "Amit"
+        ],
+        "splitType": "equal",
+        "splitValues": null,
+        "category": "Entertainment",
+        "date": null,
+        "flags": []
+      }
+    },
+    {
+      "id": "claude-11",
+      "amount": true,
+      "payer": true,
+      "participants": true,
+      "splitType": true,
+      "exact": true,
+      "ambiguous": false,
+      "abstained": null,
+      "error": false,
+      "latencySec": 5.33,
+      "status": 200,
+      "predicted": {
+        "amount": 899,
+        "currency": "INR",
+        "payer": "Aarav",
+        "participants": [
+          "Aarav",
+          "Priya",
+          "Rahul",
+          "Amit",
+          "Sneha"
+        ],
+        "splitType": "equal",
+        "splitValues": null,
+        "category": "Entertainment",
+        "date": "2026-10-17",
+        "flags": []
+      }
+    },
+    {
+      "id": "claude-12",
+      "amount": true,
+      "payer": true,
+      "participants": true,
+      "splitType": true,
+      "exact": true,
+      "ambiguous": false,
+      "abstained": null,
+      "error": false,
+      "latencySec": 7.575,
+      "status": 200,
+      "predicted": {
+        "amount": 500,
+        "currency": "INR",
+        "payer": "Sneha",
+        "participants": [
+          "Rahul",
+          "Sneha"
+        ],
+        "splitType": "equal",
+        "splitValues": null,
+        "category": "Transport",
+        "date": null,
+        "flags": []
+      }
+    },
+    {
+      "id": "claude-13",
+      "amount": true,
+      "payer": true,
+      "participants": true,
+      "splitType": true,
+      "exact": true,
+      "ambiguous": false,
+      "abstained": null,
+      "error": false,
+      "latencySec": 5.052,
+      "status": 200,
+      "predicted": {
+        "amount": 1250,
+        "currency": "INR",
+        "payer": "Priya",
+        "participants": [
+          "Priya",
+          "Amit"
+        ],
+        "splitType": "equal",
+        "splitValues": null,
+        "category": "Health",
+        "date": "2026-10-16",
+        "flags": []
+      }
+    },
+    {
+      "id": "claude-14",
+      "amount": true,
+      "payer": true,
+      "participants": true,
+      "splitType": true,
+      "exact": true,
+      "ambiguous": false,
+      "abstained": null,
+      "error": false,
+      "latencySec": 6.016,
+      "status": 200,
+      "predicted": {
+        "amount": 2000,
+        "currency": "INR",
+        "payer": "Aarav",
+        "participants": [
+          "Aarav",
+          "Priya",
+          "Rahul",
+          "Amit",
+          "Sneha"
+        ],
+        "splitType": "equal",
+        "splitValues": null,
+        "category": "Utilities",
+        "date": null,
+        "flags": []
+      }
+    },
+    {
+      "id": "claude-15",
+      "amount": false,
+      "payer": false,
+      "participants": false,
+      "splitType": false,
+      "exact": false,
+      "ambiguous": false,
+      "abstained": null,
+      "error": true,
+      "latencySec": 4.914,
+      "status": 502,
+      "reason": "model_error"
+    },
+    {
+      "id": "claude-16",
+      "amount": true,
+      "payer": true,
+      "participants": true,
+      "splitType": true,
+      "exact": true,
+      "ambiguous": true,
+      "abstained": true,
+      "error": false,
+      "latencySec": 4.649,
+      "status": 200,
+      "predicted": {
+        "amount": 500,
+        "currency": "INR",
+        "payer": null,
+        "participants": [
+          "Aarav",
+          "Priya"
+        ],
+        "splitType": "equal",
+        "splitValues": null,
+        "category": "Food & Drinks",
+        "date": null,
+        "flags": [
+          "payer:ambiguous(Rahul)",
+          "participants:ambiguous(Rahul)",
+          "split:invalid"
+        ]
+      }
+    },
+    {
+      "id": "claude-17",
+      "amount": true,
+      "payer": true,
+      "participants": true,
+      "splitType": true,
+      "exact": true,
+      "ambiguous": true,
+      "abstained": true,
+      "error": false,
+      "latencySec": 4.842,
+      "status": 200,
+      "predicted": {
+        "amount": 300,
+        "currency": "INR",
+        "payer": null,
+        "participants": [
+          "Aarav"
+        ],
+        "splitType": "equal",
+        "splitValues": null,
+        "category": "Food & Drinks",
+        "date": null,
+        "flags": [
+          "payer:unknown(Karan)",
+          "participants:unknown(Karan)",
+          "split:invalid"
+        ]
+      }
+    },
+    {
+      "id": "claude-18",
+      "amount": true,
+      "payer": true,
+      "participants": true,
+      "splitType": true,
+      "exact": true,
+      "ambiguous": true,
+      "abstained": true,
+      "error": false,
+      "latencySec": 4.157,
+      "status": 200,
+      "predicted": {
+        "amount": null,
+        "currency": "INR",
+        "payer": "Aarav",
+        "participants": [
+          "Aarav",
+          "Priya"
+        ],
+        "splitType": "equal",
+        "splitValues": null,
+        "category": "Food & Drinks",
+        "date": "2026-10-16",
+        "flags": [
+          "amount:missing"
+        ]
+      }
+    },
+    {
+      "id": "claude-19",
+      "amount": true,
+      "payer": true,
+      "participants": true,
+      "splitType": true,
+      "exact": true,
+      "ambiguous": true,
+      "abstained": true,
+      "error": false,
+      "latencySec": 8.414,
+      "status": 200,
+      "predicted": {
+        "amount": 900,
+        "currency": "INR",
+        "payer": "Rahul",
+        "participants": [
+          "Aarav",
+          "Priya"
+        ],
+        "splitType": "exact",
+        "splitValues": null,
+        "category": null,
+        "date": null,
+        "flags": [
+          "split:invalid"
+        ]
+      }
+    },
+    {
+      "id": "claude-20",
+      "amount": true,
+      "payer": true,
+      "participants": true,
+      "splitType": true,
+      "exact": true,
+      "ambiguous": true,
+      "abstained": true,
+      "error": false,
+      "latencySec": 13.695,
+      "status": 200,
+      "predicted": {
+        "amount": 450,
+        "currency": "INR",
+        "payer": null,
+        "participants": [
+          "Aarav",
+          "Amit"
+        ],
+        "splitType": "equal",
+        "splitValues": null,
+        "category": "Transport",
+        "date": null,
+        "flags": [
+          "payer:missing"
+        ]
+      }
+    },
+    {
+      "id": "human-01",
+      "amount": true,
+      "payer": true,
+      "participants": true,
+      "splitType": true,
+      "exact": true,
+      "ambiguous": false,
+      "abstained": null,
+      "error": false,
+      "latencySec": 5.936,
+      "status": 200,
+      "predicted": {
+        "amount": 300,
+        "currency": "INR",
+        "payer": "Aarav",
+        "participants": [
+          "Aarav",
+          "Priya",
+          "Rahul",
+          "Amit",
+          "Sneha"
+        ],
+        "splitType": "equal",
+        "splitValues": null,
+        "category": "Food & Drinks",
+        "date": null,
+        "flags": []
+      }
+    },
+    {
+      "id": "human-02",
+      "amount": true,
+      "payer": true,
+      "participants": true,
+      "splitType": true,
+      "exact": true,
+      "ambiguous": false,
+      "abstained": null,
+      "error": false,
+      "latencySec": 5.309,
+      "status": 200,
+      "predicted": {
+        "amount": 250,
+        "currency": "INR",
+        "payer": "Sneha",
+        "participants": [
+          "Aarav",
+          "Priya",
+          "Sneha"
+        ],
+        "splitType": "equal",
+        "splitValues": null,
+        "category": "Food & Drinks",
+        "date": null,
+        "flags": []
+      }
+    },
+    {
+      "id": "human-03",
+      "amount": true,
+      "payer": true,
+      "participants": true,
+      "splitType": true,
+      "exact": true,
+      "ambiguous": false,
+      "abstained": null,
+      "error": false,
+      "latencySec": 5.062,
+      "status": 200,
+      "predicted": {
+        "amount": 1600,
+        "currency": "INR",
+        "payer": "Amit",
+        "participants": [
+          "Aarav",
+          "Priya",
+          "Amit"
+        ],
+        "splitType": "equal",
+        "splitValues": null,
+        "category": "Groceries",
+        "date": null,
+        "flags": []
+      }
+    },
+    {
+      "id": "human-04",
+      "amount": true,
+      "payer": true,
+      "participants": true,
+      "splitType": true,
+      "exact": true,
+      "ambiguous": false,
+      "abstained": null,
+      "error": false,
+      "latencySec": 5.248,
+      "status": 200,
+      "predicted": {
+        "amount": 1000,
+        "currency": "INR",
+        "payer": "Priya",
+        "participants": [
+          "Aarav",
+          "Rahul"
+        ],
+        "splitType": "shares",
+        "splitValues": {
+          "Aarav": "1",
+          "Rahul": "2"
+        },
+        "category": "Travel",
+        "date": null,
+        "flags": []
+      }
+    },
+    {
+      "id": "human-05",
+      "amount": false,
+      "payer": false,
+      "participants": true,
+      "splitType": true,
+      "exact": false,
+      "ambiguous": true,
+      "abstained": false,
+      "error": false,
+      "latencySec": 5.73,
+      "status": 200,
+      "predicted": {
+        "amount": null,
+        "currency": "INR",
+        "payer": "Aarav",
+        "participants": [
+          "Aarav",
+          "Priya",
+          "Rahul",
+          "Amit",
+          "Sneha"
+        ],
+        "splitType": "shares",
+        "splitValues": null,
+        "category": "Food & Drinks",
+        "date": "2026-10-17",
+        "flags": [
+          "amount:missing",
+          "split:duplicate(Aarav)",
+          "split:invalid"
+        ]
+      }
+    },
+    {
+      "id": "human-06",
+      "amount": true,
+      "payer": false,
+      "participants": true,
+      "splitType": true,
+      "exact": false,
+      "ambiguous": true,
+      "abstained": false,
+      "error": false,
+      "latencySec": 5.153,
+      "status": 200,
+      "predicted": {
+        "amount": null,
+        "currency": "INR",
+        "payer": "Aarav",
+        "participants": [],
+        "splitType": "equal",
+        "splitValues": null,
+        "category": "Entertainment",
+        "date": null,
+        "flags": [
+          "amount:missing",
+          "participants:missing"
+        ]
+      }
+    },
+    {
+      "id": "human-07",
+      "amount": true,
+      "payer": true,
+      "participants": true,
+      "splitType": true,
+      "exact": true,
+      "ambiguous": false,
+      "abstained": null,
+      "error": false,
+      "latencySec": 4.989,
+      "status": 200,
+      "predicted": {
+        "amount": 1500,
+        "currency": "INR",
+        "payer": "Amit",
+        "participants": [
+          "Aarav",
+          "Priya",
+          "Rahul",
+          "Amit",
+          "Sneha"
+        ],
+        "splitType": "equal",
+        "splitValues": null,
+        "category": "Groceries",
+        "date": null,
+        "flags": []
+      }
+    },
+    {
+      "id": "human-08",
+      "amount": true,
+      "payer": true,
+      "participants": true,
+      "splitType": true,
+      "exact": true,
+      "ambiguous": false,
+      "abstained": null,
+      "error": false,
+      "latencySec": 4.713,
+      "status": 200,
+      "predicted": {
+        "amount": 250,
+        "currency": "INR",
+        "payer": "Sneha",
+        "participants": [
+          "Aarav",
+          "Priya",
+          "Sneha"
+        ],
+        "splitType": "equal",
+        "splitValues": null,
+        "category": "Food & Drinks",
+        "date": null,
+        "flags": []
+      }
+    },
+    {
+      "id": "human-09",
+      "amount": false,
+      "payer": false,
+      "participants": false,
+      "splitType": false,
+      "exact": false,
+      "ambiguous": false,
+      "abstained": null,
+      "error": true,
+      "latencySec": 15.003,
+      "status": 502,
+      "reason": "timeout"
+    },
+    {
+      "id": "human-10",
+      "amount": true,
+      "payer": true,
+      "participants": true,
+      "splitType": true,
+      "exact": true,
+      "ambiguous": false,
+      "abstained": null,
+      "error": false,
+      "latencySec": 4.761,
+      "status": 200,
+      "predicted": {
+        "amount": 200,
+        "currency": "INR",
+        "payer": "Aarav",
+        "participants": [
+          "Aarav",
+          "Sneha"
+        ],
+        "splitType": "equal",
+        "splitValues": null,
+        "category": "Food & Drinks",
+        "date": null,
+        "flags": []
+      }
+    }
+  ]
+}

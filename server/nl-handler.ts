@@ -11,10 +11,22 @@ export type ParseDeps = {
   bumpLimits(groupId: string): Promise<boolean>;
   callModel(req: { prompt: string; text: string; jsonSchema: unknown; signal: AbortSignal }): Promise<string>;
   today(): string;
+  /** Overall limit (D-29: 20 s). */
   timeoutMs?: number;
+  /** Wait before the single retry (D-29: about 1 s). */
+  retryDelayMs?: number;
 };
 
-export const NL_FAILED = "Couldn't understand that — fill in the form";
+/** D-28: shown with a Try again button; a failed parse is usually temporary. */
+export const NL_FAILED = "Couldn't read that — try again";
+export const NL_TIMEOUT_MS = 20_000;
+export const NL_RETRY_DELAY_MS = 1_000;
+
+/** Gemini's HTTP status on an SDK error, if any (D-30). */
+function statusOf(e: unknown): number | undefined {
+  const s = (e as { status?: unknown })?.status;
+  return typeof s === "number" ? s : undefined;
+}
 
 const bodySchema = z.object({
   text: z.string().trim().min(1, "Type what you paid for").max(NL_MAX_CHARS, `Keep it under ${NL_MAX_CHARS} characters`),
@@ -45,7 +57,7 @@ export function createParseHandler(deps: ParseDeps) {
       timer = setTimeout(() => {
         controller.abort();
         resolve("timeout");
-      }, deps.timeoutMs ?? 15_000);
+      }, deps.timeoutMs ?? NL_TIMEOUT_MS);
     });
     const request_ = {
       prompt: NL_PROMPT,
@@ -53,24 +65,35 @@ export function createParseHandler(deps: ParseDeps) {
       jsonSchema: NL_JSON_SCHEMA,
       signal: controller.signal,
     };
-    // One retry on a transient model error, still inside the single 15 s deadline (R64).
+    // R61/D-29: on a model error, wait about 1 s and retry once, inside the single 20 s deadline.
+    let lastStatus: number | undefined;
     const attempt = async (): Promise<{ text: string }> => {
       try {
         return { text: await deps.callModel(request_) };
       } catch (e) {
+        lastStatus = statusOf(e);
         if (controller.signal.aborted) throw e;
-        return { text: await deps.callModel(request_) };
+        await new Promise((r) => setTimeout(r, deps.retryDelayMs ?? NL_RETRY_DELAY_MS));
+        if (controller.signal.aborted) throw e;
+        try {
+          return { text: await deps.callModel(request_) };
+        } catch (e2) {
+          lastStatus = statusOf(e2) ?? lastStatus;
+          throw e2;
+        }
       }
     };
+    // D-30: failures carry Gemini's real HTTP status when there is one.
+    const failed = (reason: string) => json({ error: NL_FAILED, reason, ...(lastStatus ? { status: lastStatus } : {}) }, 502);
     try {
       const out = await Promise.race([attempt(), timeout]);
-      if (out === "timeout") return json({ error: NL_FAILED, reason: "timeout" }, 502);
+      if (out === "timeout") return failed("timeout");
       const model = parseNlModel(out.text);
-      if (!model) return json({ error: NL_FAILED, reason: "invalid_output" }, 502);
+      if (!model) return failed("invalid_output");
       const result: NlResult = resolveNl(model, { members: members.map((m) => ({ id: m.id, name: m.name })), meId, baseCurrency: group.baseCurrency, today });
       return json(result, 200);
     } catch {
-      return json({ error: NL_FAILED, reason: "model_error" }, 502);
+      return failed("model_error");
     } finally {
       clearTimeout(timer);
     }
