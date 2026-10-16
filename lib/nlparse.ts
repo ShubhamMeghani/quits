@@ -23,6 +23,7 @@ Rules:
 - Names: copy each person's name exactly as written. Use "me" for the speaker (I, me, my, maine, mujhe, mera, main).
 - If the sentence says everyone / all / sab / sabhi, list every member name given.
 - "X paid N, split with A and B" includes X among the participants unless the text says otherwise ("only for A and B").
+- If the sentence lists shares or amounts per person, only those people take part (do not add the payer). A "treat" means the payer covers it all: the payer is the only participant.
 - amount: the total paid, as a number in major units (e.g. 600 or 249.50). currency: ISO 4217 if stated, else null.
 - split_type: "equal" when split evenly or not stated; "exact" for amounts per person; "percent" for percentages; "shares" for ratios like 2:1:1.
   split_values: [{name, value}] only for exact (amount), percent (number) or shares (integer); [] for equal.
@@ -314,8 +315,10 @@ export type NlGold = {
   /** null = should be left blank ([] in the prefill). */
   participantIds: string[] | null;
   splitType: NlSplitType;
-  /** Optional: expected form values for exact/percent/shares. */
+  /** Expected form values for exact/percent/shares; null for a non-equal split means "left blank". */
   splitValues?: Record<string, string> | null;
+  /** For the paise comparison (D-27); defaults to INR. */
+  currency?: string;
 };
 
 export type NlEvalCase = {
@@ -326,9 +329,54 @@ export type NlEvalCase = {
   /** Fields that must be blank for a correct abstention. */
   blank: NlField[];
   latencyMs: number;
+  /** Member ids in display order (the R13 tie-break order); defaults to sorted ids. */
+  memberOrder?: string[];
 };
 
 const sameSet = (a: readonly string[], b: readonly string[]) => a.length === b.length && [...a].sort().join("|") === [...b].sort().join("|");
+
+type SplitShape = { amountMinor: Minor | null; type: NlSplitType; participants: readonly string[]; values: Record<string, string> | null | undefined };
+
+/**
+ * D-27: what each participant would owe, in minor units. Returns "blank" for a non-equal split
+ * without values, and null when it can't be computed (no amount, no participants or invalid).
+ */
+export function owedBySplit(s: SplitShape, order: readonly string[], currency = "INR"): Record<string, Minor> | "blank" | null {
+  if (s.type !== "equal" && !s.values) return "blank";
+  if (s.amountMinor === null || s.amountMinor <= 0) return null;
+  const exp = exponent(currency);
+  const ids = s.type === "equal" ? [...s.participants] : Object.keys(s.values!);
+  const known = [...new Set([...order, ...ids])];
+  let input: SplitInput | null = null;
+  if (s.type === "equal") input = ids.length ? { type: "equal", participants: ids } : null;
+  else {
+    const entries = Object.entries(s.values!);
+    if (s.type === "exact") {
+      const amounts = Object.fromEntries(entries.map(([k, v]) => [k, decimalToMinor(v, exp)]));
+      input = { type: "exact", amounts };
+    } else if (s.type === "percent") {
+      const bp = entries.map(([k, v]) => [k, percentToBasisPoints(v)] as const);
+      input = bp.every(([, b]) => b !== null) ? { type: "percent", basisPoints: Object.fromEntries(bp) as Record<string, number> } : null;
+    } else {
+      input = { type: "shares", shares: Object.fromEntries(entries.map(([k, v]) => [k, Number(v)])) };
+    }
+  }
+  if (!input) return null;
+  const r = computeSplit(s.amountMinor, input, known);
+  return r.ok ? Object.fromEntries(r.value.filter((x) => x.owedMinor !== 0).map((x) => [x.memberId, x.owedMinor])) : null;
+}
+
+/** D-27: two splits match when they give every participant the same paise. */
+export function splitsMatch(gold: SplitShape, predicted: SplitShape, order: readonly string[], currency = "INR"): boolean {
+  const g = owedBySplit(gold, order, currency);
+  const p = owedBySplit(predicted, order, currency);
+  if (g === "blank" || p === "blank") return g === p;
+  if (g && p) return sameSet(Object.keys(g), Object.keys(p)) && Object.entries(g).every(([k, v]) => p[k] === v);
+  // Not computable (e.g. no amount): same type, same people, same values.
+  const sameValues =
+    !gold.values || (!!predicted.values && sameSet(Object.keys(predicted.values), Object.keys(gold.values)) && Object.entries(gold.values).every(([k, v]) => predicted.values![k] === v));
+  return gold.type === predicted.type && sameSet(gold.participants, predicted.participants) && sameValues;
+}
 
 export function isBlank(p: NlPrefill, field: NlField): boolean {
   switch (field) {
@@ -386,9 +434,17 @@ export function scoreNl(cases: readonly NlEvalCase[]): NlEvalSummary {
     const payer = !!p && p.payerId === c.gold.payerId;
     const participants = !!p && (c.gold.participantIds === null ? p.participantIds.length === 0 : sameSet(p.participantIds, c.gold.participantIds));
     const splitType = !!p && p.splitType === c.gold.splitType;
-    const values =
-      !c.gold.splitValues || (!!p && !!p.splitValues && sameSet(Object.keys(p.splitValues), Object.keys(c.gold.splitValues)) && Object.entries(c.gold.splitValues).every(([k, v]) => p.splitValues![k] === v));
-    const exact = amount && payer && participants && splitType && values;
+    // D-27: exact match compares the splits by what each participant owes, not by split type.
+    const order = c.memberOrder ?? [...new Set([...(c.gold.participantIds ?? []), ...(p?.participantIds ?? [])])].sort();
+    const split =
+      !!p &&
+      splitsMatch(
+        { amountMinor: c.gold.amountMinor, type: c.gold.splitType, participants: c.gold.participantIds ?? [], values: c.gold.splitType === "equal" ? null : (c.gold.splitValues ?? null) },
+        { amountMinor: p.amountMinor, type: p.splitType, participants: p.participantIds, values: p.splitType === "equal" ? null : p.splitValues },
+        order,
+        c.gold.currency,
+      );
+    const exact = amount && payer && participants && split;
     const abstained = c.ambiguous ? !!p && c.blank.every((f) => isBlank(p, f)) : null;
     return { id: c.id, amount, payer, participants, splitType, exact, ambiguous: c.ambiguous, abstained, error: !p, latencySec: r3(c.latencyMs / 1000) };
   });

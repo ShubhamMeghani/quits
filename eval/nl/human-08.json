@@ -1,0 +1,34 @@
+{
+  "id": "human-08",
+  "text": "sneha 250 pizza me n priya",
+  "members": [
+    "Aarav",
+    "Priya",
+    "Rahul",
+    "Amit",
+    "Sneha"
+  ],
+  "me": "Aarav",
+  "today": "2026-10-17",
+  "baseCurrency": "INR",
+  "author": "human",
+  "reviewed": true,
+  "ambiguous": false,
+  "blank": [],
+  "note": "Read as \"Sneha paid 250 for pizza, split with me and Priya\"; D-21 includes the payer. Please confirm.",
+  "expected": {
+    "currency": "INR",
+    "split_type": "equal",
+    "split_values": null,
+    "category": "Food & Drinks",
+    "date": null,
+    "description": "Pizza",
+    "amount": 250,
+    "payer": "Sneha",
+    "participants": [
+      "Sneha",
+      "Aarav",
+      "Priya"
+    ]
+  }
+}

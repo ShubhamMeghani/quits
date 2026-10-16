@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| Spec | [SPEC.md](SPEC.md) **v0.8**. If SPEC.md and this plan disagree, SPEC.md wins. |
+| Spec | [SPEC.md](SPEC.md) **v0.9**. If SPEC.md and this plan disagree, SPEC.md wins. |
 | Production | https://quits-go.vercel.app (Vercel, deploys from `main`) |
 | Stack | Next.js (App Router, TS) · Tailwind · Vitest · Supabase Postgres (server-only, RLS on, no policies) · Gemini `gemini-3.5-flash-lite` · Frankfurter v2 · Vercel Hobby · GitHub Actions (ubuntu-24.04) · Node 24 |
 | Tests | `npm test` (unit, `lib/` + `server/token.ts`) · `npm run test:db` (DB integration; loads `.env.local`; skips when `SUPABASE_DB_URL` is absent) · `npm run test:db:clean` (removes leftover `__test__` groups) · `npm run lint` · `npm run build` · `npm run eval` (receipt eval; loads `.env.local`) |
@@ -352,8 +352,8 @@ Rows P1-1 to P1-10 are the Phase 1 checks; each one de-risks the spec ACs shown 
 | AC-48 | Unit | 8 | Pass | tests/unit/nlparse.test.ts › AC-48 (me/I/Maine/MUJHE/mera → current member; no current member → blank + no-me) |
 | AC-49 | Unit | 8 | Pass | tests/unit/nlparse.test.ts › AC-49 (exact 300+200≠600 → blank; % 50+40 → blank; shares 2:1:1 kept; amount 0/-5 → blank; XYZ → INR; future, year-old and impossible dates → blank; "Party" → blank) |
 | AC-50 | Unit | 8 | Pass | tests/unit/nl-route.test.ts › AC-50 (mocked Gemini: example sentence → expected prefill, no write dependency; 301 chars → 400; limit → 429 with no model call; timeout/invalid → 502 "Couldn't understand that"; one retry on a transient error; 404 for foreign group/me) |
-| AC-51 | Script + Deploy | 8 | Partial | `npm run eval:nl` built (same prompt, schema, model and lib/nlparse; writes results.json + REPORT.md); `npm run eval:nl -- --check` validates the 20 Claude-drafted sentences (5 ambiguous) with no model calls; /about shows the NL section ("not run yet"). NOT run on purpose: the human's 10 sentences and the review of all 30 are pending (8.6), then the run (8.11) |
-| AC-52 (Should) | Script | 8 | Pending (human) | needs the full ~30-sentence set (8.6) and the eval run (8.11) |
+| AC-51 | Script + Deploy | 8 | Partial | local Pass 2026-10-17: 30 reviewed sentences (20 Claude, 10 human; 7 ambiguous); `npm run eval:nl -- --check` valid; `npm run eval:nl` exited 0 and wrote eval/nl/results.json + REPORT.md (amount 83.3%, payer 80.0%, participants 83.3%, split type 86.7%, exact 80.0% (D-27), abstention 71.4%, mean 5.08 s; 4 of 30 got no model answer: 2 timeouts at 15 s, 2 fast API errors); local /about shows the same numbers. Prod /about pending push |
+| AC-52 (Should) | Script | 8 | Fail | as run 2026-10-17: amount 83.3% (< 95%), exact 80.0% (= 80%, meets). Of the 26 sentences that got an answer: amount 96.2%, exact 92.3%. The 4 failures had no prediction (2 timeouts, 2 API errors; the eval has no retry, unlike the app). Proposals P1–P4 await a decision |
 | AC-53 | Phone | 8 | Partial | local headless Chrome (360 px, real Gemini): "Rohan paid 600 for pizza, split with Kabir and me" → 600.00, payer Rohan, participants Aarav, Rohan, Kabir (D-21), Food & Drinks; expense count unchanged until Save; "Karan paid 300…" → payer blank + highlighted + Save disabled + "Couldn't find “Karan”"; "maine 450 diye auto ke, sab mein" → 450.00, you, all 5, Transport. Phone (typing + keyboard mic) pending (8.11) |
 | AC-54 (Should) | Unit | 8 | Pass | tests/unit/share.test.ts › AC-54 (two-payment and settled-up summaries; reminders for ₹1,20,000 and ₹1,200.50; wa.me encoding incl. ₹ → %E2%82%B9, newline %0A, space %20) |
 | AC-55 (Should) | Phone + Desktop | 8 | Partial | local: Settle shows "Share summary" + "Copy" and one "Remind … on WhatsApp" link per suggestion; the link decodes to the exact reminder ("Hi Kabir, a gentle reminder from Quits: please pay Aarav ₹4,000 for …"). Phone WhatsApp/share-sheet and desktop Copy checks pending (8.11) |

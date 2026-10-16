@@ -38,7 +38,7 @@ Before the eval is run, **every** file is reviewed by the human; set `"reviewed"
 ### Rules for the expected values
 
 - Names are exactly as in `members`. `me` is the speaker.
-- **Participants include the payer** unless the text excludes them, e.g. "only for me" / "sirf mere liye" (SPEC D-21).
+- **Participants include the payer** unless the text excludes them, e.g. "only for me" / "sirf mere liye" (SPEC D-21). An explicit per-person list of shares or amounts is the complete split, so the payer is not added. A "treat" means the payer is the only participant.
 - `participants: null` means the participants should be left blank.
 - `amount` is in major units. `null` means no amount was stated, so it should be left blank.
 - `split_values` is only for `exact` (amounts), `percent` (numbers adding to 100) and `shares` (integers). Use `null` when the split should be left blank, or when the split is equal.
@@ -63,7 +63,7 @@ npm run eval:nl              # runs the model and writes results.json + REPORT.m
 **What is scored:**
 
 - **Field accuracy:** amount, payer, participant set and split type.
-- **Exact match:** all four fields are correct, plus the split values when the expected file gives them.
+- **Exact match:** amount, payer and participant set are correct, and the splits are equivalent: they give every participant the same amount in paise (D-27). For example, shares 2:2:1:1:1 of ₹140 equals exact ₹40/40/20/20/20. Split-type accuracy is still reported on its own.
 - **Correct abstention:** on ambiguous sentences, every field listed in `blank` was left blank.
 
 `/about` shows the committed `results.json`. The targets (amount ≥ 95%, exact match ≥ 80%) are Should (R67).

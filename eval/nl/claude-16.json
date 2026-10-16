@@ -11,7 +11,7 @@
   "today": "2026-10-17",
   "baseCurrency": "INR",
   "author": "claude",
-  "reviewed": false,
+  "reviewed": true,
   "ambiguous": true,
   "blank": [
     "payer"

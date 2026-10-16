@@ -1,0 +1,36 @@
+{
+  "id": "human-04",
+  "text": "Priya paid 1000 for petrol, Rahul 2 shares, me 1 share",
+  "members": [
+    "Aarav",
+    "Priya",
+    "Rahul",
+    "Amit",
+    "Sneha"
+  ],
+  "me": "Aarav",
+  "today": "2026-10-17",
+  "baseCurrency": "INR",
+  "author": "human",
+  "reviewed": true,
+  "ambiguous": false,
+  "blank": [],
+  "note": "An explicit list of shares is the complete split; the payer is not added (D-21 clarification, v0.9).",
+  "expected": {
+    "currency": "INR",
+    "split_type": "shares",
+    "split_values": {
+      "Rahul": 2,
+      "Aarav": 1
+    },
+    "category": "Transport",
+    "date": null,
+    "description": "Petrol",
+    "amount": 1000,
+    "payer": "Priya",
+    "participants": [
+      "Rahul",
+      "Aarav"
+    ]
+  }
+}

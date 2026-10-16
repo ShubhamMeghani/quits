@@ -1,0 +1,34 @@
+{
+  "id": "human-03",
+  "text": "Amit ne groceries ke 1600 diye, Priya aur main bhi",
+  "members": [
+    "Aarav",
+    "Priya",
+    "Rahul",
+    "Amit",
+    "Sneha"
+  ],
+  "me": "Aarav",
+  "today": "2026-10-17",
+  "baseCurrency": "INR",
+  "author": "human",
+  "reviewed": true,
+  "ambiguous": false,
+  "blank": [],
+  "note": "\"main\" = me (D-24); \"bhi\" includes Amit.",
+  "expected": {
+    "currency": "INR",
+    "split_type": "equal",
+    "split_values": null,
+    "category": "Groceries",
+    "date": null,
+    "description": "Groceries",
+    "amount": 1600,
+    "payer": "Amit",
+    "participants": [
+      "Amit",
+      "Priya",
+      "Aarav"
+    ]
+  }
+}

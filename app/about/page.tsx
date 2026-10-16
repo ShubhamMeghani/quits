@@ -82,7 +82,7 @@ function NlEvalSection() {
       )}
       <p className="text-sm text-muted">
         Method: about 30 English and Hinglish sentences with hand-checked answers, about 5 of them deliberately unclear (for example two people with the same name). A
-        field counts as correct only if it matches exactly. “Exact match” needs amount, payer, the set of people and the split type all correct. “Correctly left blank”
+        field counts as correct only if it matches exactly. “Exact match” needs the amount, the payer and the set of people right, and the split must give everyone the same amount (an equal split and 1:1 shares count as the same). “Correctly left blank”
         is the share of unclear sentences where Quits left the unclear field empty instead of guessing.
       </p>
     </section>

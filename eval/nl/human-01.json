@@ -1,0 +1,35 @@
+{
+  "id": "human-01",
+  "text": "maine 300 diye chai ke jo sabne pi.",
+  "members": [
+    "Aarav",
+    "Priya",
+    "Rahul",
+    "Amit",
+    "Sneha"
+  ],
+  "me": "Aarav",
+  "today": "2026-10-17",
+  "baseCurrency": "INR",
+  "author": "human",
+  "reviewed": true,
+  "ambiguous": false,
+  "blank": [],
+  "expected": {
+    "currency": "INR",
+    "split_type": "equal",
+    "split_values": null,
+    "category": "Food & Drinks",
+    "date": null,
+    "description": "Chai",
+    "amount": 300,
+    "payer": "Aarav",
+    "participants": [
+      "Aarav",
+      "Priya",
+      "Rahul",
+      "Amit",
+      "Sneha"
+    ]
+  }
+}

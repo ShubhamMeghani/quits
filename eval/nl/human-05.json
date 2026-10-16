@@ -1,0 +1,44 @@
+{
+  "id": "human-05",
+  "text": "sabne cold drink li 20 wali, maine aur priya ne 2, baki sab ne 1",
+  "members": [
+    "Aarav",
+    "Priya",
+    "Rahul",
+    "Amit",
+    "Sneha"
+  ],
+  "me": "Aarav",
+  "today": "2026-10-17",
+  "baseCurrency": "INR",
+  "author": "human",
+  "reviewed": true,
+  "ambiguous": true,
+  "blank": [
+    "payer"
+  ],
+  "note": "No payer is named, so the payer must stay blank. Total is 7 drinks × ₹20 = ₹140, split 2:2:1:1:1 (an exact ₹40/40/20/20/20 split counts as the same, D-27).",
+  "expected": {
+    "currency": "INR",
+    "split_type": "shares",
+    "split_values": {
+      "Aarav": 2,
+      "Priya": 2,
+      "Rahul": 1,
+      "Amit": 1,
+      "Sneha": 1
+    },
+    "category": "Food & Drinks",
+    "date": null,
+    "description": "Cold drinks",
+    "amount": 140,
+    "payer": null,
+    "participants": [
+      "Aarav",
+      "Priya",
+      "Rahul",
+      "Amit",
+      "Sneha"
+    ]
+  }
+}

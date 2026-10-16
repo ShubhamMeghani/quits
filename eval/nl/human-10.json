@@ -1,0 +1,32 @@
+{
+  "id": "human-10",
+  "text": "Maine apne aur sneha ke lunch ke 200 diye",
+  "members": [
+    "Aarav",
+    "Priya",
+    "Rahul",
+    "Amit",
+    "Sneha"
+  ],
+  "me": "Aarav",
+  "today": "2026-10-17",
+  "baseCurrency": "INR",
+  "author": "human",
+  "reviewed": true,
+  "ambiguous": false,
+  "blank": [],
+  "expected": {
+    "currency": "INR",
+    "split_type": "equal",
+    "split_values": null,
+    "category": "Food & Drinks",
+    "date": null,
+    "description": "Lunch",
+    "amount": 200,
+    "payer": "Aarav",
+    "participants": [
+      "Aarav",
+      "Sneha"
+    ]
+  }
+}

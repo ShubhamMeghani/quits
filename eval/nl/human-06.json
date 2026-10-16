@@ -1,0 +1,33 @@
+{
+  "id": "human-06",
+  "text": "paid for the movie",
+  "members": [
+    "Aarav",
+    "Priya",
+    "Rahul",
+    "Amit",
+    "Sneha"
+  ],
+  "me": "Aarav",
+  "today": "2026-10-17",
+  "baseCurrency": "INR",
+  "author": "human",
+  "reviewed": true,
+  "ambiguous": true,
+  "blank": [
+    "amount",
+    "payer"
+  ],
+  "note": "No amount and no payer; nothing about who shares.",
+  "expected": {
+    "currency": "INR",
+    "split_type": "equal",
+    "split_values": null,
+    "category": "Entertainment",
+    "date": null,
+    "description": "Movie",
+    "amount": null,
+    "payer": null,
+    "participants": null
+  }
+}

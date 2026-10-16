@@ -94,6 +94,7 @@ function gold(c: EvalFile): NlGold {
     participantIds: e.participants,
     splitType: e.split_type,
     splitValues: values ?? null,
+    currency: e.currency,
   };
 }
 
@@ -130,7 +131,7 @@ async function main() {
     } catch {
       predicted = null;
     }
-    scored.push({ id: c.id, gold: gold(c), predicted, ambiguous: c.ambiguous, blank: c.blank as NlField[], latencyMs: Date.now() - t0 });
+    scored.push({ id: c.id, gold: gold(c), predicted, ambiguous: c.ambiguous, blank: c.blank as NlField[], latencyMs: Date.now() - t0, memberOrder: c.members });
     console.log(`${c.id}: ${predicted ? "ok" : "FAILED"}`);
   }
   const s = scoreNl(scored);

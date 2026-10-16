@@ -1,0 +1,34 @@
+{
+  "id": "human-02",
+  "text": "Sneha ne 250 diye chips ke, maine aur priya ne bhi khayi",
+  "members": [
+    "Aarav",
+    "Priya",
+    "Rahul",
+    "Amit",
+    "Sneha"
+  ],
+  "me": "Aarav",
+  "today": "2026-10-17",
+  "baseCurrency": "INR",
+  "author": "human",
+  "reviewed": true,
+  "ambiguous": false,
+  "blank": [],
+  "note": "\"bhi\" (also) means Sneha ate too, so she is a participant.",
+  "expected": {
+    "currency": "INR",
+    "split_type": "equal",
+    "split_values": null,
+    "category": "Food & Drinks",
+    "date": null,
+    "description": "Chips",
+    "amount": 250,
+    "payer": "Sneha",
+    "participants": [
+      "Sneha",
+      "Aarav",
+      "Priya"
+    ]
+  }
+}

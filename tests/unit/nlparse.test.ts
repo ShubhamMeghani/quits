@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { matchName, nlUserText, parseNlModel, resolveNl, scoreNl, type NlContext, type NlModel } from "@/lib/nlparse";
+import { matchName, nlUserText, owedBySplit, parseNlModel, resolveNl, scoreNl, splitsMatch, type NlContext, type NlModel } from "@/lib/nlparse";
 
 const ctx: NlContext = {
   members: [
@@ -111,6 +111,50 @@ describe("model output and prompt context", () => {
     expect(t).toContain("Members: Aarav, Rahul");
     expect(t).toContain("Today: 2026-10-17 (Saturday)");
     expect(t).toContain('Sentence: """Rahul paid 600"""');
+  });
+});
+
+describe("D-27: splits match by what each participant owes", () => {
+  const order = ["aarav", "priya", "rahul", "amit", "sneha"];
+  const shares = { amountMinor: 14000, type: "shares" as const, participants: order, values: { aarav: "2", priya: "2", rahul: "1", amit: "1", sneha: "1" } };
+  it("shares 2:2:1:1:1 of ₹140 equals exact ₹40/40/20/20/20", () => {
+    const exact = { amountMinor: 14000, type: "exact" as const, participants: order, values: { aarav: "40.00", priya: "40.00", rahul: "20.00", amit: "20.00", sneha: "20.00" } };
+    expect(owedBySplit(shares, order)).toEqual({ aarav: 4000, priya: 4000, rahul: 2000, amit: 2000, sneha: 2000 });
+    expect(splitsMatch(shares, exact, order)).toBe(true);
+    expect(splitsMatch(shares, { ...exact, values: { ...exact.values, aarav: "50.00", priya: "30.00" } }, order)).toBe(false);
+  });
+  it("equal among three equals shares 1:1:1, and percent 33.34/33.33/33.33 only when the paise coincide", () => {
+    const eq = { amountMinor: 10000, type: "equal" as const, participants: ["aarav", "priya", "rahul"], values: null };
+    expect(splitsMatch(eq, { amountMinor: 10000, type: "shares", participants: [], values: { aarav: "1", priya: "1", rahul: "1" } }, order)).toBe(true);
+    // ₹100: equal → 3334/3333/3333 paise, and so does 33.34/33.33/33.33%.
+    expect(splitsMatch(eq, { amountMinor: 10000, type: "percent", participants: [], values: { aarav: "33.34", priya: "33.33", rahul: "33.33" } }, order)).toBe(true);
+    // ₹300: equal → 10000 each, but 33.34% → 10002/9999/9999, so they differ.
+    expect(splitsMatch({ ...eq, amountMinor: 30000 }, { amountMinor: 30000, type: "percent", participants: [], values: { aarav: "33.34", priya: "33.33", rahul: "33.33" } }, order)).toBe(false);
+    expect(splitsMatch(eq, { ...eq, participants: ["aarav", "priya"] }, order)).toBe(false);
+  });
+  it("a blank split matches only a blank split; without an amount the shape must match", () => {
+    const blank = { amountMinor: 90000, type: "exact" as const, participants: ["aarav", "priya"], values: null };
+    expect(owedBySplit(blank, order)).toBe("blank");
+    expect(splitsMatch(blank, { ...blank }, order)).toBe(true);
+    expect(splitsMatch(blank, { ...blank, values: { aarav: "500.00", priya: "400.00" } }, order)).toBe(false);
+    const noAmount = { amountMinor: null, type: "equal" as const, participants: ["aarav", "priya"], values: null };
+    expect(splitsMatch(noAmount, { ...noAmount }, order)).toBe(true);
+    expect(splitsMatch(noAmount, { ...noAmount, participants: ["aarav"] }, order)).toBe(false);
+  });
+  it("scoreNl counts an equivalent split of another type as an exact match but not a split-type match", () => {
+    const predicted = resolveNl(model({ amount: 140, payer: null, split_type: "exact", split_values: [{ name: "me", value: 40 }, { name: "Priya", value: 40 }, { name: "Rahul Kumar", value: 20 }, { name: "Amit", value: 20 }, { name: "Rahul Singh", value: 20 }] }), ctx);
+    const s = scoreNl([
+      {
+        id: "cold-drinks",
+        gold: { amountMinor: 14000, payerId: null, participantIds: ["aarav", "priya", "rk", "amit", "rs"], splitType: "shares", splitValues: { aarav: "2", priya: "2", rk: "1", amit: "1", rs: "1" } },
+        predicted,
+        ambiguous: true,
+        blank: ["payer"],
+        latencyMs: 1000,
+        memberOrder: ["aarav", "priya", "rk", "rs", "amit"],
+      },
+    ]);
+    expect(s.perSentence[0]).toMatchObject({ amount: true, payer: true, participants: true, splitType: false, exact: true, abstained: true });
   });
 });
 

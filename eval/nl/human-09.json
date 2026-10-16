@@ -1,0 +1,32 @@
+{
+  "id": "human-09",
+  "text": "sabke dinner ke 1000 hue, rahuls ki treat",
+  "members": [
+    "Aarav",
+    "Priya",
+    "Rahul",
+    "Amit",
+    "Sneha"
+  ],
+  "me": "Aarav",
+  "today": "2026-10-17",
+  "baseCurrency": "INR",
+  "author": "human",
+  "reviewed": true,
+  "ambiguous": false,
+  "blank": [],
+  "note": "A \"treat\" means the payer covers it and nobody owes, so Rahul is the only participant (D-21 clarification, v0.9).",
+  "expected": {
+    "currency": "INR",
+    "split_type": "equal",
+    "split_values": null,
+    "category": "Food & Drinks",
+    "date": null,
+    "description": "Dinner",
+    "amount": 1000,
+    "payer": "Rahul",
+    "participants": [
+      "Rahul"
+    ]
+  }
+}

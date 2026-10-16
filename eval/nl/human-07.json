@@ -1,0 +1,36 @@
+{
+  "id": "human-07",
+  "text": "amit pd 1.5k grocries sab mein",
+  "members": [
+    "Aarav",
+    "Priya",
+    "Rahul",
+    "Amit",
+    "Sneha"
+  ],
+  "me": "Aarav",
+  "today": "2026-10-17",
+  "baseCurrency": "INR",
+  "author": "human",
+  "reviewed": true,
+  "ambiguous": false,
+  "blank": [],
+  "note": "Typos and shorthand: \"pd\" = paid, \"1.5k\" = 1500, \"sab mein\" = everyone.",
+  "expected": {
+    "currency": "INR",
+    "split_type": "equal",
+    "split_values": null,
+    "category": "Groceries",
+    "date": null,
+    "description": "Groceries",
+    "amount": 1500,
+    "payer": "Amit",
+    "participants": [
+      "Aarav",
+      "Priya",
+      "Rahul",
+      "Amit",
+      "Sneha"
+    ]
+  }
+}
