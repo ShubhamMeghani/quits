@@ -24,7 +24,9 @@ export const RECEIPT_PROMPT = `You read photos of shop and restaurant receipts (
 Rules:
 - items: every purchased line item. name as printed (short), quantity (1 if not printed), amount = the LINE TOTAL as printed, in major units (e.g. 249.50).
 - Do not include tax, service charge, tip, discount, round-off, subtotal or total lines as items.
-- tax: sum of all tax lines (CGST + SGST + IGST, VAT, cess). service_charge: service charge. tip: tip or gratuity.
+- Lines printed under an item (add-ons, extras, modifiers, e.g. "Extra cheese 1x50 = 50") are part of that item's amount, not separate items. Use the item's printed line total; never add the add-on again.
+- tax: sum of all tax lines (CGST + SGST + IGST, VAT, cess). tip: tip or gratuity.
+- service_charge: the sum of the service charge and every platform, packaging, convenience and delivery fee actually charged. A fee shown as free or struck out counts as 0.
 - discount: total discount as a positive number. round_off: the round-off line, negative if it reduces the bill.
 - total: the final amount payable as printed (grand total).
 - Missing extras are 0. merchant, date (YYYY-MM-DD) and currency (ISO 4217, e.g. INR) may be null if not printed.
@@ -373,5 +375,40 @@ export function scoreEval(cases: readonly EvalCase[]): EvalSummary {
     reconciliationRate: n ? round3(reconOk / n) : 0,
     meanLatencySec: n ? round3(latency / n / 1000) : 0,
     perReceipt,
+  };
+}
+
+export type EvalAnsweredSummary = {
+  n: number;
+  answered: number;
+  /** Share of receipts that got a valid answer within the limit. */
+  answerRate: number;
+  /** The metrics below count only the answered receipts. */
+  precision: number;
+  recall: number;
+  f1: number;
+  totalAccuracy: number;
+  reconciliationRate: number;
+};
+
+/** D-35: separates "no answer" from "wrong answer", as for type-to-add (D-31); from saved per-receipt rows. */
+export function answeredReceiptSummary(rows: readonly Omit<EvalReceiptRow, "id" | "latencySec">[]): EvalAnsweredSummary {
+  const a = rows.filter((r) => !r.error);
+  const sum = (f: (r: (typeof a)[number]) => number) => a.reduce((s, r) => s + f(r), 0);
+  const matched = sum((r) => r.matched);
+  const predicted = sum((r) => r.predictedItems);
+  const truth = sum((r) => r.truthItems);
+  const precision = predicted ? matched / predicted : 0;
+  const recall = truth ? matched / truth : 0;
+  const f1 = precision + recall ? (2 * precision * recall) / (precision + recall) : 0;
+  return {
+    n: rows.length,
+    answered: a.length,
+    answerRate: rows.length ? round3(a.length / rows.length) : 0,
+    precision: round3(precision),
+    recall: round3(recall),
+    f1: round3(f1),
+    totalAccuracy: a.length ? round3(a.filter((r) => r.totalCorrect).length / a.length) : 0,
+    reconciliationRate: a.length ? round3(a.filter((r) => r.reconciled).length / a.length) : 0,
   };
 }

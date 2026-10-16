@@ -4,7 +4,7 @@
 
 | | |
 |---|---|
-| Version | v1.1 |
+| Version | v1.2 |
 | Date | 2026-10-16 |
 | Status | Ready for build. All open questions are decided (§10.1). Build order is in `PLAN.md`. |
 | Course | Applied Data Science & AI, IISc |
@@ -165,6 +165,9 @@ Multi-table writes run in **one Postgres function (RPC)** each, so they are atom
 ```
 
 Missing extras are `0`. `tax` is the sum of all tax lines (CGST + SGST, VAT, etc.).
+
+- **Add-on lines** printed under an item (add-ons, extras, modifiers) are part of that item's `amount`, not separate items (D-34).
+- **`service_charge`** is the service charge plus every platform, packaging, convenience and delivery fee actually charged; a fee shown as free or struck out counts as 0 (D-34).
 
 **Frankfurter v2**
 - **Request:** `GET https://api.frankfurter.dev/v2/rate/{BASE}/{QUOTE}?date=YYYY-MM-DD` (confirmed in Phase 1, P1-7).
@@ -391,6 +394,7 @@ Requirement IDs are stable. R59 and R60 were added in v0.5 and sit in their topi
   - **Mean latency** in seconds.
   - For every receipt it SHALL save the predicted values (fields, items, `diff`, unmatched items) or the failure reason. Earlier runs are kept alongside the latest one, never overwritten (D-32).
   - Wherever the numbers appear (REPORT.md, `/about`), they SHALL state the sample size as "n = 5, small sample" (or the actual n) (D-33).
+  - For every run, REPORT.md and `/about` SHALL also show the **answer rate** (share of receipts read within the 25 s limit) and the **accuracy when answered** (every metric over answered receipts only), next to the overall figures (D-35). R39 is still judged on the overall figures.
 - **R38 [Must]** WHEN `/about` is opened, THE SYSTEM SHALL show the metrics from the committed `eval/results.json` (model, run date, n, precision, recall, F1, total accuracy, reconciliation rate, mean latency), a per-receipt table and a method note. It SHALL make no live Gemini call.
 - **R39 [Should]** THE SYSTEM SHALL reach item F1 ≥ 0.80 and a reconciliation rate ≥ 0.70 on the eval set.
 
@@ -821,6 +825,8 @@ Unless marked *Should*, every AC is Must. Amounts are in ₹; the tests use pais
 | D-31 | Review of NL runs 1–3 (2026-10-17) | Overall accuracy mixes "no answer" (Gemini busy or slow) with "wrong answer". Every run is also reported as **answer rate** + **accuracy when answered**, computed from the saved results (no re-run). Run 3 stays the main result; no more NL re-runs (R66). |
 | D-32 | Receipt eval run 1 (2026-10-17) | Run 1 saved only per-receipt flags, so two unreconciled receipts could not be explained. The receipt eval now saves every receipt's predicted values, like the NL eval (D-30); run 1 is kept as it was (R37). |
 | D-33 | Receipt eval set (2026-10-17) | The eval set is **at least 5** real receipts (was 10–15): 5 were collected and checked against the paper bills. Results always say "n = 5, small sample", since one receipt moves a per-receipt rate by 20 points (R37, AC-24). |
+| D-34 | Receipt eval run 2 (2026-10-17) | Two receipt-prompt gaps change real users' splits, so they are product bug fixes: an add-on line printed under an item was read as a separate item and counted twice (r01, ₹150), and a delivery app's platform fee was dropped (r04, ₹14.99). The prompt now says add-on lines are part of the item's amount, and platform, packaging, convenience and delivery fees go in `service_charge` (§4.3). Run 3 is not blind for r01/r04. |
+| D-35 | Receipt eval run 2 (2026-10-17) | As for type-to-add (D-31), every receipt run is also reported as **answer rate** + **accuracy when answered**, from the saved results; a 25 s timeout is no answer, not a misread (R37). No receipt re-runs after run 3. |
 | D-22 | OQ-19 (2026-10-17) | Share and reminder messages use **"₹"** (e.g. `₹1,20,000`), not "Rs", to match the rest of the app. The exact strings in §4.3 are updated. |
 | D-17 | OQ-17 | When Frankfurter v2 has no rate for the exact date, use the most recent rate on or before `expense_date`, and store and show its `fx_rate_date` (R16). |
 
@@ -843,3 +849,4 @@ None open. New questions found during the build are added here with a proposed d
 | v0.9 | 2026-10-17 | **NL eval review.** D-21 clarified: an explicit per-person list of shares or amounts is the complete split, so the payer is not added; a "treat" means the payer is the only participant. The NL prompt gets one matching line, added before the first eval run. D-27: NL splits are scored by the amounts they give each participant (in paise), with split-type accuracy still reported separately; R66 updated. Ground truth: human-09 is now participants = Rahul only and not ambiguous; the leading "." is removed from human-06 and human-07; all 30 sentences reviewed. Counts unchanged: 70 requirements, 55 ACs. |
 | v1.0 | 2026-10-17 | **Type-to-add reliability, after investigating the eval failures** (all errors were HTTP 503 "high demand"; no 429; thinking is not the cause).<br>**D-28 (Q1):** "Couldn't read that — try again" with a Try again button, a smaller "or fill in the form", and "Still reading… Gemini is busy" after about 6 s.<br>**D-29 (Q2):** the limit rises from 15 s to 20 s, and the single retry waits about 1 s.<br>**D-30 (Q3):** Gemini's real HTTP status is recorded in the route log and in the NL eval results.<br>**Updated:** R61, R64 (wording and limit), R66 (failure reasons recorded; earlier runs kept), AC-50.<br>**Not applied:** Q4 (fallback model); the thinking level stays at the default.<br>Counts unchanged: 70 requirements (49 Must, 21 Should), 55 ACs. |
 | v1.1 | 2026-10-17 | **Eval reporting.**<br>**D-31:** every NL run (1–3) is also reported as answer rate + accuracy when answered, in REPORT.md and on `/about`; run 3 stays the main result, no more NL re-runs (R66).<br>**D-32:** the receipt eval saves each receipt's predicted values; run 1 kept, run 2 added (R37).<br>**D-33:** R37 asks for at least 5 real receipts (was 10–15), and results state "n = 5, small sample"; AC-24 and the `/about` method note updated.<br>Counts unchanged: 70 requirements (49 Must, 21 Should), 55 ACs. |
+| v1.2 | 2026-10-17 | **Receipt prompt fixes and receipt answer rate.**<br>**D-34:** §4.3 adds two field rules: add-on lines are part of their item's amount; platform, packaging, convenience and delivery fees go in `service_charge`. Product bug fixes found by receipt eval run 2 (r01, r04); run 3 is not blind for r01/r04.<br>**D-35:** every receipt run also reports answer rate + accuracy when answered (R37), in REPORT.md and on `/about`.<br>Counts unchanged: 70 requirements (49 Must, 21 Should), 55 ACs. |

@@ -2,31 +2,34 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import results from "@/eval/results.json";
 import receiptRun1 from "@/eval/results-run1.json";
+import receiptRun2 from "@/eval/results-run2.json";
 import nlResults from "@/eval/nl/results.json";
 import nlRun1 from "@/eval/nl/results-run1.json";
 import nlRun2 from "@/eval/nl/results-run2.json";
 import { Card, Notice } from "@/app/_components/ui";
 import { answeredSummary, type NlAnsweredRow } from "@/lib/nlparse";
+import { answeredReceiptSummary } from "@/lib/receipt";
 
 export const metadata: Metadata = { title: "About — Quits" };
 
 type Row = { id: string; predictedItems: number; truthItems: number; matched: number; totalCorrect: boolean; reconciled: boolean; latencySec: number; error: boolean };
-type Results =
-  | { status: "not-run"; dataset: string; note: string }
-  | {
-      status: "ok";
-      dataset: string;
-      model: string;
-      runAt: string;
-      n: number;
-      precision: number;
-      recall: number;
-      f1: number;
-      totalAccuracy: number;
-      reconciliationRate: number;
-      meanLatencySec: number;
-      perReceipt: Row[];
-    };
+type ReceiptRun = {
+  status: "ok";
+  run?: number;
+  blindness?: string;
+  dataset: string;
+  model: string;
+  runAt: string;
+  n: number;
+  precision: number;
+  recall: number;
+  f1: number;
+  totalAccuracy: number;
+  reconciliationRate: number;
+  meanLatencySec: number;
+  perReceipt: Row[];
+};
+type Results = { status: "not-run"; dataset: string; note: string } | ReceiptRun;
 
 const pct = (x: number) => `${(x * 100).toFixed(1)}%`;
 
@@ -210,23 +213,45 @@ export default function AboutPage() {
             <p className="text-sm text-muted">
               {r.dataset} · <span className="font-semibold">n = {r.n}, small sample</span> · model <code>{r.model}</code> · run {r.runAt.slice(0, 10)}
             </p>
-            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-              {(
-                [
-                  ["Item precision", pct(r.precision)],
-                  ["Item recall", pct(r.recall)],
-                  ["Item F1", pct(r.f1)],
-                  ["Total accuracy", pct(r.totalAccuracy)],
-                  ["Reconciliation rate", pct(r.reconciliationRate)],
-                  ["Mean latency", `${r.meanLatencySec.toFixed(1)} s`],
-                ] as const
-              ).map(([k, v]) => (
-                <Card key={k} className="p-3">
-                  <p className="text-xs font-semibold uppercase text-muted">{k}</p>
-                  <p className="text-2xl font-bold">{v}</p>
-                </Card>
-              ))}
-            </div>
+            {(() => {
+              const a = answeredReceiptSummary(r.perReceipt);
+              return (
+                <>
+                  <Card className="p-3">
+                    <p className="text-xs font-semibold uppercase text-muted">Answer rate</p>
+                    <p className="text-2xl font-bold">{pct(a.answerRate)}</p>
+                    <p className="text-sm text-muted">
+                      {a.answered} of {a.n} receipts got an answer within 25 s · mean {r.meanLatencySec.toFixed(1)} s
+                    </p>
+                  </Card>
+                  <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                    {(
+                      [
+                        ["Item precision", r.precision, a.precision],
+                        ["Item recall", r.recall, a.recall],
+                        ["Item F1", r.f1, a.f1],
+                        ["Total accuracy", r.totalAccuracy, a.totalAccuracy],
+                        ["Reconciliation rate", r.reconciliationRate, a.reconciliationRate],
+                      ] as const
+                    ).map(([k, overall, answered]) => (
+                      <Card key={k} className="p-3">
+                        <p className="text-xs font-semibold uppercase text-muted">{k}</p>
+                        <p className="text-2xl font-bold">{pct(overall)}</p>
+                        <p className="text-sm text-muted">{pct(answered)} when answered</p>
+                      </Card>
+                    ))}
+                  </div>
+                </>
+              );
+            })()}
+            {r.blindness && (
+              <p className="text-sm">
+                Run {r.run}: {r.blindness}{" "}
+                <a href="#receipt-earlier" className="font-semibold text-brand underline">
+                  Earlier runs
+                </a>
+              </p>
+            )}
             <div className="overflow-x-auto rounded-2xl border border-border bg-card">
               <table className="w-full text-sm">
                 <thead className="text-left text-muted">
@@ -244,34 +269,49 @@ export default function AboutPage() {
                       <td className="px-3 py-2">
                         {row.predictedItems} / {row.truthItems} / {row.matched}
                       </td>
-                      <td className="px-3 py-2">{row.totalCorrect ? "correct" : "wrong"}</td>
-                      <td className="px-3 py-2">{row.reconciled ? "yes" : "no"}</td>
+                      <td className="px-3 py-2">{row.error ? "no answer" : row.totalCorrect ? "correct" : "wrong"}</td>
+                      <td className="px-3 py-2">{row.error ? "—" : row.reconciled ? "yes" : "no"}</td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
-            <details className="rounded-2xl border border-border bg-card p-3 text-sm">
-              <summary className="min-h-11 cursor-pointer content-center font-semibold">Earlier run (kept as it was)</summary>
-              <p className="mt-2 font-semibold">
-                Run 1 · n = {receiptRun1.n}, small sample · {receiptRun1.runAt.slice(0, 10)}
-              </p>
-              <ul className="mt-1 grid grid-cols-2 gap-1 sm:grid-cols-3">
-                {(
-                  [
-                    ["Item precision", receiptRun1.precision],
-                    ["Item recall", receiptRun1.recall],
-                    ["Item F1", receiptRun1.f1],
-                    ["Total accuracy", receiptRun1.totalAccuracy],
-                    ["Reconciliation rate", receiptRun1.reconciliationRate],
-                  ] as const
-                ).map(([k, v]) => (
-                  <li key={k}>
-                    {k}: <span className="font-semibold">{pct(v)}</span>
-                  </li>
-                ))}
-              </ul>
-              <p className="text-muted">Same receipts, prompt and model; it did not save what Gemini read, so its misses can&apos;t be explained.</p>
+            <details id="receipt-earlier" className="rounded-2xl border border-border bg-card p-3 text-sm">
+              <summary className="min-h-11 cursor-pointer content-center font-semibold">Earlier runs (kept as they were)</summary>
+              {(
+                [
+                  ["Run 2", receiptRun2 as unknown as ReceiptRun, "Same prompt as run 1; first run that saved what Gemini read. One receipt got no answer."],
+                  ["Run 1", receiptRun1 as unknown as ReceiptRun, "Same receipts, prompt and model; it did not save what Gemini read, so its misses can't be explained."],
+                ] as const
+              ).map(([label, run, note]) => {
+                const a = answeredReceiptSummary(run.perReceipt);
+                return (
+                  <div key={label} className="mt-2">
+                    <p className="font-semibold">
+                      {label} · n = {run.n}, small sample · {run.runAt.slice(0, 10)}
+                    </p>
+                    <p className="mt-1">
+                      Answer rate: <span className="font-semibold">{pct(a.answerRate)}</span> ({a.answered} of {a.n})
+                    </p>
+                    <ul className="mt-1 grid grid-cols-1 gap-1 sm:grid-cols-2">
+                      {(
+                        [
+                          ["Item precision", run.precision, a.precision],
+                          ["Item recall", run.recall, a.recall],
+                          ["Item F1", run.f1, a.f1],
+                          ["Total accuracy", run.totalAccuracy, a.totalAccuracy],
+                          ["Reconciliation rate", run.reconciliationRate, a.reconciliationRate],
+                        ] as const
+                      ).map(([k, overall, answered]) => (
+                        <li key={k}>
+                          {k}: <span className="font-semibold">{pct(overall)}</span> <span className="text-muted">({pct(answered)} when answered)</span>
+                        </li>
+                      ))}
+                    </ul>
+                    <p className="text-muted">{note}</p>
+                  </div>
+                );
+              })}
             </details>
           </>
         )}
@@ -279,7 +319,8 @@ export default function AboutPage() {
           Method: 5 real receipts (n = 5, small sample: one receipt moves a per-receipt rate by 20 points): three restaurant bills and two food-delivery
           screenshots, with ground truth checked by hand against the paper bills. An item counts as correct when its amount is within ₹1 and its name is at least 60%
           similar. Precision, recall and F1 are averaged over all items. “Total accuracy” means the total was read within ₹1. “Reconciled” means the items, tax and charges
-          add up to the total within ₹1.
+          add up to the total within ₹1. “Answer rate” is the share of receipts Gemini read within 25 s; the big figures count a receipt with no answer as all items missed,
+          and “when answered” counts only the receipts that got an answer.
         </p>
       </section>
 

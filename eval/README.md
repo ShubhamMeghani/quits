@@ -44,7 +44,7 @@ npm run eval -- --report     # rebuild eval/REPORT.md from the saved results (no
 
 **What the run uses:** the same compression rules, prompt, JSON schema, model (`GEMINI_MODEL`) and parser as the app. `GEMINI_API_KEY` comes from `.env.local`.
 
-**What it saves (D-32):** for every receipt, the predicted values (fields, items, `diff`, unmatched items) or the failure reason. Earlier runs are kept: `results-run1.json` and `REPORT-run1.md` hold run 1 exactly as run.
+**What it saves (D-32):** for every receipt, the predicted values (fields, items, `diff`, unmatched items) or the failure reason. Earlier runs are kept exactly as run: `results-run1.json` + `REPORT-run1.md` (run 1) and `results-run2.json` + `REPORT-run2.md` (run 2). REPORT.md opens with answer rate and accuracy when answered for every run (D-35). Run 3 is the last receipt run (D-35).
 
 **Metrics** (all micro-averaged):
 

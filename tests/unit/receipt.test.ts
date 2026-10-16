@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   allocateItemized,
+  answeredReceiptSummary,
   extractReceipt,
   isMismatch,
   matchItems,
@@ -176,5 +177,68 @@ describe("eval metrics (R37)", () => {
     const s = scoreEval([{ id: "x", predicted: null, truth, latencyMs: 25000 }]);
     expect(s).toMatchObject({ precision: 0, recall: 0, f1: 0, totalAccuracy: 0, reconciliationRate: 0 });
     expect(s.perReceipt[0].error).toBe(true);
+  });
+  it("D-35: answeredReceiptSummary separates the answer rate from accuracy when answered", () => {
+    const row = (o: Partial<Parameters<typeof answeredReceiptSummary>[0][number]>) => ({ predictedItems: 3, truthItems: 3, matched: 3, totalCorrect: true, reconciled: true, error: false, ...o });
+    const a = answeredReceiptSummary([
+      row({}),
+      row({ predictedItems: 4, reconciled: false }),
+      row({ predictedItems: 0, matched: 0, truthItems: 6, totalCorrect: false, reconciled: false, error: true }),
+    ]);
+    // Answered: 6 matched of 7 predicted and 6 true; the failed receipt's 6 items are left out.
+    expect(a).toEqual({ n: 3, answered: 2, answerRate: 0.667, precision: 0.857, recall: 1, f1: 0.923, totalAccuracy: 1, reconciliationRate: 0.5 });
+    expect(answeredReceiptSummary([])).toMatchObject({ n: 0, answered: 0, answerRate: 0, f1: 0 });
+  });
+});
+
+/** The model is mocked: these pin the prompt rules and show what each one does to a user's split. */
+describe("receipt prompt fixes (D-34)", () => {
+  const capture = async (output: unknown) => {
+    let prompt = "";
+    const r = await extractReceipt({ base64: "", mimeType: "image/jpeg" }, async (req) => {
+      prompt = req.prompt;
+      return JSON.stringify(output);
+    });
+    return { prompt, r };
+  };
+  const base = { merchant: null, date: null, currency: "INR", tax: 0, service_charge: 0, tip: 0, discount: 0, round_off: 0 };
+
+  it("add-on lines printed under an item stay inside that item's amount", async () => {
+    // Dumplings ₹425 + "Extra: 2 pcs 1x150 = 150" printed as one ₹575 line; Tea ₹100; total ₹675.
+    const followsRule = { ...base, items: [{ name: "Cheese Dumplings", quantity: 1, amount: 575 }, { name: "Tea", quantity: 1, amount: 100 }], total: 675 };
+    const { prompt, r } = await capture(followsRule);
+    expect(prompt).toMatch(/add-ons, extras/);
+    expect(prompt).toMatch(/part of that item's amount, not separate items/);
+    expect(r.ok && receiptDiff(r.data)).toBe(0);
+    // The bug (run 2, r01): the add-on read as its own ₹150 item → counted twice, ₹150 mismatch,
+    // and whoever is assigned the extra line pays for dumplings the dumpling-eater already paid for.
+    const bug = parseModelReceipt({ ...followsRule, items: [...followsRule.items, { name: "Extra: 2 pcs", quantity: 1, amount: 150 }] }, "INR")!;
+    expect(receiptDiff(bug)).toBe(-15000);
+    expect(isMismatch(receiptDiff(bug))).toBe(true);
+    const ok = allocateItemized([{ amountMinor: 57500, assignees: ["A"] }, { amountMinor: 10000, assignees: ["B"] }], 67500, ["A", "B"]);
+    expect(ok.ok && ok.owed).toEqual({ A: 57500, B: 10000 });
+  });
+
+  it("platform, packaging, convenience and delivery fees go in service_charge and are shared in proportion", async () => {
+    // Two ₹100 rolls, GST ₹12.70, platform fee ₹14.99, delivery FREE, coupon −₹140 → paid ₹87.69.
+    const followsRule = {
+      ...base,
+      items: [{ name: "Chicken Ghee Roast Roll", quantity: 1, amount: 100 }, { name: "Butter Chicken Roll", quantity: 1, amount: 100 }],
+      tax: 12.7,
+      service_charge: 14.99,
+      discount: 140,
+      total: 87.69,
+    };
+    const { prompt, r } = await capture(followsRule);
+    expect(prompt).toMatch(/service_charge: the sum of the service charge and every platform, packaging, convenience and delivery fee/);
+    expect(prompt).toMatch(/free or struck out counts as 0/);
+    expect(r.ok && r.data.serviceMinor).toBe(1499);
+    expect(r.ok && receiptDiff(r.data)).toBe(0);
+    // The bug (run 2, r04): the fee dropped → ₹14.99 unexplained mismatch.
+    expect(receiptDiff(parseModelReceipt({ ...followsRule, service_charge: 0 }, "INR")!)).toBe(1499);
+    // The split uses the printed total, so each person pays half of everything, fee included
+    // (remainder −11231 → [5616, 5615] with R13's member-order tie-break, then negated).
+    const split = allocateItemized([{ amountMinor: 10000, assignees: ["A"] }, { amountMinor: 10000, assignees: ["B"] }], 8769, ["A", "B"]);
+    expect(split.ok && split.owed).toEqual({ A: 4384, B: 4385 });
   });
 });

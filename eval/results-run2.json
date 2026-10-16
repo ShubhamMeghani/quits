@@ -1,0 +1,361 @@
+{
+  "status": "ok",
+  "run": 2,
+  "evalSetupFixes": [
+    "D-32: every receipt's predicted values are saved (fields, items, diff, unmatched items, failure reason), so a miss can be explained from the file."
+  ],
+  "codeFixes": [],
+  "note": "Same images, ground truth, prompt, schema, model and scorer as run 1; no app code changed. The difference from run 1 is run-to-run variation of the model.",
+  "dataset": "real receipts",
+  "model": "gemini-3.5-flash-lite",
+  "runAt": "2026-10-16T19:58:02.337Z",
+  "n": 5,
+  "precision": 0.977,
+  "recall": 0.875,
+  "f1": 0.923,
+  "totalAccuracy": 0.8,
+  "reconciliationRate": 0.4,
+  "meanLatencySec": 13.316,
+  "perReceipt": [
+    {
+      "id": "r01",
+      "predictedItems": 35,
+      "truthItems": 34,
+      "matched": 34,
+      "totalCorrect": true,
+      "reconciled": false,
+      "latencySec": 21.997,
+      "error": false,
+      "predicted": {
+        "merchant": null,
+        "date": null,
+        "currency": "INR",
+        "items": [
+          {
+            "name": "Dorayaki",
+            "quantity": 2,
+            "amount": 490
+          },
+          {
+            "name": "Spicy Wings",
+            "quantity": 1,
+            "amount": 425
+          },
+          {
+            "name": "Spicy Tuna (4 Pieces)",
+            "quantity": 1,
+            "amount": 520
+          },
+          {
+            "name": "Non-Veg Sushi Platter Large-16 Pcs",
+            "quantity": 1,
+            "amount": 1645
+          },
+          {
+            "name": "Gyoza Chicken",
+            "quantity": 1,
+            "amount": 445
+          },
+          {
+            "name": "Teriyaki Chicken Bao",
+            "quantity": 1,
+            "amount": 425
+          },
+          {
+            "name": "Gyoza Veg",
+            "quantity": 1,
+            "amount": 425
+          },
+          {
+            "name": "Crystal Dumplings In Red Curry",
+            "quantity": 1,
+            "amount": 395
+          },
+          {
+            "name": "Cheese & Chilly Oil Dumplings",
+            "quantity": 2,
+            "amount": 850
+          },
+          {
+            "name": "Crispy Creamy Asparagus Maki (8 Pieces)",
+            "quantity": 1,
+            "amount": 665
+          },
+          {
+            "name": "Tempura Veggie Fiesta (8 Pieces)",
+            "quantity": 1,
+            "amount": 630
+          },
+          {
+            "name": "Korean Corn Dog",
+            "quantity": 1,
+            "amount": 245
+          },
+          {
+            "name": "Tori Karaage",
+            "quantity": 1,
+            "amount": 495
+          },
+          {
+            "name": "Virgin Pina Colada",
+            "quantity": 2,
+            "amount": 590
+          },
+          {
+            "name": "Chocolate Shake",
+            "quantity": 1,
+            "amount": 325
+          },
+          {
+            "name": "Pinklady",
+            "quantity": 2,
+            "amount": 550
+          },
+          {
+            "name": "Crimson Cooler",
+            "quantity": 1,
+            "amount": 275
+          },
+          {
+            "name": "Chiang Mai Chili",
+            "quantity": 1,
+            "amount": 295
+          },
+          {
+            "name": "God Father",
+            "quantity": 1,
+            "amount": 295
+          },
+          {
+            "name": "Litchi Sparking",
+            "quantity": 2,
+            "amount": 590
+          },
+          {
+            "name": "Vegan Ramen",
+            "quantity": 2,
+            "amount": 1250
+          },
+          {
+            "name": "Rakkasel Kara Miso (Veg)",
+            "quantity": 1,
+            "amount": 545
+          },
+          {
+            "name": "Naruto Ramen (Veg)",
+            "quantity": 1,
+            "amount": 575
+          },
+          {
+            "name": "Spicy Tonkatsu (Veg)",
+            "quantity": 1,
+            "amount": 595
+          },
+          {
+            "name": "Korean Ramen (Veg)",
+            "quantity": 1,
+            "amount": 545
+          },
+          {
+            "name": "Tantanmen Ramen (Veg)",
+            "quantity": 1,
+            "amount": 595
+          },
+          {
+            "name": "Rakkasel Kara Miso (Chicken)",
+            "quantity": 1,
+            "amount": 595
+          },
+          {
+            "name": "Tantanmen Ramen (Chicken)",
+            "quantity": 1,
+            "amount": 645
+          },
+          {
+            "name": "Fire Ramyun Chicken",
+            "quantity": 1,
+            "amount": 645
+          },
+          {
+            "name": "Dorayaki - Adzuki Beans Paste",
+            "quantity": 1,
+            "amount": 245
+          },
+          {
+            "name": "Cheese & Chilly Oil Dumplings",
+            "quantity": 1,
+            "amount": 575
+          },
+          {
+            "name": "Dimsums Extra: 2 Pcs Extra Dimsums - 1x150 = 150",
+            "quantity": 1,
+            "amount": 150
+          },
+          {
+            "name": "Mochi Ice Cream",
+            "quantity": 4,
+            "amount": 1100
+          },
+          {
+            "name": "Hotteok With Ice Cream",
+            "quantity": 1,
+            "amount": 325
+          },
+          {
+            "name": "Katsu Banana With Ice Cream",
+            "quantity": 1,
+            "amount": 295
+          }
+        ],
+        "itemsSum": 19255,
+        "tax": 955.26,
+        "service_charge": 1910.5,
+        "tip": 0,
+        "discount": 0,
+        "round_off": 0.24,
+        "total": 21971,
+        "diff": -150
+      },
+      "extraItems": [
+        {
+          "name": "Dimsums Extra: 2 Pcs Extra Dimsums - 1x150 = 150",
+          "quantity": 1,
+          "amount": 150
+        }
+      ],
+      "missedItems": []
+    },
+    {
+      "id": "r02",
+      "predictedItems": 0,
+      "truthItems": 6,
+      "matched": 0,
+      "totalCorrect": false,
+      "reconciled": false,
+      "latencySec": 25.017,
+      "error": true,
+      "reason": "timeout"
+    },
+    {
+      "id": "r03",
+      "predictedItems": 3,
+      "truthItems": 3,
+      "matched": 3,
+      "totalCorrect": true,
+      "reconciled": true,
+      "latencySec": 8.751,
+      "error": false,
+      "predicted": {
+        "merchant": "Domino's",
+        "date": "2026-10-08",
+        "currency": "INR",
+        "items": [
+          {
+            "name": "Classic",
+            "quantity": 2,
+            "amount": 100
+          },
+          {
+            "name": "Paneer & Capsicum with Videshi Hot Sauce",
+            "quantity": 1,
+            "amount": 109
+          },
+          {
+            "name": "Cheese Volcano Peppy Paneer",
+            "quantity": 1,
+            "amount": 319
+          }
+        ],
+        "itemsSum": 528,
+        "tax": 57.04,
+        "service_charge": 0,
+        "tip": 0,
+        "discount": 80,
+        "round_off": 0,
+        "total": 505.04,
+        "diff": 0
+      },
+      "extraItems": [],
+      "missedItems": []
+    },
+    {
+      "id": "r04",
+      "predictedItems": 2,
+      "truthItems": 2,
+      "matched": 2,
+      "totalCorrect": true,
+      "reconciled": false,
+      "latencySec": 3.399,
+      "error": false,
+      "predicted": {
+        "merchant": "Sultan Rolls & Sandwiches",
+        "date": null,
+        "currency": "INR",
+        "items": [
+          {
+            "name": "Chicken Ghee Roast Roll",
+            "quantity": 1,
+            "amount": 100
+          },
+          {
+            "name": "Butter Chicken Roll",
+            "quantity": 1,
+            "amount": 100
+          }
+        ],
+        "itemsSum": 200,
+        "tax": 12.7,
+        "service_charge": 0,
+        "tip": 0,
+        "discount": 140,
+        "round_off": 0,
+        "total": 87.69,
+        "diff": 14.99
+      },
+      "extraItems": [],
+      "missedItems": []
+    },
+    {
+      "id": "r05",
+      "predictedItems": 3,
+      "truthItems": 3,
+      "matched": 3,
+      "totalCorrect": true,
+      "reconciled": true,
+      "latencySec": 7.414,
+      "error": false,
+      "predicted": {
+        "merchant": "Taco Bell",
+        "date": "2026-08-04",
+        "currency": "INR",
+        "items": [
+          {
+            "name": "Cheesy Lava Taco Veg",
+            "quantity": 1,
+            "amount": 239
+          },
+          {
+            "name": "Crispy Potato Wrap",
+            "quantity": 1,
+            "amount": 75
+          },
+          {
+            "name": "CT Wheat Pinto Bean",
+            "quantity": 1,
+            "amount": 99
+          }
+        ],
+        "itemsSum": 413,
+        "tax": 17.56,
+        "service_charge": 0,
+        "tip": 0,
+        "discount": 61.95,
+        "round_off": 0.39,
+        "total": 369,
+        "diff": 0
+      },
+      "extraItems": [],
+      "missedItems": []
+    }
+  ]
+}
