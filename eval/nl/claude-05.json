@@ -1,0 +1,32 @@
+{
+  "id": "claude-05",
+  "text": "Amit ne 300 diye chai samose ke, mere aur Amit ke beech",
+  "members": [
+    "Aarav",
+    "Priya",
+    "Rahul",
+    "Amit",
+    "Sneha"
+  ],
+  "me": "Aarav",
+  "today": "2026-10-17",
+  "baseCurrency": "INR",
+  "author": "claude",
+  "reviewed": false,
+  "ambiguous": false,
+  "blank": [],
+  "expected": {
+    "currency": "INR",
+    "split_type": "equal",
+    "split_values": null,
+    "category": "Food & Drinks",
+    "date": null,
+    "description": null,
+    "amount": 300,
+    "payer": "Amit",
+    "participants": [
+      "Aarav",
+      "Amit"
+    ]
+  }
+}

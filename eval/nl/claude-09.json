@@ -1,0 +1,33 @@
+{
+  "id": "claude-09",
+  "text": "kal Priya ne 750 ka Swiggy order kiya, Priya, Sneha aur main",
+  "members": [
+    "Aarav",
+    "Priya",
+    "Rahul",
+    "Amit",
+    "Sneha"
+  ],
+  "me": "Aarav",
+  "today": "2026-10-17",
+  "baseCurrency": "INR",
+  "author": "claude",
+  "reviewed": false,
+  "ambiguous": false,
+  "blank": [],
+  "expected": {
+    "currency": "INR",
+    "split_type": "equal",
+    "split_values": null,
+    "category": "Food & Drinks",
+    "date": "2026-10-16",
+    "description": null,
+    "amount": 750,
+    "payer": "Priya",
+    "participants": [
+      "Priya",
+      "Sneha",
+      "Aarav"
+    ]
+  }
+}

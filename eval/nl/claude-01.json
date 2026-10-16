@@ -1,0 +1,33 @@
+{
+  "id": "claude-01",
+  "text": "Rahul paid 600 for pizza, split with Amit and me",
+  "members": [
+    "Aarav",
+    "Priya",
+    "Rahul",
+    "Amit",
+    "Sneha"
+  ],
+  "me": "Aarav",
+  "today": "2026-10-17",
+  "baseCurrency": "INR",
+  "author": "claude",
+  "reviewed": false,
+  "ambiguous": false,
+  "blank": [],
+  "expected": {
+    "currency": "INR",
+    "split_type": "equal",
+    "split_values": null,
+    "category": "Food & Drinks",
+    "date": null,
+    "description": null,
+    "amount": 600,
+    "payer": "Rahul",
+    "participants": [
+      "Rahul",
+      "Amit",
+      "Aarav"
+    ]
+  }
+}

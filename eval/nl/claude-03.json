@@ -1,0 +1,33 @@
+{
+  "id": "claude-03",
+  "text": "I paid 1200 for groceries for me, Priya and Sneha",
+  "members": [
+    "Aarav",
+    "Priya",
+    "Rahul",
+    "Amit",
+    "Sneha"
+  ],
+  "me": "Aarav",
+  "today": "2026-10-17",
+  "baseCurrency": "INR",
+  "author": "claude",
+  "reviewed": false,
+  "ambiguous": false,
+  "blank": [],
+  "expected": {
+    "currency": "INR",
+    "split_type": "equal",
+    "split_values": null,
+    "category": "Groceries",
+    "date": null,
+    "description": null,
+    "amount": 1200,
+    "payer": "Aarav",
+    "participants": [
+      "Aarav",
+      "Priya",
+      "Sneha"
+    ]
+  }
+}

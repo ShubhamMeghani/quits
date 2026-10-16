@@ -14,7 +14,8 @@
     "db:push": "node --env-file-if-exists=.env.local scripts/db-push.mjs",
     "eval": "node --env-file-if-exists=.env.local --conditions=react-server --import tsx eval/run.ts",
     "icons": "node scripts/gen-icons.mjs",
-    "eval:synthetic": "npm run eval -- --dir eval/synthetic --out eval/synthetic"
+    "eval:synthetic": "npm run eval -- --dir eval/synthetic --out eval/synthetic",
+    "eval:nl": "node --env-file-if-exists=.env.local --conditions=react-server --import tsx eval/nl/run.ts"
   },
   "dependencies": {
     "@google/genai": "^2.30.0",

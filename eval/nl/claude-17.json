@@ -1,0 +1,34 @@
+{
+  "id": "claude-17",
+  "text": "Karan paid 300 for snacks, split with me",
+  "members": [
+    "Aarav",
+    "Priya",
+    "Rahul",
+    "Amit",
+    "Sneha"
+  ],
+  "me": "Aarav",
+  "today": "2026-10-17",
+  "baseCurrency": "INR",
+  "author": "claude",
+  "reviewed": false,
+  "ambiguous": true,
+  "blank": [
+    "payer"
+  ],
+  "note": "Karan is not a member: never created, payer blank.",
+  "expected": {
+    "currency": "INR",
+    "split_type": "equal",
+    "split_values": null,
+    "category": "Food & Drinks",
+    "date": null,
+    "description": null,
+    "amount": 300,
+    "payer": null,
+    "participants": [
+      "Aarav"
+    ]
+  }
+}

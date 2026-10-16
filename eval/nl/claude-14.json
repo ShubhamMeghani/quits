@@ -1,0 +1,35 @@
+{
+  "id": "claude-14",
+  "text": "I covered the 2,000 electricity bill; Priya, Rahul, Amit, Sneha and I share it equally",
+  "members": [
+    "Aarav",
+    "Priya",
+    "Rahul",
+    "Amit",
+    "Sneha"
+  ],
+  "me": "Aarav",
+  "today": "2026-10-17",
+  "baseCurrency": "INR",
+  "author": "claude",
+  "reviewed": false,
+  "ambiguous": false,
+  "blank": [],
+  "expected": {
+    "currency": "INR",
+    "split_type": "equal",
+    "split_values": null,
+    "category": "Utilities",
+    "date": null,
+    "description": null,
+    "amount": 2000,
+    "payer": "Aarav",
+    "participants": [
+      "Aarav",
+      "Priya",
+      "Rahul",
+      "Amit",
+      "Sneha"
+    ]
+  }
+}

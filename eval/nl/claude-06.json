@@ -1,0 +1,35 @@
+{
+  "id": "claude-06",
+  "text": "Sneha paid 1000 for dinner: 400 for me and 600 for Rahul",
+  "members": [
+    "Aarav",
+    "Priya",
+    "Rahul",
+    "Amit",
+    "Sneha"
+  ],
+  "me": "Aarav",
+  "today": "2026-10-17",
+  "baseCurrency": "INR",
+  "author": "claude",
+  "reviewed": false,
+  "ambiguous": false,
+  "blank": [],
+  "expected": {
+    "currency": "INR",
+    "split_type": "exact",
+    "split_values": {
+      "Aarav": 400,
+      "Rahul": 600
+    },
+    "category": "Food & Drinks",
+    "date": null,
+    "description": null,
+    "amount": 1000,
+    "payer": "Sneha",
+    "participants": [
+      "Aarav",
+      "Rahul"
+    ]
+  }
+}

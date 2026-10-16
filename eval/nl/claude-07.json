@@ -1,0 +1,37 @@
+{
+  "id": "claude-07",
+  "text": "I paid 3000 for the Airbnb yesterday, split 50/25/25 between me, Priya and Amit",
+  "members": [
+    "Aarav",
+    "Priya",
+    "Rahul",
+    "Amit",
+    "Sneha"
+  ],
+  "me": "Aarav",
+  "today": "2026-10-17",
+  "baseCurrency": "INR",
+  "author": "claude",
+  "reviewed": false,
+  "ambiguous": false,
+  "blank": [],
+  "expected": {
+    "currency": "INR",
+    "split_type": "percent",
+    "split_values": {
+      "Aarav": 50,
+      "Priya": 25,
+      "Amit": 25
+    },
+    "category": "Travel",
+    "date": "2026-10-16",
+    "description": null,
+    "amount": 3000,
+    "payer": "Aarav",
+    "participants": [
+      "Aarav",
+      "Priya",
+      "Amit"
+    ]
+  }
+}

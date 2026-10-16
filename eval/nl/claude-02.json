@@ -1,0 +1,35 @@
+{
+  "id": "claude-02",
+  "text": "maine 450 diye auto ke, sab mein",
+  "members": [
+    "Aarav",
+    "Priya",
+    "Rahul",
+    "Amit",
+    "Sneha"
+  ],
+  "me": "Aarav",
+  "today": "2026-10-17",
+  "baseCurrency": "INR",
+  "author": "claude",
+  "reviewed": false,
+  "ambiguous": false,
+  "blank": [],
+  "expected": {
+    "currency": "INR",
+    "split_type": "equal",
+    "split_values": null,
+    "category": "Transport",
+    "date": null,
+    "description": null,
+    "amount": 450,
+    "payer": "Aarav",
+    "participants": [
+      "Aarav",
+      "Priya",
+      "Rahul",
+      "Amit",
+      "Sneha"
+    ]
+  }
+}

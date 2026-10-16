@@ -1,0 +1,32 @@
+{
+  "id": "claude-10",
+  "text": "Amit paid $40 for the concert tickets for Amit and me",
+  "members": [
+    "Aarav",
+    "Priya",
+    "Rahul",
+    "Amit",
+    "Sneha"
+  ],
+  "me": "Aarav",
+  "today": "2026-10-17",
+  "baseCurrency": "INR",
+  "author": "claude",
+  "reviewed": false,
+  "ambiguous": false,
+  "blank": [],
+  "expected": {
+    "currency": "USD",
+    "split_type": "equal",
+    "split_values": null,
+    "category": "Entertainment",
+    "date": null,
+    "description": null,
+    "amount": 40,
+    "payer": "Amit",
+    "participants": [
+      "Amit",
+      "Aarav"
+    ]
+  }
+}

@@ -1,0 +1,35 @@
+{
+  "id": "claude-19",
+  "text": "Rahul paid 900, split 500 for me and 300 for Priya",
+  "members": [
+    "Aarav",
+    "Priya",
+    "Rahul",
+    "Amit",
+    "Sneha"
+  ],
+  "me": "Aarav",
+  "today": "2026-10-17",
+  "baseCurrency": "INR",
+  "author": "claude",
+  "reviewed": false,
+  "ambiguous": true,
+  "blank": [
+    "split"
+  ],
+  "note": "The exact amounts (800) don't add up to 900, so the split values stay blank.",
+  "expected": {
+    "currency": "INR",
+    "split_type": "exact",
+    "split_values": null,
+    "category": null,
+    "date": null,
+    "description": null,
+    "amount": 900,
+    "payer": "Rahul",
+    "participants": [
+      "Aarav",
+      "Priya"
+    ]
+  }
+}

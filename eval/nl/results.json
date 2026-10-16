@@ -1,0 +1,4 @@
+{
+  "status": "not-run",
+  "note": "The type-to-add eval set has 20 of about 30 sentences (the human's 10 are still to be added and all 30 reviewed). Run `npm run eval:nl` after that; this file is then overwritten with the measured results."
+}

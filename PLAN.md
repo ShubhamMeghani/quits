@@ -213,7 +213,7 @@ No GitHub secrets are needed: CI runs only lint and unit tests, which make no ne
 | 8.3 | `POST /api/g/[token]/expenses/parse`: zod input (text 1–300 chars, `me`); group from token; limits (per-group `nl:group:{id}` bucket, `NL_LIMIT_PER_GROUP` default 50, plus the shared `scan:app` daily AI bucket) → 429 before any Gemini call; Gemini → `lib/nlparse` → `{ prefill, flags }`. Handler takes injected deps so it can be tested with a mocked Gemini. | AUTO | R61, R64, R65 · AC-50 |
 | 8.4 | "Type it" box at the top of Add expense: textarea (300 chars, with a hint to use the keyboard's mic), "Fill form", loading and error states. Fills the existing `ExpenseForm` state, highlights blank or ambiguous fields, and never saves. | AUTO | R61, R64 |
 | 8.5 | `eval/nl/`: draft 20 sentence + ground-truth pairs in English and Hinglish, about 5 deliberately ambiguous with blank expected fields. Fixed member list, `me`, and "today" per file. | AUTO | R66 |
-| 8.6 | Write about 10 more sentences in your own words, and review all of them. | HUMAN | R66 |
+| 8.6 | Write about 10 more sentences in your own words, and review all of them. **Pending (human).** | HUMAN | R66 |
 | 8.7 | `npm run eval:nl` (`eval/nl/run.ts`): same prompt, schema, model and post-processing; metrics are pure, unit-tested functions (field accuracy, exact match, abstention); writes `eval/nl/results.json` and `REPORT.md`. Add the NL results to `/about` next to the receipt eval, showing "not run yet" until the real run. | AUTO | R66 · AC-51 |
 
 ### 8B — WhatsApp share and nudge (Should)
@@ -223,7 +223,7 @@ No GitHub secrets are needed: CI runs only lint and unit tests, which make no ne
 | 8.8 | `lib/share.ts` (pure): summary and reminder text per SPEC §4.3 ("₹" with en-IN grouping, whole rupees without decimals; D-22); `waLink(text)`. Exact-string unit tests. | AUTO | R70 · AC-54 |
 | 8.9 | Settle screen: "Share summary" (Web Share API, otherwise `wa.me`; "Copy" on desktop) and "Remind" on each suggested payment (`wa.me/?text=`). No phone numbers are stored. | AUTO | R68, R69 |
 | 8.10 | Commit `feat(nl,share): ...`. | AUTO | — |
-| 8.11 | Push, then: AC-53 on the phone (type or dictate, form fills, nothing saved); AC-55 (Remind opens WhatsApp prefilled; Share summary; Copy on desktop); run `npm run eval:nl` on all ~30 sentences, or ask Claude to, then check AC-51 and AC-52 on `/about`. | HUMAN | AC-51–AC-53, AC-55 |
+| 8.11 | **Pending (human).** Push, then: AC-53 on the phone (type or dictate, form fills, nothing saved); AC-55 (Remind opens WhatsApp prefilled; Share summary; Copy on desktop); run `npm run eval:nl` on all ~30 sentences, or ask Claude to, then check AC-51 and AC-52 on `/about`. | HUMAN | AC-51–AC-53, AC-55 |
 
 **Done when:** AC-47–AC-51 and AC-53 Pass (plus AC-52, AC-54 and AC-55 if their Shoulds are built).
 **Prove it:** `npm run lint && npm run typecheck && npm test && npm run test:db && npm run build && npm run eval:nl`, plus the human checks.
@@ -275,6 +275,14 @@ No GitHub secrets are needed: CI runs only lint and unit tests, which make no ne
   - **Eval:** `eval/run.ts` (`npm run eval`, plus `npm run eval:synthetic`) is built and checked on ONE synthetic receipt only (`eval/synthetic/`). No real results were invented: the committed `eval/results.json` says "not-run", and `/about` shows that.
   - **Task 7.2 (draft ground truth) is waiting on 7.1:** there are no real images yet. `eval/README.md` documents the ground-truth format.
   - **Done:** the security sweep, removal of `/lab/upi`, the README, and the AC table.
+- **2026-10-17, bug fixes and Phase 8 (unattended run):**
+  - **`fix(ui)`:**
+    - Split-row names were squeezed to zero width (`w-full` vs fixed width in Tailwind's stylesheet order). Fixed with `inputFixed`, a presentational `SplitRows`/`PayerRows` component, and a unit test.
+    - On phones, "Save QR image" / "Show full screen" are stacked, so the R24 labels stay on one line.
+    - The headless-Chrome audit at 360, 390 and 1440 px shows no wrapped labels.
+  - **8A:** `lib/nlparse.ts`, the parse route (per-group limit plus the shared daily AI limit; one retry on a transient model error inside the 15 s deadline), "Type it" on Add expense, 20 drafted NL sentences (5 ambiguous), `npm run eval:nl` with a `--check` mode, and /about.
+  - **The NL eval was NOT run:** it waits for the human's 10 sentences and the review of all 30.
+  - **8B:** `lib/share.ts` (exact strings, "₹"), plus Share summary, Copy and Remind on Settle.
 
 ---
 
@@ -340,12 +348,12 @@ Rows P1-1 to P1-10 are the Phase 1 checks; each one de-risks the spec ACs shown 
 | AC-44 | Script | 1 / 7 | Partial | P1-5 Pass (keep-alive run #1 green, {"ok":true}); local `next start` with SUPABASE_URL set to an invalid host in the shell → /api/health 503 {"ok":false}. Preview-deployment check pending (7.10) |
 | AC-45 | Script | 7 | Pass | local on the Phase 7 commit: `npm run lint` clean, `npm run typecheck` clean, `npm test` 83/83, `npm run test:db` 24/24, `npm run build` exit 0. CI re-checks lint/typecheck/unit tests on push |
 | AC-46 (Should) | Unit + Phone | 4 | Partial | unit Pass (tests/unit/misc.test.ts › AC-46 parseUpiUri); local flow: uploading a UPI QR screenshot fills priya.sharma@okaxis + "Priya Sharma"; only network request was one 176-byte POST (no image); "Pay via UPI app" labelled "May be blocked by some UPI apps". Phone check pending (4.12) |
-| AC-47 | Unit | 8 | Not run | |
-| AC-48 | Unit | 8 | Not run | |
-| AC-49 | Unit | 8 | Not run | |
-| AC-50 | Unit | 8 | Not run | |
-| AC-51 | Script + Deploy | 8 | Not run | |
-| AC-52 (Should) | Script | 8 | Not run | |
-| AC-53 | Phone | 8 | Not run | |
-| AC-54 (Should) | Unit | 8 | Not run | |
-| AC-55 (Should) | Phone + Desktop | 8 | Not run | |
+| AC-47 | Unit | 8 | Pass | tests/unit/nlparse.test.ts › AC-47 (priya/PRIYA/" Priya " → Priya; Rahul with two Rahuls → blank + ambiguous; Rahul Singh → Rahul Singh; Karan → blank + unknown; no member added; sab → everyone) |
+| AC-48 | Unit | 8 | Pass | tests/unit/nlparse.test.ts › AC-48 (me/I/Maine/MUJHE/mera → current member; no current member → blank + no-me) |
+| AC-49 | Unit | 8 | Pass | tests/unit/nlparse.test.ts › AC-49 (exact 300+200≠600 → blank; % 50+40 → blank; shares 2:1:1 kept; amount 0/-5 → blank; XYZ → INR; future, year-old and impossible dates → blank; "Party" → blank) |
+| AC-50 | Unit | 8 | Pass | tests/unit/nl-route.test.ts › AC-50 (mocked Gemini: example sentence → expected prefill, no write dependency; 301 chars → 400; limit → 429 with no model call; timeout/invalid → 502 "Couldn't understand that"; one retry on a transient error; 404 for foreign group/me) |
+| AC-51 | Script + Deploy | 8 | Partial | `npm run eval:nl` built (same prompt, schema, model and lib/nlparse; writes results.json + REPORT.md); `npm run eval:nl -- --check` validates the 20 Claude-drafted sentences (5 ambiguous) with no model calls; /about shows the NL section ("not run yet"). NOT run on purpose: the human's 10 sentences and the review of all 30 are pending (8.6), then the run (8.11) |
+| AC-52 (Should) | Script | 8 | Pending (human) | needs the full ~30-sentence set (8.6) and the eval run (8.11) |
+| AC-53 | Phone | 8 | Partial | local headless Chrome (360 px, real Gemini): "Rohan paid 600 for pizza, split with Kabir and me" → 600.00, payer Rohan, participants Aarav, Rohan, Kabir (D-21), Food & Drinks; expense count unchanged until Save; "Karan paid 300…" → payer blank + highlighted + Save disabled + "Couldn't find “Karan”"; "maine 450 diye auto ke, sab mein" → 450.00, you, all 5, Transport. Phone (typing + keyboard mic) pending (8.11) |
+| AC-54 (Should) | Unit | 8 | Pass | tests/unit/share.test.ts › AC-54 (two-payment and settled-up summaries; reminders for ₹1,20,000 and ₹1,200.50; wa.me encoding incl. ₹ → %E2%82%B9, newline %0A, space %20) |
+| AC-55 (Should) | Phone + Desktop | 8 | Partial | local: Settle shows "Share summary" + "Copy" and one "Remind … on WhatsApp" link per suggestion; the link decodes to the exact reminder ("Hi Kabir, a gentle reminder from Quits: please pay Aarav ₹4,000 for …"). Phone WhatsApp/share-sheet and desktop Copy checks pending (8.11) |

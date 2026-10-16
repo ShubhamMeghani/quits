@@ -1,0 +1,32 @@
+{
+  "id": "claude-13",
+  "text": "Priya paid 1,250 on Friday for medicines for herself and Amit",
+  "members": [
+    "Aarav",
+    "Priya",
+    "Rahul",
+    "Amit",
+    "Sneha"
+  ],
+  "me": "Aarav",
+  "today": "2026-10-17",
+  "baseCurrency": "INR",
+  "author": "claude",
+  "reviewed": false,
+  "ambiguous": false,
+  "blank": [],
+  "expected": {
+    "currency": "INR",
+    "split_type": "equal",
+    "split_values": null,
+    "category": "Health",
+    "date": "2026-10-16",
+    "description": null,
+    "amount": 1250,
+    "payer": "Priya",
+    "participants": [
+      "Priya",
+      "Amit"
+    ]
+  }
+}

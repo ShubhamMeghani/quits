@@ -1,0 +1,34 @@
+{
+  "id": "claude-16",
+  "text": "Rahul paid 500 for lunch, split with Priya and me",
+  "members": [
+    "Aarav",
+    "Rahul Kumar",
+    "Rahul Singh",
+    "Priya"
+  ],
+  "me": "Aarav",
+  "today": "2026-10-17",
+  "baseCurrency": "INR",
+  "author": "claude",
+  "reviewed": false,
+  "ambiguous": true,
+  "blank": [
+    "payer"
+  ],
+  "note": "Two members are called Rahul, so the payer must stay blank.",
+  "expected": {
+    "currency": "INR",
+    "split_type": "equal",
+    "split_values": null,
+    "category": "Food & Drinks",
+    "date": null,
+    "description": null,
+    "amount": 500,
+    "payer": null,
+    "participants": [
+      "Priya",
+      "Aarav"
+    ]
+  }
+}

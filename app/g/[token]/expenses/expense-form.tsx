@@ -14,6 +14,8 @@ import { CATEGORIES, computePayers, computeSplit, percentToBasisPoints, splitErr
 import type { ExpenseRow } from "@/server/context";
 import type { DefaultSplit, ExpenseInput } from "@/server/schemas";
 import { PayerRows, SplitRows } from "./split-rows";
+import { flagMessage, TypeIt } from "./type-it";
+import type { NlFlag, NlResult } from "@/lib/nlparse";
 
 type EditableSplit = "equal" | "exact" | "percent" | "shares";
 
@@ -83,6 +85,25 @@ export function ExpenseForm({ baseCurrency, defaultSplit, today, initial }: Prop
   });
   const [error, setError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+  const [nlFlags, setNlFlags] = useState<NlFlag[]>([]);
+
+  // R61/R64: type-to-add only fills the form; blank or ambiguous fields stay highlighted.
+  const applyPrefill = ({ prefill: p, flags }: NlResult) => {
+    if (p.description) setDescription(p.description);
+    setCurrency(p.currency);
+    setAmount(p.amountMinor !== null ? minorToMajorString(p.amountMinor, exponent(p.currency)) : "");
+    setMultiPayer(false);
+    setPayerId(p.payerId ?? "");
+    setSplitType(p.splitType);
+    if (p.participantIds.length) setIncluded(new Set(p.participantIds));
+    if (p.splitType === "exact") setExact(p.splitValues ?? {});
+    if (p.splitType === "percent") setPercent(p.splitValues ?? {});
+    if (p.splitType === "shares") setShares(p.splitValues ?? Object.fromEntries(order.map((id) => [id, ""])));
+    if (p.category) setCategory(p.category);
+    if (p.date) setDate(p.date);
+    setNlFlags(flags);
+  };
+  const flagged = (field: NlFlag["field"]) => nlFlags.some((x) => x.field === field);
 
   const amountMinor = parseMajorInput(amount, exp);
 
@@ -153,7 +174,7 @@ export function ExpenseForm({ baseCurrency, defaultSplit, today, initial }: Prop
     return r.ok ? null : splitErrorMessage(r.error, currency);
   })();
 
-  const canSave = !!description.trim() && !!amountMinor && amountMinor > 0 && preview.ok && !payerMessage && !pending;
+  const canSave = !!description.trim() && !!amountMinor && amountMinor > 0 && preview.ok && !payerMessage && (multiPayer || payerId !== "") && !pending;
 
   const submit = () =>
     start(async () => {
@@ -191,6 +212,16 @@ export function ExpenseForm({ baseCurrency, defaultSplit, today, initial }: Prop
       }}
       noValidate
     >
+      {!initial && <TypeIt token={group.token} me={me ?? null} onFill={applyPrefill} />}
+      {nlFlags.length > 0 && (
+        <Notice tone="warn">
+          <ul className="list-disc pl-4">
+            {[...new Set(nlFlags.map((x) => flagMessage(x, baseCurrency)))].map((msg) => (
+              <li key={msg}>{msg}</li>
+            ))}
+          </ul>
+        </Notice>
+      )}
       <Field label="Description" htmlFor="desc" error={fieldErrors.description}>
         <input id="desc" className={inputClass} value={description} onChange={(e) => setDescription(e.target.value)} maxLength={100} placeholder="e.g. Swiggy dinner" autoFocus={!initial} />
       </Field>
@@ -200,6 +231,7 @@ export function ExpenseForm({ baseCurrency, defaultSplit, today, initial }: Prop
           <input
             id="amount"
             className={`${inputClass} text-lg font-semibold`}
+            aria-invalid={flagged("amount") && !amountMinor}
             value={amount}
             onChange={(e) => setAmount(e.target.value)}
             inputMode="decimal"
@@ -229,7 +261,12 @@ export function ExpenseForm({ baseCurrency, defaultSplit, today, initial }: Prop
       <fieldset className="flex flex-col gap-2">
         <legend className="mb-1 text-sm font-medium">Paid by</legend>
         {!multiPayer ? (
-          <select aria-label="Paid by" className={inputClass} value={payerId} onChange={(e) => setPayerId(e.target.value)}>
+          <select aria-label="Paid by" className={inputClass} aria-invalid={payerId === ""} value={payerId} onChange={(e) => setPayerId(e.target.value)}>
+            {payerId === "" && (
+              <option value="" disabled>
+                Choose who paid
+              </option>
+            )}
             {people.map((m) => (
               <option key={m.id} value={m.id}>
                 {m.id === me ? `${m.name} (you)` : m.name}

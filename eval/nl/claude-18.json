@@ -1,0 +1,35 @@
+{
+  "id": "claude-18",
+  "text": "I paid for dinner yesterday, split with Priya",
+  "members": [
+    "Aarav",
+    "Priya",
+    "Rahul",
+    "Amit",
+    "Sneha"
+  ],
+  "me": "Aarav",
+  "today": "2026-10-17",
+  "baseCurrency": "INR",
+  "author": "claude",
+  "reviewed": false,
+  "ambiguous": true,
+  "blank": [
+    "amount"
+  ],
+  "note": "No amount is stated.",
+  "expected": {
+    "currency": "INR",
+    "split_type": "equal",
+    "split_values": null,
+    "category": "Food & Drinks",
+    "date": "2026-10-16",
+    "description": null,
+    "amount": null,
+    "payer": "Aarav",
+    "participants": [
+      "Aarav",
+      "Priya"
+    ]
+  }
+}

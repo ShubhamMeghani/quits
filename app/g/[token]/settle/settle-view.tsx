@@ -3,10 +3,12 @@
 // Settle screen (R22–R26, R59): balances in words, naive/greedy/optimal counts, suggested payments
 // with a QR-first UPI flow, "Mark as paid", manual payments, and recent payments.
 import Link from "next/link";
-import { useState, useTransition } from "react";
+import { useState, useSyncExternalStore, useTransition } from "react";
 import { createSettlementAction, deleteSettlementAction } from "@/app/actions";
 import { useIdentity } from "@/app/_components/identity";
 import { UpiQr } from "@/app/_components/upi-qr";
+import { CopyIcon, ShareIcon } from "@/app/_components/icons";
+import { reminderMessage, summaryMessage, waLink } from "@/lib/share";
 import { Button, Card, Empty, Field, inputClass, Notice } from "@/app/_components/ui";
 import { balanceWords, formatDate, money } from "@/app/_lib/format";
 import { exponent } from "@/lib/currency";
@@ -74,6 +76,7 @@ export function SettleView(props: {
             {plan.optimalCount !== null && plan.optimalCount < plan.greedyCount && ` That saves ${plan.greedyCount - plan.optimalCount} payment${plan.greedyCount - plan.optimalCount === 1 ? "" : "s"} over greedy.`}
           </p>
         </Card>
+        <ShareSummary payments={plan.payments} baseCurrency={baseCurrency} />
         {plan.payments.length === 0 ? (
           <Empty title="Everyone is settled up">No payments needed.</Empty>
         ) : (
@@ -134,7 +137,75 @@ function SuggestionCard({ from, to, amountMinor, baseCurrency, today }: { from: 
       ) : (
         <Button onClick={() => setMarking(true)}>Mark as paid</Button>
       )}
+      {from !== me && <RemindLink from={from} to={to} amountMinor={amountMinor} baseCurrency={baseCurrency} />}
     </Card>
+  );
+}
+
+const noopSubscribe = () => () => undefined;
+
+/** The group link as seen in this browser (for messages). */
+function useGroupLink(token: string): string {
+  const origin = useSyncExternalStore(noopSubscribe, () => window.location.origin, () => "");
+  return origin ? `${origin}/g/${token}` : "";
+}
+
+/** R68 (Should): share the settle-up summary (Web Share, else wa.me), with Copy. */
+function ShareSummary({ payments, baseCurrency }: { payments: SettlePlan["payments"]; baseCurrency: string }) {
+  const { group, members } = useIdentity();
+  const link = useGroupLink(group.token);
+  const [copied, setCopied] = useState(false);
+  const realName = (id: string) => members.find((m) => m.id === id)?.name ?? "Someone";
+  const text = summaryMessage({
+    groupName: group.name,
+    payments: payments.map((p) => ({ from: realName(p.from), to: realName(p.to), amountMinor: p.amountMinor })),
+    link,
+    currency: baseCurrency,
+  });
+  const share = async () => {
+    if (typeof navigator.share === "function") {
+      try {
+        await navigator.share({ text });
+        return;
+      } catch {
+        // cancelled or unavailable: fall back to WhatsApp
+      }
+    }
+    window.open(waLink(text), "_blank", "noopener,noreferrer");
+  };
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2500);
+    } catch {
+      setCopied(false);
+    }
+  };
+  return (
+    <div className="mb-3 grid grid-cols-[minmax(0,1fr)_auto] gap-2">
+      <Button variant="secondary" onClick={share} disabled={!link}>
+        <ShareIcon className="h-5 w-5" />
+        Share summary
+      </Button>
+      <Button variant="secondary" onClick={copy} disabled={!link}>
+        <CopyIcon className="h-5 w-5" />
+        {copied ? "Copied" : "Copy"}
+      </Button>
+    </div>
+  );
+}
+
+/** R69 (Should): a polite WhatsApp reminder; the user picks the contact, no number is stored. */
+function RemindLink({ from, to, amountMinor, baseCurrency }: { from: string; to: string; amountMinor: number; baseCurrency: string }) {
+  const { group, members } = useIdentity();
+  const link = useGroupLink(group.token);
+  const realName = (id: string) => members.find((m) => m.id === id)?.name ?? "Someone";
+  const href = waLink(reminderMessage({ from: realName(from), to: realName(to), amountMinor, groupName: group.name, link, currency: baseCurrency }));
+  return (
+    <a href={href} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-11 items-center justify-center rounded-xl px-3 text-sm font-semibold text-brand hover:bg-teal-50">
+      Remind {realName(from)} on WhatsApp
+    </a>
   );
 }
 

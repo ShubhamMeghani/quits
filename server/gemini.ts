@@ -8,6 +8,22 @@ export function geminiModel(): string {
   return process.env.GEMINI_MODEL || "gemini-3.5-flash-lite";
 }
 
+export type TextJsonRequest = { prompt: string; text: string; jsonSchema: unknown; signal: AbortSignal };
+
+/** Text in, JSON text out, with `responseJsonSchema` (type-to-add, R61). */
+export async function geminiTextJson({ prompt, text, jsonSchema, signal }: TextJsonRequest): Promise<string> {
+  const key = process.env.GEMINI_API_KEY;
+  if (!key) throw new Error("GEMINI_API_KEY is not set");
+  ai ??= new GoogleGenAI({ apiKey: key });
+  const res = await ai.models.generateContent({
+    model: geminiModel(),
+    contents: [{ role: "user", parts: [{ text: prompt }, { text }] }],
+    config: { responseMimeType: "application/json", responseJsonSchema: jsonSchema, temperature: 0, abortSignal: signal },
+  });
+  if (!res.text) throw new Error("empty model response");
+  return res.text;
+}
+
 /** Server-only Gemini client with structured JSON output (R31). */
 export const geminiReceiptClient: ReceiptModelClient = async ({ imageBase64, mimeType, prompt, jsonSchema, signal }) => {
   const key = process.env.GEMINI_API_KEY;

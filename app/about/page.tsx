@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import results from "@/eval/results.json";
+import nlResults from "@/eval/nl/results.json";
 import { Card, Notice } from "@/app/_components/ui";
 
 export const metadata: Metadata = { title: "About — Quits" };
@@ -24,6 +25,69 @@ type Results =
     };
 
 const pct = (x: number) => `${(x * 100).toFixed(1)}%`;
+
+type NlResults =
+  | { status: "not-run"; note: string }
+  | {
+      status: "ok";
+      model: string;
+      runAt: string;
+      n: number;
+      ambiguousN: number;
+      amountAccuracy: number;
+      payerAccuracy: number;
+      participantsAccuracy: number;
+      splitTypeAccuracy: number;
+      exactMatchRate: number;
+      abstentionRate: number;
+      meanLatencySec: number;
+    };
+
+/** R66: the committed type-to-add eval results, next to the receipt eval (no live call). */
+function NlEvalSection() {
+  const r = nlResults as unknown as NlResults;
+  return (
+    <section className="flex flex-col gap-2" aria-labelledby="nl-eval-h">
+      <h2 id="nl-eval-h" className="text-xl font-bold">
+        Type-to-add accuracy
+      </h2>
+      {r.status !== "ok" ? (
+        <Notice tone="warn">
+          <p className="font-semibold">Evaluation not run yet.</p>
+          <p>{r.note}</p>
+        </Notice>
+      ) : (
+        <>
+          <p className="text-sm text-muted">
+            {r.n} sentences ({r.ambiguousN} deliberately ambiguous) · model <code>{r.model}</code> · run {r.runAt.slice(0, 10)}
+          </p>
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+            {(
+              [
+                ["Amount", pct(r.amountAccuracy)],
+                ["Payer", pct(r.payerAccuracy)],
+                ["Who shares", pct(r.participantsAccuracy)],
+                ["Split type", pct(r.splitTypeAccuracy)],
+                ["Exact match", pct(r.exactMatchRate)],
+                ["Correctly left blank", pct(r.abstentionRate)],
+              ] as const
+            ).map(([k, v]) => (
+              <Card key={k} className="p-3">
+                <p className="text-xs font-semibold uppercase text-muted">{k}</p>
+                <p className="text-2xl font-bold">{v}</p>
+              </Card>
+            ))}
+          </div>
+        </>
+      )}
+      <p className="text-sm text-muted">
+        Method: about 30 English and Hinglish sentences with hand-checked answers, about 5 of them deliberately unclear (for example two people with the same name). A
+        field counts as correct only if it matches exactly. “Exact match” needs amount, payer, the set of people and the split type all correct. “Correctly left blank”
+        is the share of unclear sentences where Quits left the unclear field empty instead of guessing.
+      </p>
+    </section>
+  );
+}
 
 // R38: shows the committed eval/results.json — no live Gemini call.
 export default function AboutPage() {
@@ -128,6 +192,8 @@ export default function AboutPage() {
           within ₹1.
         </p>
       </section>
+
+      <NlEvalSection />
     </main>
   );
 }

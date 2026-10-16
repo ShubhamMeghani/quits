@@ -1,0 +1,37 @@
+{
+  "id": "claude-08",
+  "text": "Rahul paid 3000 for the cab to the airport, split 2:1:1 between Rahul, Priya and me",
+  "members": [
+    "Aarav",
+    "Priya",
+    "Rahul",
+    "Amit",
+    "Sneha"
+  ],
+  "me": "Aarav",
+  "today": "2026-10-17",
+  "baseCurrency": "INR",
+  "author": "claude",
+  "reviewed": false,
+  "ambiguous": false,
+  "blank": [],
+  "expected": {
+    "currency": "INR",
+    "split_type": "shares",
+    "split_values": {
+      "Rahul": 2,
+      "Priya": 1,
+      "Aarav": 1
+    },
+    "category": "Transport",
+    "date": null,
+    "description": null,
+    "amount": 3000,
+    "payer": "Rahul",
+    "participants": [
+      "Rahul",
+      "Priya",
+      "Aarav"
+    ]
+  }
+}

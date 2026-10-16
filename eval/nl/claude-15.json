@@ -1,0 +1,31 @@
+{
+  "id": "claude-15",
+  "text": "Rahul ne 120 ka auto liya, sirf mere liye",
+  "members": [
+    "Aarav",
+    "Priya",
+    "Rahul",
+    "Amit",
+    "Sneha"
+  ],
+  "me": "Aarav",
+  "today": "2026-10-17",
+  "baseCurrency": "INR",
+  "author": "claude",
+  "reviewed": false,
+  "ambiguous": false,
+  "blank": [],
+  "expected": {
+    "currency": "INR",
+    "split_type": "equal",
+    "split_values": null,
+    "category": "Transport",
+    "date": null,
+    "description": null,
+    "amount": 120,
+    "payer": "Rahul",
+    "participants": [
+      "Aarav"
+    ]
+  }
+}

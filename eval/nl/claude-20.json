@@ -1,0 +1,35 @@
+{
+  "id": "claude-20",
+  "text": "Someone paid 450 for the auto, split with Amit and me",
+  "members": [
+    "Aarav",
+    "Priya",
+    "Rahul",
+    "Amit",
+    "Sneha"
+  ],
+  "me": "Aarav",
+  "today": "2026-10-17",
+  "baseCurrency": "INR",
+  "author": "claude",
+  "reviewed": false,
+  "ambiguous": true,
+  "blank": [
+    "payer"
+  ],
+  "note": "The payer is not named.",
+  "expected": {
+    "currency": "INR",
+    "split_type": "equal",
+    "split_values": null,
+    "category": "Transport",
+    "date": null,
+    "description": null,
+    "amount": 450,
+    "payer": null,
+    "participants": [
+      "Amit",
+      "Aarav"
+    ]
+  }
+}

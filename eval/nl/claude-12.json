@@ -1,0 +1,32 @@
+{
+  "id": "claude-12",
+  "text": "Sneha ne petrol ke 500 diye, Sneha aur Rahul",
+  "members": [
+    "Aarav",
+    "Priya",
+    "Rahul",
+    "Amit",
+    "Sneha"
+  ],
+  "me": "Aarav",
+  "today": "2026-10-17",
+  "baseCurrency": "INR",
+  "author": "claude",
+  "reviewed": false,
+  "ambiguous": false,
+  "blank": [],
+  "expected": {
+    "currency": "INR",
+    "split_type": "equal",
+    "split_values": null,
+    "category": "Transport",
+    "date": null,
+    "description": null,
+    "amount": 500,
+    "payer": "Sneha",
+    "participants": [
+      "Sneha",
+      "Rahul"
+    ]
+  }
+}
