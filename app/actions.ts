@@ -9,6 +9,8 @@ import { addMember, archiveMember, updateMember } from "@/server/members";
 import { createExpense, deleteExpense, listExpenses, restoreExpense, updateExpense } from "@/server/expenses";
 import { createSettlement, deleteSettlement, restoreSettlement } from "@/server/settlements";
 import { createManualReceipt, finalizeReceipt, saveReceiptDraft, type FinalizeInput, type ReceiptInput } from "@/server/receipts";
+import { createDemo, resetDemo } from "@/server/demo";
+import { createRecurringRule, updateRule, type RepeatInput } from "@/server/recurring";
 import type { CreateGroupInput, ExpenseInput, GroupSettingsInput, MemberInput, SettlementInput } from "@/server/schemas";
 
 export type ActionResult<T = null> =
@@ -55,8 +57,13 @@ export async function archiveMemberAction(token: string, memberId: string, actor
   return run(() => archiveMember(token, memberId, actor));
 }
 
-export async function createExpenseAction(token: string, input: ExpenseInput, actor: string | null) {
-  return run(() => createExpense(token, input, actor));
+export async function createExpenseAction(token: string, input: ExpenseInput, actor: string | null, repeat?: RepeatInput | null) {
+  return run(async () => {
+    const created = await createExpense(token, input, actor);
+    // R44 (Should): the new expense is the first occurrence of the rule.
+    if (repeat) await createRecurringRule(token, input, repeat, actor, created.id);
+    return created;
+  });
 }
 
 export async function updateExpenseAction(token: string, expenseId: string, input: ExpenseInput, actor: string | null) {
@@ -102,4 +109,16 @@ export async function saveReceiptDraftAction(token: string, receiptId: string, i
 
 export async function finalizeReceiptAction(token: string, receiptId: string, input: FinalizeInput, actor: string | null) {
   return run(() => finalizeReceipt(token, receiptId, input, actor));
+}
+
+export async function createDemoAction() {
+  return run(() => createDemo(), { refresh: false });
+}
+
+export async function resetDemoAction(token: string, actor: string | null) {
+  return run(() => resetDemo(token, actor));
+}
+
+export async function updateRuleAction(token: string, ruleId: string, change: "pause" | "resume" | "delete", actor: string | null) {
+  return run(() => updateRule(token, ruleId, change, actor));
 }

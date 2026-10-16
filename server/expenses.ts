@@ -49,7 +49,7 @@ export function snapshotOf(e: Pick<ExpenseRow, "description" | "amountMinor" | "
 }
 
 /** Validates input and computes every stored amount (R8–R10, R13, R15–R18). */
-async function prepareExpense(group: GroupRow, members: MemberRow[], input: ExpenseInput, existing?: ExpenseRow) {
+export async function prepareExpense(group: GroupRow, members: MemberRow[], input: ExpenseInput, existing?: ExpenseRow) {
   const data = parseInput(expenseInputSchema, input);
   if (data.amountMinor > MAX_MAJOR * 10 ** exponent(data.currency)) throw invalid("Amount is too large");
   assertMembersBelong(members, [...Object.keys(data.payers), ...splitMemberIds(data.split)]);

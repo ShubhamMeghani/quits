@@ -1,5 +1,6 @@
 import { CreateGroupForm } from "./_components/create-group-form";
 import { RecentGroups } from "./_components/recent-groups";
+import { TryDemoButton } from "./_components/demo-buttons";
 import { Card } from "./_components/ui";
 
 export default function Home() {
@@ -12,6 +13,7 @@ export default function Home() {
           Free bill splitting for students: itemized receipts, the fewest possible payments, and UPI QR settle-up with the amount filled in.
         </p>
       </header>
+      <TryDemoButton />
       <RecentGroups />
       <Card>
         <h2 className="mb-4 text-xl font-bold">Start a group</h2>

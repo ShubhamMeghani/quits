@@ -236,6 +236,12 @@ No GitHub secrets are needed: CI runs only lint and unit tests, which make no ne
   - **Drafts** are listed on the Expenses tab, so other devices can claim their items (R36); refresh shows others' claims.
   - **Migration:** `…000600` (scan counter, draft save, finalize).
   - **Checks:** AC-21 via curl; the receipt UI flow (paste, mismatch, claim, finalize, unassigned block, draft) via headless Chrome.
+- **Phase 6:**
+  - **Currency:** the picker and manual-rate field were already in the form from Phase 4; live Frankfurter v2 is verified by a DB test.
+  - **Features:** search and stats (`/search`, a GET form); CSV route; recurring rules (Should), generated lazily in `readGroup`, with pause/resume/stop; demo create/reset RPCs with lazy cleanup.
+  - **Migration:** `…000700`.
+  - **Demo seed changes:** no recurring rules, since a monthly rent rule dated 40 days back would generate an occurrence on first open and break the exact R48 balances. All Goa items are categorised Travel (for AC-31), and "Flat rent" no longer names a month.
+  - **R46 (Should) partial:** rules can be paused, resumed or stopped, but not edited; to change a rule, stop it and add a new repeating expense.
 
 ---
 
@@ -262,7 +268,7 @@ Rows P1-1 to P1-10 are the Phase 1 checks; each one de-risks the spec ACs shown 
 | AC-5 | Unit | 2 | Pass | tests/unit/invariants.test.ts › AC-5 (1,000 groups, >10,000 expenses, 5 split types, 5 currencies) |
 | AC-6 | Unit | 2 | Pass | tests/unit/currency.test.ts › AC-6 (USD 102986 → [34329,34329,34328]; THB 2362; JPY 56120); matches R17 as worded in SPEC v0.4 (SC-3) |
 | AC-7 | Unit | 2 | Pass | tests/unit/currency.test.ts › AC-7 (timeout → RATE_UNAVAILABLE; manual rate source = manual) |
-| AC-8 | Deploy | 6 | Not run | |
+| AC-8 | Deploy | 6 | Partial | local DB test (tests/db/features.test.ts › AC-8) with live Frankfurter v2: USD 10.00 on 2026-10-01 stores 95.98 (rate date 2026-10-01, source frankfurter, cached in fx_rates); description edit keeps 95.98; date → 2026-10-04 re-fetches 96.19; INR → identity; base-currency change rejected. UI shows "1 USD = 95.98 INR on …". Prod check pending (6.10) |
 | AC-9 | Unit | 2 | Pass | tests/unit/simplify.test.ts › AC-9 (greedy 4 exact sequence; optimal 3 exact sequence; both zero balances) |
 | AC-10 | Unit | 2 | Pass | tests/unit/simplify.test.ts › AC-10 (naive 3, greedy 1, optimal 1) |
 | AC-11 | Unit | 2 | Pass | tests/unit/simplify.test.ts › AC-11 (edge cases; 300 random n ≤ 8 = brute force) |
@@ -285,14 +291,14 @@ Rows P1-1 to P1-10 are the Phase 1 checks; each one de-risks the spec ACs shown 
 | AC-28 | Deploy | 4 | Partial | local flow: default split set to shares 2:1:1 → new expense form opens with "Shares" selected and values 2,1,1. Prod check pending (4.12) |
 | AC-29 | Deploy | 4 | Partial | local flow: edit ₹500 → ₹600 logs "Aarav Edited “Snacks”: Amount ₹500.00 → ₹600.00"; delete → "No expenses yet" + activity entry; plus DB tests. Prod check pending (4.12) |
 | AC-30 (Should) | Deploy | 4 | Partial | local flow: Restore on the deletion entry → "Restored “Snacks”" and the expense is back in the list. Prod check pending (4.12) |
-| AC-31 | Deploy | 6 | Not run | |
+| AC-31 | Deploy | 6 | Partial | local: demo search "swiggy" → exactly 4 (all Swiggy expenses); category Travel + Goa date range → exactly the 4 Goa expenses (DB test + headless Chrome "4 expenses"). Prod check pending (6.10) |
 | AC-32 | Unit | 2 | Pass | tests/unit/misc.test.ts › AC-32 (BOM + header, formula guard, RFC 4180, deleted rows absent) |
-| AC-33 (Should) | Desktop | 6 | Not run | |
+| AC-33 (Should) | Desktop | 6 | Partial | local DB test: per-category totals sum to the filtered total; per-person and per-category bars render on /search at 360 px and 1440 px. Prod check pending (6.10) |
 | AC-34 (Should) | Unit | 2 | Pass | tests/unit/misc.test.ts › AC-34 (Jan 31 clamping; idempotent second call) |
-| AC-35 (Should) | Deploy | 6 | Not run | |
+| AC-35 (Should) | Deploy | 6 | Partial | local DB test (tests/db/features.test.ts › AC-35): monthly rule starting two months ago → exactly 3 expenses after one open, still 3 after the next; dates = start, +1 month, +2 months (= today). Prod check pending (6.10) |
 | AC-36 | Unit | 2 | Pass | tests/unit/misc.test.ts › AC-36 (seed balances exact; greedy 4, optimal 3) |
-| AC-37 | Desktop | 6 / 7 | Not run | |
-| AC-38 | Deploy | 6 | Not run | |
+| AC-37 | Desktop | 6 / 7 | Partial | local headless Chrome 1440×900, fresh profile: "Try the demo" → group open in 0.73 s; demo banner; 15 expenses; itemized beach-shack receipt with per-item breakdown; USD expense shows "1 USD = 95.98 INR"; Settle shows Optimal 3 · Greedy 4 · Naive 10 with "Showing the optimal plan". Prod incognito run pending (7.10) |
+| AC-38 | Deploy | 6 | Partial | local DB test (tests/db/features.test.ts › AC-38): after deleting an expense, reset restores the exact target balances under the same token; a demo backdated 8 days is deleted when the next demo is created; reset on a non-demo group → NOT_FOUND. UI reset works in headless Chrome. Prod check pending (6.10) |
 | AC-39 | Phone + Desktop | 7 | Partial | local headless Chrome 360×740, 11 screens: scrollWidth = innerWidth = 360 on all; all buttons/links/inputs ≥ 44 px (one header link fixed); 1440×900: centered ≤ 640 px column. Real-phone check pending (7.10) |
 | AC-40 (Should) | Phone | 7 | Not run | |
 | AC-41 | Script | 3 / 7 | Partial | SQL Pass: tests/db/security.test.ts › AC-41 (0 tables without RLS; `set role anon` → permission denied on all 14 tables; anon cannot run RPCs). REST with publishable key pending (human, 7.10) |

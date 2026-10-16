@@ -50,6 +50,8 @@ export function ExpenseForm({ baseCurrency, defaultSplit, today, initial }: Prop
   const [notes, setNotes] = useState(initial?.notes ?? "");
   const [manualRate, setManualRate] = useState("");
   const [needsRate, setNeedsRate] = useState(false);
+  const [repeat, setRepeat] = useState<"none" | "weekly" | "monthly">("none");
+  const [repeatEnd, setRepeatEnd] = useState("");
 
   const [multiPayer, setMultiPayer] = useState((initial?.payers.length ?? 1) > 1);
   const [payerId, setPayerId] = useState(initial?.payers[0]?.memberId ?? me ?? order[0]);
@@ -168,7 +170,7 @@ export function ExpenseForm({ baseCurrency, defaultSplit, today, initial }: Prop
         split: split as ExpenseInput["split"],
         manualRate: needsRate && manualRate.trim() ? manualRate.trim() : null,
       };
-      const r = initial ? await updateExpenseAction(group.token, initial.id, input, me ?? null) : await createExpenseAction(group.token, input, me ?? null);
+      const r = initial ? await updateExpenseAction(group.token, initial.id, input, me ?? null) : await createExpenseAction(group.token, input, me ?? null, repeat === "none" ? null : { frequency: repeat, endDate: repeatEnd || null });
       if (!r.ok) {
         if (r.code === "RATE_UNAVAILABLE") setNeedsRate(true);
         setFieldErrors(r.fields ?? {});
@@ -339,6 +341,22 @@ export function ExpenseForm({ baseCurrency, defaultSplit, today, initial }: Prop
           </select>
         </Field>
       </div>
+      {!initial && (
+        <div className="grid grid-cols-2 gap-3">
+          <Field label="Repeat" htmlFor="repeat">
+            <select id="repeat" className={inputClass} value={repeat} onChange={(e) => setRepeat(e.target.value as typeof repeat)}>
+              <option value="none">Doesn&apos;t repeat</option>
+              <option value="weekly">Every week</option>
+              <option value="monthly">Every month</option>
+            </select>
+          </Field>
+          {repeat !== "none" && (
+            <Field label="Until (optional)" htmlFor="repeat-end">
+              <input id="repeat-end" type="date" className={inputClass} value={repeatEnd} min={date} onChange={(e) => setRepeatEnd(e.target.value)} />
+            </Field>
+          )}
+        </div>
+      )}
       <Field label="Notes (optional)" htmlFor="notes">
         <textarea id="notes" className={`${inputClass} min-h-20 py-2`} value={notes} onChange={(e) => setNotes(e.target.value)} maxLength={500} />
       </Field>

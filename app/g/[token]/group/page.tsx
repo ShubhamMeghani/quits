@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ChevronIcon } from "@/app/_components/icons";
 import { PageHeader } from "@/app/_components/ui";
 import { requireGroup } from "@/server/context";
+import { ResetDemoButton } from "@/app/_components/demo-buttons";
 import { YouCard } from "./you-card";
 
 const row = "flex min-h-14 items-center gap-3 px-4 hover:bg-slate-50";
@@ -14,6 +15,9 @@ export default async function GroupHubPage({ params }: PageProps<"/g/[token]/gro
     { href: `/g/${token}/share`, label: "Share invite link", hint: "Anyone with the link can view and edit" },
     { href: `/g/${token}/members`, label: "Members", hint: "Names and UPI IDs" },
     { href: `/g/${token}/settings`, label: "Group settings", hint: "Name, base currency, default split" },
+    { href: `/g/${token}/search`, label: "Search & stats", hint: "Find expenses; spending per person and category" },
+    { href: `/g/${token}/recurring`, label: "Recurring expenses", hint: "Rent, Wi-Fi and other repeats" },
+    { href: "/about", label: "About Quits", hint: "How it works and receipt accuracy" },
   ];
   return (
     <div className="flex flex-col gap-4">
@@ -34,6 +38,10 @@ export default async function GroupHubPage({ params }: PageProps<"/g/[token]/gro
           ))}
         </ul>
       </nav>
+      <a href={`/api/g/${token}/export.csv`} download className="flex min-h-14 items-center justify-center rounded-2xl border border-border bg-card px-4 font-semibold text-brand hover:bg-slate-50">
+        Export expenses (CSV)
+      </a>
+      <ResetDemoButton />
     </div>
   );
 }

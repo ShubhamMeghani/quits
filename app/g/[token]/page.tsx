@@ -9,7 +9,9 @@ import { BalanceSummary, ExpenseList } from "./expense-list";
 // Expenses tab (R8): your balance, receipts in progress (R36), the newest 50 expenses, and "+".
 export default async function ExpensesPage({ params }: PageProps<"/g/[token]">) {
   const { token } = await params;
-  const [view, page] = await Promise.all([readGroup(token), listExpenses(token, 0)]);
+  // readGroup first: it creates any due recurring expenses (R45) that the list must include.
+  const view = await readGroup(token);
+  const page = await listExpenses(token, 0);
   const drafts = await listDraftReceipts(view.group.id);
   const base = view.group.baseCurrency;
   return (

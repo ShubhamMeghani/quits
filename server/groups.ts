@@ -6,6 +6,7 @@ import { db } from "@/server/db";
 import { AppError, fromDbError } from "@/server/errors";
 import { generateToken } from "@/server/token";
 import { summaries } from "@/server/activity";
+import { materializeRecurring } from "@/server/recurring";
 import {
   assertMembersBelong,
   loadAllExpenses,
@@ -59,6 +60,8 @@ export type GroupView = {
 export async function readGroup(token: unknown): Promise<GroupView> {
   const group = await requireGroup(token);
   const members = await loadMembers(group.id);
+  // R45 (Should): lazily create due recurring expenses before computing anything.
+  await materializeRecurring(group, members);
   const [expenses, settlements] = await Promise.all([loadAllExpenses(group.id, members), loadSettlements(group.id)]);
   const order = members.map((m) => m.id);
   const balances = computeBalances(order, expenses, settlements);
