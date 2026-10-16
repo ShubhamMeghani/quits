@@ -67,7 +67,7 @@ No GitHub secrets are needed: CI runs only lint and unit tests, which make no ne
 | 1.18 | `manifest.webmanifest` and icons (192, 512, 512 maskable, apple 180) generated from `public/icon.svg` with `sharp`. | AUTO | R52 · P1-9 |
 | 1.19 | Install the PWA from Chrome on Android, and confirm it opens standalone. | HUMAN | P1-9 |
 | 1.20 | `npm run build`, then `grep -rE "sb_secret_\|AIza" .next/static` finds nothing. | AUTO | R54 · P1-10 |
-| 1.21 | Once P1-6 is Pass, delete `/api/lab/extract` and `/lab/receipt`. Keep the compression helper in `app/_lib/compress.ts` for Phase 5. | AUTO | R30 |
+| 1.21 | Once P1-6 is Pass, delete `/api/lab/extract` and `/lab/receipt`. Keep the compression helper in `app/_lib/compress.ts` for Phase 5. **Done 2026-10-16** after P1-6 passed. | AUTO | R30 |
 | 1.22 | Commit `chore: phase 1 deployment checks`. | AUTO | — |
 
 **Done when:** P1-1 to P1-10 Pass.
@@ -215,7 +215,7 @@ No GitHub secrets are needed: CI runs only lint and unit tests, which make no ne
 ## Build log
 
 - **2026-10-16, Phases 1–3 (unattended run):**
-  - Phase 1 AUTO tasks are done. Task 1.21 (delete `/api/lab/extract`) waits for P1-6 to pass on the phone. Until then the lab route is live on any deployment.
+  - Phase 1 AUTO tasks are done. Task 1.21 (delete `/api/lab/extract` and `/lab/receipt`) was done after P1-6 passed on the phone; the routes leave production on the next push.
   - Phase 2 is done: 78 unit tests.
   - Phase 3 is done: migrations `…000100` to `…000400` are applied, and there are 15 DB tests.
   - Two fix-up migrations were added rather than editing applied ones:
@@ -235,7 +235,7 @@ Rows P1-1 to P1-10 are the Phase 1 checks; each one de-risks the spec ACs shown 
 | P1-3 Vercel prod deploy from GitHub | Deploy | 1 | Pass | human 2026-10-16: Vercel production https://quits-go.vercel.app from `main`; 4 env vars set for Production + Preview (no SUPABASE_DB_URL) |
 | P1-4 `/api/health` via Supabase, RLS on [AC-41, AC-44] | Deploy | 1 | Pass | human 2026-10-16: `GET https://quits-go.vercel.app/api/health` → `{"ok":true}`; earlier local pass with `_health` (RLS on) |
 | P1-5 Keep-alive `workflow_dispatch` green [AC-44] | Script | 1 | Pass | human 2026-10-16: repo variable `APP_URL` set; Keep-alive run #1 green, logged `{"ok":true}` |
-| P1-6 Phone photo < 1 MB → Gemini JSON [AC-20] | Phone | 1 | Pending (human) | server part local pass: synthetic bill → `gemini-3.5-flash-lite` JSON in 4.3 s, items/tax/service/total exact; fake JPEG → 415; phone test is 1.13 |
+| P1-6 Phone photo < 1 MB → Gemini JSON [AC-20] | Phone | 1 | Pass | human 2026-10-16 (Samsung, Chrome, prod): real bill 3,986,619 → 415,486 bytes uploaded (≤ 1 MB); HTTP 200 in 9.0 s (Gemini 6.7 s); items, tax and total match the bill. Lab route deleted in 1.21 |
 | P1-7 Frankfurter v2 historical + weekend USD→INR [AC-8] | Script | 1 | Pass | `GET /v2/rate/USD/INR?date=2026-10-01` → `{"date":"2026-10-01","base":"USD","quote":"INR","rate":95.98}`; Sunday 2026-10-04 → 96.19 (same date); future date → 404. Recorded in SPEC v0.4 §4.3 (SC-1) |
 | P1-8 UPI link in GPay/PhonePe/Paytm + QR [AC-14, AC-15] | Phone | 1 | Pending (human) | `/lab/upi` ready (link, QR, copy UPI ID); phone test is 1.17 |
 | P1-9 PWA installs on Android [AC-40] | Phone | 1 | Pending (human) | manifest + 4 icons served (200 locally); install test is 1.19 |
