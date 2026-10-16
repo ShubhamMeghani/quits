@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ChevronIcon, ListIcon } from "@/app/_components/icons";
+import { ChevronIcon, ListIcon, ReceiptIcon } from "@/app/_components/icons";
 import { PageHeader } from "@/app/_components/ui";
 
 // R50: the "+" button opens Add expense or Scan receipt.
@@ -15,6 +15,14 @@ export default async function AddPage({ params }: PageProps<"/g/[token]/add">) {
           <span className="flex-1">
             <span className="block text-lg font-semibold">Add expense</span>
             <span className="block text-sm text-muted">Enter an amount and how to split it</span>
+          </span>
+          <ChevronIcon className="h-5 w-5 text-muted" />
+        </Link>
+        <Link href={`/g/${token}/scan`} className={option}>
+          <ReceiptIcon className="h-7 w-7 text-brand" />
+          <span className="flex-1">
+            <span className="block text-lg font-semibold">Scan receipt</span>
+            <span className="block text-sm text-muted">Photo or screenshot; split item by item</span>
           </span>
           <ChevronIcon className="h-5 w-5 text-muted" />
         </Link>

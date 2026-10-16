@@ -8,6 +8,7 @@ import { createGroup, listActivity, updateGroupSettings } from "@/server/groups"
 import { addMember, archiveMember, updateMember } from "@/server/members";
 import { createExpense, deleteExpense, listExpenses, restoreExpense, updateExpense } from "@/server/expenses";
 import { createSettlement, deleteSettlement, restoreSettlement } from "@/server/settlements";
+import { createManualReceipt, finalizeReceipt, saveReceiptDraft, type FinalizeInput, type ReceiptInput } from "@/server/receipts";
 import type { CreateGroupInput, ExpenseInput, GroupSettingsInput, MemberInput, SettlementInput } from "@/server/schemas";
 
 export type ActionResult<T = null> =
@@ -88,4 +89,17 @@ export async function loadMoreExpensesAction(token: string, offset: number) {
 
 export async function loadMoreActivityAction(token: string, offset: number) {
   return run(() => listActivity(token, offset), { refresh: false });
+}
+
+export async function createManualReceiptAction(token: string) {
+  return run(() => createManualReceipt(token), { refresh: false });
+}
+
+export async function saveReceiptDraftAction(token: string, receiptId: string, input: ReceiptInput) {
+  // No refresh: the editor keeps its state; its "Refresh" button reloads claims from other devices.
+  return run(() => saveReceiptDraft(token, receiptId, input), { refresh: false });
+}
+
+export async function finalizeReceiptAction(token: string, receiptId: string, input: FinalizeInput, actor: string | null) {
+  return run(() => finalizeReceipt(token, receiptId, input, actor));
 }

@@ -231,6 +231,11 @@ No GitHub secrets are needed: CI runs only lint and unit tests, which make no ne
   - **UI built:** group shell (identity gate, bottom nav), expenses, add/edit form, Settle (QR-first), activity, group hub, share, members (incl. R60 QR import), settings, landing, offline page.
   - **Checking without the browser extension:** the UI was checked with scripted headless Chrome over the DevTools protocol (local `next start`, real Supabase): a 75-step core-loop flow, an R60 upload flow with a network check, and screenshots plus a tap-target/overflow audit at 360 px and 1440 px.
   - **Migration:** `…000500` adds `members.upi_name`.
+- **Phase 5:**
+  - **Receipt flow:** scan (camera, picker, paste, drag-and-drop) → `/api/g/[token]/receipts/extract` (413/415, then scan limits → 429, then Gemini) → draft review/claim editor → `finalize_receipt`.
+  - **Drafts** are listed on the Expenses tab, so other devices can claim their items (R36); refresh shows others' claims.
+  - **Migration:** `…000600` (scan counter, draft save, finalize).
+  - **Checks:** AC-21 via curl; the receipt UI flow (paste, mismatch, claim, finalize, unassigned block, draft) via headless Chrome.
 
 ---
 
@@ -269,9 +274,9 @@ Rows P1-1 to P1-10 are the Phase 1 checks; each one de-risks the spec ACs shown 
 | AC-17 | Unit | 2 | Pass | tests/unit/receipt.test.ts › AC-17 (diff 0 / +150; 100 not flagged, 101 flagged) |
 | AC-18 | Unit | 2 | Pass | tests/unit/receipt.test.ts › AC-18 (₹840 and ₹845 cases, shared ₹100 item, negative remainder) |
 | AC-19 | Unit | 2 | Pass | tests/unit/receipt.test.ts › AC-19 (12.5 → 1250; missing items / negative rejected; timeout → EXTRACT_FAILED) |
-| AC-20 | Phone + Desktop | 5 | Not run | |
-| AC-21 | Script | 5 | Not run | |
-| AC-22 | Deploy | 5 | Not run | |
+| AC-20 | Phone + Desktop | 5 | Partial | local headless Chrome (360 px): desktop-paste path — a pasted receipt image (ClipboardEvent) was compressed, read by Gemini and opened in review with items Masala Dosa \| Cold Coffee \| Paneer Roll; file-picker path also tested. P1-6 already proved the phone camera → ≤ 1 MB → JSON path on the Samsung. Phone camera on the final UI + real desktop Ctrl+V pending (5.11) |
+| AC-21 | Script | 5 | Pass | local `next start` with SCAN_LIMIT_PER_GROUP=2 in the shell, fresh group: 2 MB JPEG → 413; text renamed .jpg → 415; valid scans → 200, 200, then 429 "Daily scan limit reached — enter items manually". 413/415 did not count toward the limit, so they never reached Gemini; server log shows no extract errors. Also tests/db/receipts.test.ts › R30 counter |
+| AC-22 | Deploy | 5 | Partial | local headless Chrome flow: editing an item amount shows the "Total mismatch" banner immediately and clears when fixed; finalizing with an unassigned item shows "Choose who had …"; after claiming, finalize creates an itemized ₹660.00 expense (printed total) with per-item breakdown and per-person ₹132/₹330/₹198. DB test: printed ₹845 vs ₹840 → [31688, 21125, 31687] + mismatch. Prod check pending (5.11) |
 | AC-23 | Unit | 2 | Pass | tests/unit/receipt.test.ts › AC-23 (P 0.667, R 0.5, F1 0.571; Paneer Tikka match) |
 | AC-24 | Script + Deploy | 7 | Not run | |
 | AC-25 (Should) | Script | 7 | Not run | |

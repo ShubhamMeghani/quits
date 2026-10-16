@@ -3,7 +3,9 @@ import { Card, PageHeader } from "@/app/_components/ui";
 import { formatDate, money } from "@/app/_lib/format";
 import { loadExpense, loadMembers, requireGroup } from "@/server/context";
 import { idSchema } from "@/server/schemas";
+import { loadReceipt } from "@/server/receipts";
 import { ExpenseActions } from "./expense-actions";
+import { ReceiptBreakdown } from "./receipt-breakdown";
 
 const SPLIT_NAMES = { equal: "Split equally", exact: "Exact amounts", percent: "By percentage", shares: "By shares", itemized: "Itemized receipt" } as const;
 const SOURCE_NAMES = { identity: "", frankfurter: "Frankfurter", manual: "entered manually" } as const;
@@ -18,6 +20,7 @@ export default async function ExpensePage({ params }: PageProps<"/g/[token]/expe
   const name = new Map(members.map((m) => [m.id, m.name]));
   const base = group.baseCurrency;
   const foreign = e.currency !== base;
+  const receipt = e.receiptId ? await loadReceipt(group.id, e.receiptId).catch(() => null) : null;
 
   return (
     <div className="flex flex-col gap-4">
@@ -66,6 +69,8 @@ export default async function ExpensePage({ params }: PageProps<"/g/[token]/expe
           ))}
         </ul>
       </section>
+
+      {receipt && <ReceiptBreakdown receipt={receipt} names={name} order={members.map((m) => m.id)} />}
 
       <ExpenseActions id={e.id} deleted={!!e.deletedAt} editable={e.splitType !== "itemized"} />
     </div>
