@@ -2,7 +2,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { deleteGroups, hasDb, sqlClient, TEST_PREFIX, type Sql } from "./helpers";
 import { createGroup, readGroup, updateGroupSettings } from "@/server/groups";
 import { createExpense, deleteExpense, getExpense, listExpenses, updateExpense } from "@/server/expenses";
-import { createRecurringRule } from "@/server/recurring";
+import { createRecurringRule, listRules } from "@/server/recurring";
 import { searchExpenses } from "@/server/search";
 import { createDemo, resetDemo } from "@/server/demo";
 import { DEMO_TARGET_BALANCES } from "@/lib/demo-seed";
@@ -83,6 +83,26 @@ describe.skipIf(!hasDb)("DB: currency, search, recurring, demo (R15–R18, R40, 
     const sumCats = Object.values(goa.perCategory).reduce((a, b) => a + b, 0);
     expect(sumCats).toBe(goa.totalBaseMinor);
     expect(settle(g.members.map((m) => ({ memberId: m.id, balance: g.balances[m.id] }))).payments).toHaveLength(3);
+
+    // One monthly Flat rent rule: the seeded rent is its latest occurrence, next due in the future,
+    // so opening the demo (readGroup above) created nothing.
+    expect(g.expenseCount).toBe(15);
+    const rules = await listRules(token);
+    expect(rules).toHaveLength(1);
+    expect(rules[0]).toMatchObject({ description: "Flat rent", frequency: "monthly", active: true });
+    expect(rules[0].nextDue > todayIST()).toBe(true);
+    const rent = (await listExpenses(token)).items.find((e) => e.description === "Flat rent")!;
+    expect(rent.recurringRuleId).toBe(rules[0].id);
+    expect(rules[0].anchorDate).toBe(rent.expenseDate);
+
+    // When it does fall due, the key→id template mapping yields a valid expense.
+    await sql`update public.recurring_rules set anchor_date = ${occurrenceAt({ frequency: "monthly", anchorDate: todayIST() }, -1)}, next_due = ${todayIST()} where id = ${rules[0].id}`;
+    const after = await readGroup(token);
+    expect(after.expenseCount).toBe(16);
+    const generated = (await listExpenses(token)).items.find((e) => e.description === "Flat rent" && e.expenseDate === todayIST())!;
+    expect(generated).toMatchObject({ amountMinor: 3000000, splitType: "shares" });
+    expect(generated.payers).toHaveLength(5);
+    expect((await listRules(token))[0].nextDue > todayIST()).toBe(true);
   });
 
   it("AC-38 (server): reset restores the seed; old demos are deleted lazily; non-demo reset is rejected", async () => {

@@ -40,6 +40,8 @@ export function demoSeedJson(today = todayIST()) {
             items: e.receipt.data.items.map((it, i) => ({ ...it, assignees: e.receipt!.assignees[i] })),
           }
         : null,
+      // The demo's monthly Flat rent rule; this expense is its latest occurrence (next due in the future).
+      recurring: e.recurring,
     })),
     settlements: seed.settlements,
   };

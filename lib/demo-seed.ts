@@ -1,7 +1,7 @@
 // Demo seed (R48): realistic Indian student data, deterministic, no external calls.
 // Final balances are exactly Aarav +₹4,000, Priya +₹3,000, Rohan +₹3,000, Sneha −₹6,000,
 // Kabir −₹4,000, which gives greedy 4 payments and optimal 3.
-import { addDays } from "./recurring";
+import { addDays, occurrenceAt } from "./recurring";
 import { allocateItemized, type ReceiptData } from "./receipt";
 import { buildExpenseAmounts, type ExpenseAmounts, type SplitInput } from "./splits";
 
@@ -76,7 +76,8 @@ const SHACK_RECEIPT: SeedReceipt = {
 export const DEMO_EXPENSES: readonly SeedExpense[] = [
   {
     key: "rent",
-    dayOffset: -40,
+    // Latest occurrence of the monthly rule; < 28 days ago, so the next one is always in the future.
+    dayOffset: -15,
     description: "Flat rent",
     category: "Rent",
     notes: "Bigger rooms pay 2 shares; everyone paid part of it to the landlord",
@@ -97,7 +98,6 @@ export const DEMO_EXPENSES: readonly SeedExpense[] = [
     fxRate: "1",
     payers: { priya: 117900 },
     split: { type: "equal", participants: ALL },
-    recurring: "monthly",
   },
   {
     key: "swiggy-biryani",
@@ -271,7 +271,24 @@ export type DemoSeedExpense = {
   splitType: "equal" | "exact" | "percent" | "shares" | "itemized";
   amounts: ExpenseAmounts;
   receipt: (SeedReceipt & { itemShares: Record<string, number> }) | null;
-  recurring: "monthly" | null;
+  /** The demo's one recurring rule (Flat rent): this expense is its latest occurrence. */
+  recurring: DemoRecurring | null;
+};
+
+export type DemoRecurring = {
+  frequency: "monthly";
+  anchorDate: string;
+  nextDue: string;
+  /** Expense template with member keys (mapped to ids by the demo RPC). */
+  template: {
+    description: string;
+    category: string;
+    notes: string | null;
+    currency: string;
+    amountMinor: number;
+    payers: Partial<Record<DemoKey, number>>;
+    split: SplitInput;
+  };
 };
 
 export type DemoSeed = {
@@ -280,6 +297,27 @@ export type DemoSeed = {
   expenses: DemoSeedExpense[];
   settlements: { date: string; from: DemoKey; to: DemoKey; amountMinor: number; method: "upi" | "cash" | "other"; note: string }[];
 };
+
+function recurringFor(e: SeedExpense, date: string, today: string): DemoRecurring {
+  if (e.split.type === "receipt") throw new Error("demo seed: itemized expenses cannot recur");
+  const nextDue = occurrenceAt({ frequency: "monthly", anchorDate: date }, 1);
+  // Opening the demo must create nothing, so the target balances hold (R48).
+  if (date > today || nextDue <= today) throw new Error(`demo seed: rule for ${e.key} would be due (${nextDue})`);
+  return {
+    frequency: "monthly",
+    anchorDate: date,
+    nextDue,
+    template: {
+      description: e.description,
+      category: e.category,
+      notes: e.notes ?? null,
+      currency: e.currency,
+      amountMinor: e.amountMinor,
+      payers: e.payers,
+      split: e.split,
+    },
+  };
+}
 
 /** Resolves dates relative to `today` and computes every stored amount (member ids = keys). */
 export function buildDemoSeed(today: string): DemoSeed {
@@ -323,7 +361,7 @@ export function buildDemoSeed(today: string): DemoSeed {
       splitType: split.type,
       amounts: amounts.value,
       receipt,
-      recurring: e.recurring ?? null,
+      recurring: e.recurring ? recurringFor(e, date, today) : null,
     };
   });
   const settlements = DEMO_SETTLEMENTS.map((s) => ({ ...s, date: addDays(today, s.dayOffset) }));

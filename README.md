@@ -36,7 +36,7 @@ Quits is a free, mobile-first bill-splitting web app for Indian students. It's t
 2. Pick a name, for example Aarav.
 3. **Settle:** the exact plan needs **3** payments, where greedy needs 4. Each payment has a UPI QR code; the demo's UPI IDs are fake.
 4. **Expenses:** "Goa trip — beach shack dinner" is an itemized receipt with a per-item breakdown. "AI study tool subscription" was paid in USD and shows the rate used.
-5. **Group → Search & stats:** try "swiggy". **Group → Reset demo** restores the sample data.
+5. **Group → Search & stats:** try "swiggy". **Group → Recurring expenses** shows the monthly Flat rent rule. **Group → Reset demo** restores the sample data.
 6. **About** explains how Quits works and shows the receipt-reading accuracy.
 
 ## How it is built
@@ -103,7 +103,8 @@ As a result, settle-up is QR-first (SPEC v0.5, D-18). The link is kept only as a
 - **No accounts:** anyone with a group link can view and edit everything. The identity you pick on a device is not a login.
 - **Concurrent edits: last write wins.** There is no conflict detection; the activity log shows every change and deletions can be restored.
 - **No real-time updates:** other people's changes appear when you refresh or navigate.
-- **Recurring rules** are created lazily when someone opens the group, and can be paused, resumed or stopped but not edited.
+- **Recurring rules** are created lazily when someone opens the group, and can be paused, resumed or stopped but not edited (SPEC D-20; R46 partially met).
+- **Itemized expenses** can't be edited after finalizing. Delete the expense and scan the receipt again (SPEC D-19); every value is editable before finalizing.
 - **Resetting the demo** re-creates its members, so each device picks its name again.
 - **Receipt reading** depends on Gemini's free tier: there is a daily scan limit, and the photo is sent to Google but not stored by Quits.
 - **The UPI deep link** is blocked by major UPI apps when opened from a website; use the QR code.

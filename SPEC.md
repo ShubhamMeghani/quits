@@ -4,7 +4,7 @@
 
 | | |
 |---|---|
-| Version | v0.5 |
+| Version | v0.6 |
 | Date | 2026-10-16 |
 | Status | Ready for build. All open questions are decided (§10.1). Build order is in `PLAN.md`. |
 | Course | Applied Data Science & AI, IISc |
@@ -379,6 +379,7 @@ Requirement IDs are stable. R59 and R60 were added in v0.5 and sit in their topi
   - Monthly occurrences use `anchor_date`'s day, clamped to month end (31st → Feb 28/29 → Mar 31).
   - There is no cron.
 - **R46 [Should]** WHEN a user edits, pauses or deletes a rule, THE SYSTEM SHALL apply the change to future occurrences only. Generated expenses carry a "Recurring" label and are logged with actor System.
+  - *Status (v0.6): partially met — rules can be paused, resumed or stopped (deleted), but not edited (D-20).*
 
 ### 5.12 Demo mode
 - **R47 [Must]** WHEN a visitor taps "Try the demo", THE SYSTEM SHALL do the following, within 5 s:
@@ -683,6 +684,8 @@ Unless marked *Should*, every AC is Must. Amounts are in ₹; the tests use pais
 | D-15 | OQ-15 | `/api/health` is public with no secret. It runs one trivial query and returns only `{"ok":true}` (R57). |
 | D-16 | OQ-16 | No extra confirmation when finalizing a receipt with \|diff\| > ₹1; the banner on the review screen and the badge on the expense are enough (R33, R35). |
 | D-18 | P1-8 (2026-10-16) | **Settle-up is QR-first.**<br>**Must:** the QR with payee and amount, "Save QR image", "Show full screen", and "Copy UPI ID" with the amount in large text (R24).<br>**Should, best-effort:** the `upi://` button, labelled "May be blocked by some UPI apps" (R59).<br>**Recording:** settlement is never automatic; it happens only on "Mark as paid" (R25).<br>**Should:** set your UPI ID from a screenshot of your own UPI QR, decoded in the browser; only the ID and name are saved (R60). |
+| D-19 | Build (2026-10-17) | **Itemized expenses cannot be edited after finalizing.** To correct one, delete it (soft delete; Restore is possible) and scan or enter the receipt again. The edit form refuses itemized expenses, and the expense detail offers only Delete. Before finalizing, every value stays editable in the draft (R33). |
+| D-20 | Build (2026-10-17) | **R46 is partially met.** Recurring rules can be paused, resumed or stopped (deleted), and the change applies to future occurrences only. Rules cannot be edited; to change one, stop it and add a new repeating expense. |
 | D-17 | OQ-17 | When Frankfurter v2 has no rate for the exact date, use the most recent rate on or before `expense_date`, and store and show its `fx_rate_date` (R16). |
 
 ### 10.2 Open questions
@@ -698,3 +701,4 @@ None open. New questions found during the build are added here with a proposed d
 | v0.3 | 2026-10-16 | **Decisions:** OQ-15 to OQ-17 accepted as D-15 to D-17 (public `/api/health`; no extra confirmation for receipt mismatches; nearest earlier rate for weekend and holiday dates). **Env names (§3):** listed in full, adding `SUPABASE_DB_URL` (local only, for migrations), `SCAN_LIMIT_PER_GROUP`, `SCAN_LIMIT_PER_APP` and the repo variable `APP_URL`. **Deliverables:** CI workflow (`ci.yml`, ubuntu-24.04) added. Counts unchanged: 58 requirements (43 Must, 15 Should), 45 ACs. `PLAN.md` created. |
 | v0.4 | 2026-10-16 | Approved PLAN.md proposals SC-1 to SC-3 (wording only; the code already followed them). **SC-1 (§4.3, §3, K6):** the Frankfurter v2 request and response confirmed in P1-7 (`/v2/rate/{BASE}/{QUOTE}?date=`; same-date blended weekend rates; 404 for future dates, so those use the latest rate; 422 for unknown currencies). **SC-2 (§3, §4.3, R31):** Gemini structured output uses `responseJsonSchema`. **SC-3 (R17):** base payer and split amounts are allocated by exact original-currency proportions (the split's own weights), not rounded minor-unit shares, matching AC-6. Counts unchanged: 58 requirements (43 Must, 15 Should), 45 ACs. |
 | v0.5 | 2026-10-16 | **Settle-up is QR-first (D-18),** after P1-8 showed `upi://` P2P links blocked in GPay, PhonePe and Paytm from a website, while QR scans (laptop screen, gallery screenshot) worked with the payee and amount filled in.<br>**R24 (Must):** the QR is visible at every width, plus "Save QR image", "Show full screen", and "Copy UPI ID" with the amount in large text.<br>**R25:** settlement is never automatic, only on "Mark as paid"; the "Did the payment go through?" prompt is removed.<br>**New R59 (Should):** best-effort "Pay via UPI" link labelled "May be blocked by some UPI apps".<br>**New R60 (Should):** set a UPI ID from a screenshot of your own UPI QR, decoded in the browser; only `pa`/`pn` are saved; `members.upi_name` added; `pn` uses it.<br>**ACs:** AC-14 is now the phone QR path (save + gallery scan, full screen); the link format stays Unit (AC-13). AC-15 adds the large amount. New AC-46 (Should) covers R59/R60.<br>**Elsewhere:** §1 edge, S4, §4.1, §4.3, K1, K11 and D-14 updated.<br>**Counts:** 60 requirements (43 Must, 17 Should); 46 ACs (39 Must, 7 Should), one over the earlier ≤ 45 target because of the new Should AC. |
+| v0.6 | 2026-10-17 | **Honesty decisions recorded after the build.** D-19: itemized expenses can't be edited after finalizing; delete and rescan instead. D-20: R46 is partially met (pause, resume and stop; no edit), and R46 is annotated accordingly. Counts unchanged: 60 requirements (43 Must, 17 Should; R46 partially met), 46 ACs. |

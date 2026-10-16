@@ -119,6 +119,37 @@ describe("demo seed (R48)", () => {
     expect(plan.optimalCount).toBe(3);
     expect(naiveCount(DEMO_KEYS, expenses, settlements)).toBeGreaterThan(3);
   });
+  it("has one monthly Flat rent rule whose latest occurrence is seeded and whose next due date is in the future", () => {
+    for (const today of ["2026-10-16", "2026-01-31", "2026-02-28", "2026-03-31", "2026-12-31", "2028-02-29"]) {
+      const s = buildDemoSeed(today);
+      const recurring = s.expenses.filter((e) => e.recurring);
+      expect(recurring).toHaveLength(1);
+      const [rent] = recurring;
+      const rule = rent.recurring!;
+      expect(rent.description).toBe("Flat rent");
+      expect(rule.frequency).toBe("monthly");
+      expect(rule.anchorDate).toBe(rent.date);
+      expect(rent.date <= today).toBe(true);
+      expect(rule.nextDue > today).toBe(true);
+      expect(rule.nextDue).toBe(occurrenceAt({ frequency: "monthly", anchorDate: rent.date }, 1));
+      // Opening the demo creates nothing...
+      const due = occurrencesDue({ frequency: "monthly", anchorDate: rule.anchorDate, nextDue: rule.nextDue, endDate: null, active: true }, today, new Set([rent.date]));
+      expect(due.dates).toEqual([]);
+      // ...but the rule does recur once its next date arrives.
+      expect(occurrencesDue({ frequency: "monthly", anchorDate: rule.anchorDate, nextDue: rule.nextDue, endDate: null, active: true }, rule.nextDue).dates).toEqual([rule.nextDue]);
+      // The template matches the seeded expense, and the target balances (greedy 4, optimal 3) still hold.
+      expect(rule.template).toMatchObject({ amountMinor: rent.amounts.amountMinor, currency: "INR", split: { type: "shares" } });
+      const b = computeBalances(
+        DEMO_KEYS,
+        s.expenses.map((e) => ({ payers: e.amounts.payers, splits: e.amounts.splits })),
+        s.settlements.map((x) => ({ fromMemberId: x.from, toMemberId: x.to, amountMinor: x.amountMinor })),
+      );
+      expect(b).toEqual(DEMO_TARGET_BALANCES);
+      const plan = settle(DEMO_KEYS.map((k) => ({ memberId: k, balance: b[k] })));
+      expect([plan.greedyCount, plan.optimalCount]).toEqual([4, 3]);
+    }
+  });
+
   it("contains the content R48 requires", () => {
     const types = seed.expenses.map((e) => e.splitType);
     expect(seed.expenses.length).toBeGreaterThanOrEqual(15);

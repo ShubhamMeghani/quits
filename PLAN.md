@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| Spec | [SPEC.md](SPEC.md) **v0.5**. If SPEC.md and this plan disagree, SPEC.md wins. |
+| Spec | [SPEC.md](SPEC.md) **v0.6**. If SPEC.md and this plan disagree, SPEC.md wins. |
 | Production | https://quits-go.vercel.app (Vercel, deploys from `main`) |
 | Stack | Next.js (App Router, TS) · Tailwind · Vitest · Supabase Postgres (server-only, RLS on, no policies) · Gemini `gemini-3.5-flash-lite` · Frankfurter v2 · Vercel Hobby · GitHub Actions (ubuntu-24.04) · Node 24 |
 | Tests | `npm test` (unit, `lib/` + `server/token.ts`) · `npm run test:db` (DB integration; loads `.env.local`; skips when `SUPABASE_DB_URL` is absent) · `npm run test:db:clean` (removes leftover `__test__` groups) · `npm run lint` · `npm run build` · `npm run eval` (receipt eval; loads `.env.local`) |
@@ -241,6 +241,7 @@ No GitHub secrets are needed: CI runs only lint and unit tests, which make no ne
   - **Features:** search and stats (`/search`, a GET form); CSV route; recurring rules (Should), generated lazily in `readGroup`, with pause/resume/stop; demo create/reset RPCs with lazy cleanup.
   - **Migration:** `…000700`.
   - **Demo seed changes:** no recurring rules, since a monthly rent rule dated 40 days back would generate an occurrence on first open and break the exact R48 balances. All Goa items are categorised Travel (for AC-31), and "Flat rent" no longer names a month.
+  - **v0.6 update:** the demo now has one monthly "Flat rent" rule. Rent moved to 15 days ago; it is the rule's latest occurrence, and the next due date is always in the future, so opening the demo creates nothing and the balances stay exact (migration `…000800`; unit and DB tests).
   - **R46 (Should) partial:** rules can be paused, resumed or stopped, but not edited; to change a rule, stop it and add a new repeating expense.
 - **Phase 7 (AUTO tasks):**
   - **Eval:** `eval/run.ts` (`npm run eval`, plus `npm run eval:synthetic`) is built and checked on ONE synthetic receipt only (`eval/synthetic/`). No real results were invented: the committed `eval/results.json` says "not-run", and `/about` shows that.
