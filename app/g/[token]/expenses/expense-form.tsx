@@ -6,13 +6,14 @@ import { useRouter } from "next/navigation";
 import { useMemo, useState, useTransition } from "react";
 import { createExpenseAction, updateExpenseAction } from "@/app/actions";
 import { useIdentity } from "@/app/_components/identity";
-import { Button, Field, inputClass, Notice } from "@/app/_components/ui";
+import { Button, Field, inputClass, Notice, textareaClass } from "@/app/_components/ui";
 import { money } from "@/app/_lib/format";
 import { exponent, SUPPORTED_CURRENCIES } from "@/lib/currency";
 import { minorToMajorString, parseMajorInput } from "@/lib/money";
 import { CATEGORIES, computePayers, computeSplit, percentToBasisPoints, splitErrorMessage, type SplitInput } from "@/lib/splits";
 import type { ExpenseRow } from "@/server/context";
 import type { DefaultSplit, ExpenseInput } from "@/server/schemas";
+import { PayerRows, SplitRows } from "./split-rows";
 
 type EditableSplit = "equal" | "exact" | "percent" | "shares";
 
@@ -236,16 +237,7 @@ export function ExpenseForm({ baseCurrency, defaultSplit, today, initial }: Prop
             ))}
           </select>
         ) : (
-          <ul className="flex flex-col gap-2">
-            {people.map((m) => (
-              <li key={m.id} className="flex items-center gap-3">
-                <label htmlFor={`pay-${m.id}`} className="min-w-0 flex-1 truncate">
-                  {m.id === me ? `${m.name} (you)` : m.name}
-                </label>
-                <input id={`pay-${m.id}`} className={`${inputClass} w-32`} inputMode="decimal" placeholder="0.00" value={payerAmounts[m.id] ?? ""} onChange={(e) => setMap(setPayerAmounts, m.id, e.target.value)} />
-              </li>
-            ))}
-          </ul>
+          <PayerRows people={people} me={me} amounts={payerAmounts} onValue={(id, v) => setMap(setPayerAmounts, id, v)} />
         )}
         {payerMessage && <p className="text-sm font-medium text-danger">{payerMessage}</p>}
         <button type="button" className="min-h-11 self-start text-sm font-semibold text-brand" onClick={() => setMultiPayer((v) => !v)}>
@@ -269,61 +261,25 @@ export function ExpenseForm({ baseCurrency, defaultSplit, today, initial }: Prop
             </button>
           ))}
         </div>
-        <ul className="flex flex-col divide-y divide-border rounded-2xl border border-border bg-card">
-          {people.map((m) => {
-            const owed = preview.owed[m.id];
-            const label = m.id === me ? `${m.name} (you)` : m.name;
-            return (
-              <li key={m.id} className="flex min-h-14 items-center gap-3 px-3">
-                {splitType === "equal" ? (
-                  <label className="flex min-h-11 flex-1 items-center gap-3">
-                    <input
-                      type="checkbox"
-                      className="h-5 w-5 accent-teal-700"
-                      checked={included.has(m.id)}
-                      onChange={(e) =>
-                        setIncluded((s) => {
-                          const n = new Set(s);
-                          if (e.target.checked) n.add(m.id);
-                          else n.delete(m.id);
-                          return n;
-                        })
-                      }
-                    />
-                    <span className="min-w-0 truncate">{label}</span>
-                  </label>
-                ) : (
-                  <label htmlFor={`sp-${m.id}`} className="min-w-0 flex-1 truncate">
-                    {label}
-                  </label>
-                )}
-                {splitType === "exact" && (
-                  <input id={`sp-${m.id}`} className={`${inputClass} w-28`} inputMode="decimal" placeholder="0.00" value={exact[m.id] ?? ""} onChange={(e) => setMap(setExact, m.id, e.target.value)} />
-                )}
-                {splitType === "percent" && (
-                  <div className="flex items-center gap-1">
-                    <input id={`sp-${m.id}`} className={`${inputClass} w-20`} inputMode="decimal" placeholder="0" value={percent[m.id] ?? ""} onChange={(e) => setMap(setPercent, m.id, e.target.value)} />
-                    <span aria-hidden="true">%</span>
-                  </div>
-                )}
-                {splitType === "shares" && (
-                  <div className="flex items-center gap-1">
-                    <button type="button" aria-label={`Fewer shares for ${m.name}`} className="h-11 w-11 rounded-xl border border-border text-lg" onClick={() => setMap(setShares, m.id, String(Math.max(0, Number(shares[m.id] || 0) - 1)))}>
-                      −
-                    </button>
-                    <input id={`sp-${m.id}`} className={`${inputClass} w-14 text-center`} inputMode="numeric" value={shares[m.id] ?? ""} onChange={(e) => setMap(setShares, m.id, e.target.value)} />
-                    <button type="button" aria-label={`More shares for ${m.name}`} className="h-11 w-11 rounded-xl border border-border text-lg" onClick={() => setMap(setShares, m.id, String(Math.min(999, Number(shares[m.id] || 0) + 1)))}>
-                      +
-                    </button>
-                  </div>
-                )}
-                {splitType !== "exact" && (
-                  <span className="w-24 shrink-0 text-right text-sm text-muted">{owed !== undefined ? money(owed, currency) : "—"}</span>
-                )}
-              </li>
-            );
-          })}
-        </ul>
+        <SplitRows
+          people={people}
+          me={me}
+          mode={splitType}
+          included={included}
+          exact={exact}
+          percent={percent}
+          shares={shares}
+          owed={Object.fromEntries(Object.entries(preview.owed).map(([id, v]) => [id, money(v, currency)]))}
+          onToggle={(id, checked) =>
+            setIncluded((st) => {
+              const n = new Set(st);
+              if (checked) n.add(id);
+              else n.delete(id);
+              return n;
+            })
+          }
+          onValue={(mode, id, v) => setMap(mode === "exact" ? setExact : mode === "percent" ? setPercent : setShares, id, v)}
+        />
         <p className={`text-sm font-medium ${!amountMinor ? "text-muted" : preview.ok ? "text-ok" : "text-danger"}`} aria-live="polite">
           {!amountMinor ? "Enter an amount to see each share." : preview.ok ? "✓ Adds up" : preview.message}
         </p>
@@ -358,7 +314,7 @@ export function ExpenseForm({ baseCurrency, defaultSplit, today, initial }: Prop
         </div>
       )}
       <Field label="Notes (optional)" htmlFor="notes">
-        <textarea id="notes" className={`${inputClass} min-h-20 py-2`} value={notes} onChange={(e) => setNotes(e.target.value)} maxLength={500} />
+        <textarea id="notes" className={textareaClass} value={notes} onChange={(e) => setNotes(e.target.value)} maxLength={500} />
       </Field>
 
       {error && <Notice tone="error">{error}</Notice>}

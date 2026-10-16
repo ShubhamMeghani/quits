@@ -111,7 +111,8 @@ export function UpiQr({ payee, amountMinor, groupName }: { payee: UpiPayee; amou
         <p className="text-center text-sm text-muted">Scan with any UPI app — amount is filled in</p>
       </div>
 
-      <div className="grid grid-cols-2 gap-2">
+      {/* Stacked on phones so "Save QR image" and "Show full screen" stay on one line (R24 labels). */}
+      <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
         <Button variant="secondary" onClick={save} disabled={saveState === "saving"}>
           <DownloadIcon className="h-5 w-5" />
           {saveState === "saving" ? "Saving…" : saveState === "saved" ? "Saved" : "Save QR image"}

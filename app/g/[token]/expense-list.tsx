@@ -29,15 +29,16 @@ export function BalanceSummary({ balances, baseCurrency, expenseCount }: { balan
   );
 }
 
-function myLine(e: ExpenseRow, me: string | null | undefined, baseCurrency: string): { text: string; tone: string } {
-  if (!me) return { text: "", tone: "" };
+/** Your position on one expense: a short label and (when relevant) an amount, shown on two lines. */
+function myLine(e: ExpenseRow, me: string | null | undefined, baseCurrency: string): { label: string; amount: string | null; tone: string } {
+  if (!me) return { label: "", amount: null, tone: "" };
   const paid = e.payers.find((p) => p.memberId === me)?.baseAmountMinor ?? 0;
   const owed = e.splits.find((s) => s.memberId === me)?.owedBaseMinor ?? 0;
   const net = paid - owed;
-  if (paid === 0 && owed === 0) return { text: "not involved", tone: "text-muted" };
-  if (net > 0) return { text: `you lent ${money(net, baseCurrency)}`, tone: "text-ok" };
-  if (net < 0) return { text: `you owe ${money(-net, baseCurrency)}`, tone: "text-danger" };
-  return { text: "your share is paid", tone: "text-muted" };
+  if (paid === 0 && owed === 0) return { label: "not involved", amount: null, tone: "text-muted" };
+  if (net > 0) return { label: "you lent", amount: money(net, baseCurrency), tone: "text-ok" };
+  if (net < 0) return { label: "you owe", amount: money(-net, baseCurrency), tone: "text-danger" };
+  return { label: "share paid", amount: null, tone: "text-muted" };
 }
 
 export function ExpenseList({ initial, hasMore: initialHasMore, baseCurrency }: { initial: ExpenseRow[]; hasMore: boolean; baseCurrency: string }) {
@@ -80,7 +81,16 @@ export function ExpenseList({ initial, hasMore: initialHasMore, baseCurrency }: 
           return (
             <li key={e.id}>
               <Link href={`/g/${group.token}/expenses/${e.id}`} className="flex min-h-16 items-center gap-3 rounded-2xl border border-border bg-card px-4 py-3 hover:border-brand">
-                <div className="w-10 shrink-0 text-center text-xs font-semibold uppercase leading-tight text-muted">{formatDate(e.expenseDate).replace(/ \d{4}$/, "")}</div>
+                <div className="flex w-10 shrink-0 flex-col items-center text-xs font-semibold uppercase leading-tight text-muted">
+                  {formatDate(e.expenseDate)
+                    .replace(/ \d{4}$/, "")
+                    .split(" ")
+                    .map((part) => (
+                      <span key={part} className="whitespace-nowrap">
+                        {part}
+                      </span>
+                    ))}
+                </div>
                 <div className="min-w-0 flex-1">
                   <p className="truncate font-semibold">{e.description}</p>
                   <p className="truncate text-sm text-muted">
@@ -88,7 +98,10 @@ export function ExpenseList({ initial, hasMore: initialHasMore, baseCurrency }: 
                     {e.currency !== baseCurrency && ` (${money(e.baseAmountMinor, baseCurrency)})`}
                   </p>
                 </div>
-                <p className={`max-w-[34%] shrink-0 text-right text-xs font-semibold leading-tight ${line.tone}`}>{line.text}</p>
+                <p className={`flex shrink-0 flex-col items-end text-xs font-semibold leading-tight ${line.tone}`}>
+                  <span className="whitespace-nowrap">{line.label}</span>
+                  {line.amount && <span className="whitespace-nowrap text-sm">{line.amount}</span>}
+                </p>
               </Link>
             </li>
           );

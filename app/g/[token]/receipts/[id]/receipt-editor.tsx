@@ -7,7 +7,7 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { finalizeReceiptAction, saveReceiptDraftAction } from "@/app/actions";
 import { useIdentity } from "@/app/_components/identity";
-import { Button, Card, Field, inputClass, Notice } from "@/app/_components/ui";
+import { Button, Card, Field, inputBase, inputClass, Notice } from "@/app/_components/ui";
 import { money } from "@/app/_lib/format";
 import { exponent, SUPPORTED_CURRENCIES } from "@/lib/currency";
 import { minorToMajorString, parseMajorInput } from "@/lib/money";
@@ -142,7 +142,8 @@ export function ReceiptEditor({ receipt, today }: { receipt: ReceiptView; today:
     <Field label={label} htmlFor={`x-${key}`}>
       <input
         id={`x-${key}`}
-        className={`${inputClass} ${num(extras[key], opts.negative) === null ? "border-danger" : ""}`}
+        className={inputClass}
+        aria-invalid={num(extras[key], opts.negative) === null}
         inputMode="decimal"
         value={extras[key]}
         onChange={(ev) => setExtras((x) => ({ ...x, [key]: ev.target.value }))}
@@ -177,8 +178,8 @@ export function ReceiptEditor({ receipt, today }: { receipt: ReceiptView; today:
             <li key={it.key} className={`flex flex-col gap-2 rounded-2xl border bg-card p-3 ${badItem === idx || (it.assignees.length === 0 && badItem !== null) ? "border-danger" : "border-border"}`}>
               <div className="grid grid-cols-[minmax(0,1fr)_3.5rem_6.5rem] gap-2">
                 <input aria-label={`Item ${idx + 1} name`} className={inputClass} value={it.name} onChange={(ev) => updateItem(it.key, { name: ev.target.value })} maxLength={100} />
-                <input aria-label={`Item ${idx + 1} quantity`} className={`${inputClass} px-2 text-center ${!(it.q > 0) ? "border-danger" : ""}`} inputMode="decimal" value={it.qty} onChange={(ev) => updateItem(it.key, { qty: ev.target.value })} />
-                <input aria-label={`Item ${idx + 1} amount`} className={`${inputClass} ${it.minor === null ? "border-danger" : ""}`} inputMode="decimal" value={it.amount} onChange={(ev) => updateItem(it.key, { amount: ev.target.value })} />
+                <input aria-label={`Item ${idx + 1} quantity`} className={`${inputBase} w-full px-1 text-center`} aria-invalid={!(it.q > 0)} inputMode="decimal" value={it.qty} onChange={(ev) => updateItem(it.key, { qty: ev.target.value })} />
+                <input aria-label={`Item ${idx + 1} amount`} className={inputClass} aria-invalid={it.minor === null} inputMode="decimal" value={it.amount} onChange={(ev) => updateItem(it.key, { amount: ev.target.value })} />
               </div>
               <div className="flex flex-wrap gap-2" role="group" aria-label={`Who had ${it.name || `item ${idx + 1}`}`}>
                 {people.map((m) => {

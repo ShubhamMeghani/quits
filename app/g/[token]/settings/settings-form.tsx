@@ -4,7 +4,7 @@
 import { useState, useTransition } from "react";
 import { updateGroupSettingsAction } from "@/app/actions";
 import { useIdentity } from "@/app/_components/identity";
-import { Button, Field, inputClass, Notice } from "@/app/_components/ui";
+import { Button, Field, inputClass, inputFixed, Notice } from "@/app/_components/ui";
 import { SUPPORTED_CURRENCIES } from "@/lib/currency";
 import { percentToBasisPoints } from "@/lib/splits";
 import type { DefaultSplit } from "@/server/schemas";
@@ -119,7 +119,7 @@ export function SettingsForm({ defaultSplit, hasExpenses }: { defaultSplit: Defa
                 <span className="flex items-center gap-1">
                   <input
                     aria-label={`${type === "percent" ? "Percent" : "Shares"} for ${m.name}`}
-                    className={`${inputClass} w-20`}
+                    className={inputFixed("w-20")}
                     inputMode="decimal"
                     value={weights[m.id] ?? ""}
                     onChange={(e) => setWeights((w) => ({ ...w, [m.id]: e.target.value }))}

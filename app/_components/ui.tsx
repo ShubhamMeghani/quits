@@ -28,8 +28,23 @@ export function Card({ className = "", ...props }: ComponentProps<"div">) {
   return <div className={`rounded-2xl border border-border bg-card p-4 ${className}`} {...props} />;
 }
 
-export const inputClass =
-  "min-h-11 w-full rounded-xl border border-border bg-card px-3 text-base text-foreground placeholder:text-slate-500 focus:border-brand focus:outline-none focus:ring-2 focus:ring-teal-200 disabled:bg-slate-100";
+/**
+ * Input styling without width or horizontal padding. Tailwind orders utilities in the stylesheet,
+ * not by class order, so combining `w-full` with `w-28` (or `px-3` with `px-2`) is unreliable:
+ * pick exactly one width via `inputClass` (full width) or `inputFixed(...)`.
+ */
+export const inputBase =
+  "min-h-11 rounded-xl border border-border bg-card text-base text-foreground placeholder:text-slate-500 focus:border-brand focus:outline-none focus:ring-2 focus:ring-teal-200 disabled:bg-slate-100 aria-[invalid=true]:border-danger aria-[invalid=true]:bg-red-50";
+
+export const inputClass = `${inputBase} w-full px-3`;
+
+/** Multi-line text: same look, taller (no competing min-h utilities). */
+export const textareaClass = `${inputBase.replace("min-h-11", "min-h-20")} w-full px-3 py-2`;
+
+/** A fixed-width input that never squeezes the label next to it (e.g. "w-28", "w-14 px-1 text-center"). */
+export function inputFixed(size: string): string {
+  return `${inputBase} shrink-0 ${/\bpx-/.test(size) ? "" : "px-3 "}${size}`;
+}
 
 export function Field({ label, error, hint, children, htmlFor }: { label: string; error?: string; hint?: ReactNode; children: ReactNode; htmlFor?: string }) {
   return (
