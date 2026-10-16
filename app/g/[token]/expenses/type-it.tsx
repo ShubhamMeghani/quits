@@ -21,6 +21,7 @@ export function flagMessage(f: NlFlag, baseCurrency: string): string {
     case "amount":
       return "Enter the amount.";
     case "split":
+      if (f.reason === "duplicate") return `${v} is the same person as another name in the split — fill in the split below.`;
       return "The split didn't add up — fill it in below.";
     case "currency":
       return `${v} isn't supported — using ${baseCurrency}.`;

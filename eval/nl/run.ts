@@ -1,28 +1,34 @@
 // Type-to-add evaluation (SPEC R66). Run:  npm run eval:nl            (calls Gemini, writes results)
 //                                          npm run eval:nl -- --check  (validates the files only)
-// Each eval/nl/*.json holds one sentence, its group context and the ground truth (see README.md).
-// Uses the app's prompt, schema, model and lib/nlparse post-processing; writes results.json and
-// REPORT.md. The env (GEMINI_API_KEY, GEMINI_MODEL) is loaded by `node --env-file-if-exists`.
+// Each eval/nl/{claude,human}-NN.json holds one sentence, its group context and the ground truth
+// (see README.md). Since run 2, every sentence goes through the app's own parse handler
+// (server/nl-handler.ts: same prompt, schema, model, 15 s deadline, one retry on a transient error,
+// lib/nlparse post-processing), with ~2 s between calls. Writes results.json (latest run) and
+// REPORT.md (latest run, then run 1 kept exactly as run from REPORT-run1.md).
+// The env (GEMINI_API_KEY, GEMINI_MODEL) is loaded by `node --env-file-if-exists`.
 import fs from "node:fs";
 import path from "node:path";
 import { z } from "zod";
 import { exponent, isSupportedCurrency } from "@/lib/currency";
 import { decimalToMinor, minorToMajorString } from "@/lib/money";
-import {
-  NL_JSON_SCHEMA,
-  NL_MAX_CHARS,
-  NL_PROMPT,
-  nlUserText,
-  parseNlModel,
-  resolveNl,
-  scoreNl,
-  type NlEvalCase,
-  type NlField,
-  type NlGold,
-} from "@/lib/nlparse";
+import { NL_MAX_CHARS, scoreNl, type NlEvalCase, type NlField, type NlGold, type NlResult } from "@/lib/nlparse";
+import { createParseHandler } from "@/server/nl-handler";
 
 const DIR = "eval/nl";
+const PACE_MS = 2000;
 const FIELDS = ["description", "amount", "currency", "payer", "participants", "split", "category", "date"] as const;
+
+/** What changed since run 1, labelled as the user asked (results.json and REPORT.md). */
+const RUN = {
+  run: 2,
+  evalSetupFixes: [
+    "P1: each sentence goes through the app's own parse handler (same prompt, schema, model and post-processing, 15 s deadline, one retry on a transient model error), with ~2 s between calls. Run 1 called Gemini directly, without the app's retry, back-to-back.",
+  ],
+  codeFixes: [
+    "P3: two names for the same person in one split (e.g. \"me\" and \"Aarav\") now leave the split blank instead of being added together. Found by the eval (human-05 in run 1).",
+  ],
+  blindness: "Run 2 is NOT blind for P3: that fix was made after seeing run 1's result on human-05. P1 changes how the eval calls the app, not the app. The prompt is unchanged since run 1 (P4 was not applied).",
+};
 
 const fileSchema = z.object({
   id: z.string().min(1),
@@ -51,7 +57,7 @@ const fileSchema = z.object({
 type EvalFile = z.infer<typeof fileSchema>;
 
 function load(): EvalFile[] {
-  const files = fs.readdirSync(DIR).filter((f) => f.endsWith(".json") && f !== "results.json").sort();
+  const files = fs.readdirSync(DIR).filter((f) => /^(claude|human)-\d+\.json$/.test(f)).sort();
   const out: EvalFile[] = [];
   const problems: string[] = [];
   for (const f of files) {
@@ -77,26 +83,32 @@ function load(): EvalFile[] {
   return out;
 }
 
-function gold(c: EvalFile): NlGold {
+/** The handler needs real UUIDs; members get stable ones by position. */
+const uuidFor = (i: number) => `00000000-0000-4000-8000-${String(i + 1).padStart(12, "0")}`;
+
+function gold(c: EvalFile, id: (name: string) => string): NlGold {
   const e = c.expected;
   const exp = exponent(e.currency);
   const values =
     e.split_values &&
     Object.fromEntries(
       Object.entries(e.split_values).map(([name, v]) => [
-        name,
+        id(name),
         e.split_type === "exact" ? minorToMajorString(decimalToMinor(v, exp), exp) : e.split_type === "percent" ? String(Number(v.toFixed(2))) : String(v),
       ]),
     );
   return {
     amountMinor: e.amount === null ? null : decimalToMinor(e.amount, exp),
-    payerId: e.payer,
-    participantIds: e.participants,
+    payerId: e.payer === null ? null : id(e.payer),
+    participantIds: e.participants === null ? null : e.participants.map(id),
     splitType: e.split_type,
     splitValues: values ?? null,
     currency: e.currency,
   };
 }
+
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+const pct = (x: number) => `${(x * 100).toFixed(1)}%`;
 
 async function main() {
   const cases = load();
@@ -111,58 +123,114 @@ async function main() {
     process.exit(1);
   }
   const { geminiModel, geminiTextJson } = await import("@/server/gemini");
+
   const scored: NlEvalCase[] = [];
-  for (const c of cases) {
-    // Member ids are the names themselves, so the gold can be written with names.
-    const ctx = { members: c.members.map((n) => ({ id: n, name: n })), meId: c.me, baseCurrency: c.baseCurrency, today: c.today };
+  const details: Record<string, { status: number; reason?: string; predicted?: Record<string, unknown> }> = {};
+  for (const [i, c] of cases.entries()) {
+    if (i > 0) await sleep(PACE_MS);
+    const members = c.members.map((name, k) => ({ id: uuidFor(k), name, archived: false }));
+    const idOf = new Map(members.map((m) => [m.name, m.id]));
+    const nameOf = new Map(members.map((m) => [m.id, m.name]));
+    const id = (name: string) => idOf.get(name)!;
+    // P1: the app's own handler, so the eval measures exactly what the app does.
+    const handle = createParseHandler({
+      findGroup: async () => ({ id: "eval", baseCurrency: c.baseCurrency }),
+      loadMembers: async () => members,
+      bumpLimits: async () => true,
+      callModel: geminiTextJson,
+      today: () => c.today,
+    });
     const t0 = Date.now();
-    let predicted = null;
-    try {
-      const controller = new AbortController();
-      const timer = setTimeout(() => controller.abort(), 15_000);
-      const text = await geminiTextJson({
-        prompt: NL_PROMPT,
-        text: nlUserText(c.text, { memberNames: c.members, baseCurrency: c.baseCurrency, today: c.today }),
-        jsonSchema: NL_JSON_SCHEMA,
-        signal: controller.signal,
-      }).finally(() => clearTimeout(timer));
-      const model = parseNlModel(text);
-      predicted = model ? resolveNl(model, ctx) : null;
-    } catch {
-      predicted = null;
-    }
-    scored.push({ id: c.id, gold: gold(c), predicted, ambiguous: c.ambiguous, blank: c.blank as NlField[], latencyMs: Date.now() - t0, memberOrder: c.members });
-    console.log(`${c.id}: ${predicted ? "ok" : "FAILED"}`);
+    const res = await handle(
+      new Request("http://eval.local/parse", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ text: c.text, me: id(c.me) }) }),
+      "eval",
+    );
+    const latencyMs = Date.now() - t0;
+    const body = (await res.json().catch(() => ({}))) as Partial<NlResult> & { reason?: string };
+    const predicted = res.ok && body.prefill ? ({ prefill: body.prefill, flags: body.flags ?? [] } as NlResult) : null;
+    scored.push({ id: c.id, gold: gold(c, id), predicted, ambiguous: c.ambiguous, blank: c.blank as NlField[], latencyMs, memberOrder: members.map((m) => m.id) });
+    // P2: keep what was predicted, with names instead of ids.
+    const p = predicted?.prefill;
+    details[c.id] = {
+      status: res.status,
+      ...(body.reason ? { reason: body.reason } : {}),
+      ...(p
+        ? {
+            predicted: {
+              amount: p.amountMinor === null ? null : Number(minorToMajorString(p.amountMinor, exponent(p.currency))),
+              currency: p.currency,
+              payer: p.payerId === null ? null : nameOf.get(p.payerId),
+              participants: p.participantIds.map((x) => nameOf.get(x)),
+              splitType: p.splitType,
+              splitValues: p.splitValues && Object.fromEntries(Object.entries(p.splitValues).map(([k, v]) => [nameOf.get(k), v])),
+              category: p.category,
+              date: p.date,
+              flags: predicted!.flags.map((f) => `${f.field}:${f.reason}${f.value ? `(${f.value})` : ""}`),
+            },
+          }
+        : {}),
+    };
+    console.log(`${c.id}: ${predicted ? "ok" : `FAILED (${res.status} ${body.reason ?? ""})`} in ${(latencyMs / 1000).toFixed(1)} s`);
   }
+
   const s = scoreNl(scored);
-  const results = { status: "ok", model: geminiModel(), runAt: new Date().toISOString(), authors: { claude: by("claude"), human: by("human") }, ...s };
+  const results = {
+    status: "ok",
+    ...RUN,
+    model: geminiModel(),
+    runAt: new Date().toISOString(),
+    authors: { claude: by("claude"), human: by("human") },
+    ...s,
+    perSentence: s.perSentence.map((r) => ({ ...r, ...details[r.id] })),
+  };
   fs.writeFileSync(path.join(DIR, "results.json"), JSON.stringify(results, null, 2) + "\n");
-  const pct = (x: number) => `${(x * 100).toFixed(1)}%`;
-  fs.writeFileSync(
-    path.join(DIR, "REPORT.md"),
-    [
-      "# Type-to-add eval",
-      "",
-      `- Model: \`${results.model}\` · run ${results.runAt}`,
-      `- Sentences: ${s.n} (${s.ambiguousN} ambiguous) · by Claude ${results.authors.claude}, by the human ${results.authors.human}`,
-      "",
-      "| Metric | Value |",
-      "|---|---|",
-      `| Amount accuracy | ${pct(s.amountAccuracy)} |`,
-      `| Payer accuracy | ${pct(s.payerAccuracy)} |`,
-      `| Participant-set accuracy | ${pct(s.participantsAccuracy)} |`,
-      `| Split-type accuracy | ${pct(s.splitTypeAccuracy)} |`,
-      `| Exact match | ${pct(s.exactMatchRate)} |`,
-      `| Correct abstention (ambiguous) | ${pct(s.abstentionRate)} |`,
-      `| Mean latency | ${s.meanLatencySec.toFixed(2)} s |`,
-      "",
-      "| Sentence | Amount | Payer | Participants | Split type | Exact | Abstained |",
-      "|---|---|---|---|---|---|---|",
-      ...s.perSentence.map((r) => `| ${r.id}${r.error ? " (failed)" : ""} | ${r.amount ? "✓" : "✗"} | ${r.payer ? "✓" : "✗"} | ${r.participants ? "✓" : "✗"} | ${r.splitType ? "✓" : "✗"} | ${r.exact ? "✓" : "✗"} | ${r.abstained === null ? "—" : r.abstained ? "✓" : "✗"} |`),
-      "",
-    ].join("\n"),
-  );
-  console.log(`amount ${pct(s.amountAccuracy)} · exact ${pct(s.exactMatchRate)} · abstention ${pct(s.abstentionRate)} → eval/nl/results.json, REPORT.md`);
+
+  const show = (v: unknown) => (v === null || v === undefined ? "—" : Array.isArray(v) ? v.join(", ") || "—" : typeof v === "object" ? JSON.stringify(v) : String(v));
+  const run1 = fs.existsSync(path.join(DIR, "REPORT-run1.md")) ? fs.readFileSync(path.join(DIR, "REPORT-run1.md"), "utf8") : "";
+  const report = [
+    "# Type-to-add eval",
+    "",
+    `## Run ${RUN.run} (main result)`,
+    "",
+    `- Model: \`${results.model}\` · run ${results.runAt}`,
+    `- Sentences: ${s.n} (${s.ambiguousN} ambiguous) · by Claude ${results.authors.claude}, by the human ${results.authors.human}`,
+    "",
+    "**Eval-setup fixes since run 1 (how the eval calls the app):**",
+    "",
+    ...RUN.evalSetupFixes.map((x) => `- ${x}`),
+    "",
+    "**Code fixes found by the eval (the app changed):**",
+    "",
+    ...RUN.codeFixes.map((x) => `- ${x}`),
+    "",
+    `**Blindness:** ${RUN.blindness}`,
+    "",
+    "| Metric | Value |",
+    "|---|---|",
+    `| Amount accuracy | ${pct(s.amountAccuracy)} |`,
+    `| Payer accuracy | ${pct(s.payerAccuracy)} |`,
+    `| Participant-set accuracy | ${pct(s.participantsAccuracy)} |`,
+    `| Split-type accuracy | ${pct(s.splitTypeAccuracy)} |`,
+    `| Exact match (D-27) | ${pct(s.exactMatchRate)} |`,
+    `| Correct abstention (ambiguous) | ${pct(s.abstentionRate)} |`,
+    `| Mean latency | ${s.meanLatencySec.toFixed(2)} s |`,
+    "",
+    "| Sentence | Amount | Payer | Participants | Split type | Exact | Abstained | Predicted (amount · payer · participants · split) |",
+    "|---|---|---|---|---|---|---|---|",
+    ...results.perSentence.map((r) => {
+      const d = details[r.id];
+      const p = d.predicted as Record<string, unknown> | undefined;
+      const pred = p ? `${show(p.amount)} · ${show(p.payer)} · ${show(p.participants)} · ${show(p.splitType)}${p.splitValues ? ` ${show(p.splitValues)}` : ""}` : `no answer (${d.status} ${d.reason ?? ""})`;
+      return `| ${r.id}${r.error ? " (failed)" : ""} | ${r.amount ? "✓" : "✗"} | ${r.payer ? "✓" : "✗"} | ${r.participants ? "✓" : "✗"} | ${r.splitType ? "✓" : "✗"} | ${r.exact ? "✓" : "✗"} | ${r.abstained === null ? "—" : r.abstained ? "✓" : "✗"} | ${pred.replace(/\|/g, "\\|")} |`;
+    }),
+    "",
+    "## Run 1 (kept exactly as run; `results-run1.json`)",
+    "",
+    run1.trimEnd(),
+    "",
+  ].join("\n");
+  fs.writeFileSync(path.join(DIR, "REPORT.md"), report);
+  console.log(`run ${RUN.run}: amount ${pct(s.amountAccuracy)} · exact ${pct(s.exactMatchRate)} · abstention ${pct(s.abstentionRate)} → eval/nl/results.json, REPORT.md`);
 }
 
 main().catch((e) => {

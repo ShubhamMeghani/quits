@@ -83,6 +83,29 @@ describe("AC-49: invalid values are left blank (R63)", () => {
     const sh = resolveNl(model({ amount: 1000, payer: "me", split_type: "shares", split_values: [{ name: "me", value: 2 }, { name: "Priya", value: 1 }, { name: "Amit", value: 1 }] }), ctx);
     expect(sh.prefill.splitValues).toEqual({ aarav: "2", priya: "1", amit: "1" });
   });
+  it("P3: two names for the same person in a split leave the split blank (never added together)", () => {
+    // human-05 run 1: the model listed both "me" and "Aarav", and the shares were summed to 3.
+    const r = resolveNl(
+      model({
+        amount: 140,
+        payer: null,
+        split_type: "shares",
+        split_values: [
+          { name: "me", value: 2 },
+          { name: "Priya", value: 2 },
+          { name: "Amit", value: 1 },
+          { name: "Aarav", value: 1 },
+        ],
+      }),
+      ctx,
+    );
+    expect(r.prefill.splitValues).toBeNull();
+    expect(r.flags).toContainEqual({ field: "split", reason: "duplicate", value: "Aarav" });
+    expect(r.flags).toContainEqual({ field: "split", reason: "invalid" });
+    const exact = resolveNl(model({ amount: 600, payer: "me", split_type: "exact", split_values: [{ name: "Priya", value: 300 }, { name: "PRIYA", value: 300 }] }), ctx);
+    expect(exact.prefill.splitValues).toBeNull();
+  });
+
   it("blanks a split that names an unknown participant", () => {
     const r = resolveNl(model({ amount: 900, payer: "me", split_type: "shares", split_values: [{ name: "me", value: 1 }, { name: "Karan", value: 2 }] }), ctx);
     expect(r.prefill.splitValues).toBeNull();

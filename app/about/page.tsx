@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import results from "@/eval/results.json";
 import nlResults from "@/eval/nl/results.json";
+import nlRun1 from "@/eval/nl/results-run1.json";
 import { Card, Notice } from "@/app/_components/ui";
 
 export const metadata: Metadata = { title: "About — Quits" };
@@ -46,6 +47,7 @@ type NlResults =
 /** R66: the committed type-to-add eval results, next to the receipt eval (no live call). */
 function NlEvalSection() {
   const r = nlResults as unknown as NlResults;
+  const run1 = nlRun1 as unknown as Extract<NlResults, { status: "ok" }>;
   return (
     <section className="flex flex-col gap-2" aria-labelledby="nl-eval-h">
       <h2 id="nl-eval-h" className="text-xl font-bold">
@@ -78,8 +80,37 @@ function NlEvalSection() {
               </Card>
             ))}
           </div>
+          <p className="text-sm">
+            Run 2 calls the app exactly as people use it and includes one bug fix found by run 1, so it is not blind for that fix.{" "}
+            <a href="#nl-run1" className="font-semibold text-brand underline">
+              Run 1 numbers
+            </a>
+          </p>
         </>
       )}
+      <details id="nl-run1" className="rounded-2xl border border-border bg-card p-3 text-sm">
+        <summary className="min-h-11 cursor-pointer content-center font-semibold">Run 1 (first run, kept as it was)</summary>
+        <ul className="mt-2 grid grid-cols-2 gap-1 sm:grid-cols-3">
+          {(
+            [
+              ["Amount", run1.amountAccuracy],
+              ["Payer", run1.payerAccuracy],
+              ["Who shares", run1.participantsAccuracy],
+              ["Split type", run1.splitTypeAccuracy],
+              ["Exact match", run1.exactMatchRate],
+              ["Correctly left blank", run1.abstentionRate],
+            ] as const
+          ).map(([k, v]) => (
+            <li key={k}>
+              {k}: <span className="font-semibold">{pct(v)}</span>
+            </li>
+          ))}
+        </ul>
+        <p className="mt-2 text-muted">
+          {run1.n} sentences, {run1.runAt.slice(0, 10)}. Four sentences got no answer (two timeouts, two API errors) because that run called Gemini without the app&apos;s
+          retry.
+        </p>
+      </details>
       <p className="text-sm text-muted">
         Method: about 30 English and Hinglish sentences with hand-checked answers, about 5 of them deliberately unclear (for example two people with the same name). A
         field counts as correct only if it matches exactly. “Exact match” needs the amount, the payer and the set of people right, and the split must give everyone the same amount (an equal split and 1:1 shares count as the same). “Correctly left blank”

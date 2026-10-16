@@ -130,7 +130,7 @@ export function matchName(raw: string, ctx: NlContext): NameMatch {
 // ---------- Resolution and validation (R63) ----------
 
 export type NlField = "description" | "amount" | "currency" | "payer" | "participants" | "split" | "category" | "date";
-export type NlFlag = { field: NlField; reason: "missing" | "unknown" | "ambiguous" | "invalid" | "no-me"; value?: string };
+export type NlFlag = { field: NlField; reason: "missing" | "unknown" | "ambiguous" | "invalid" | "no-me" | "duplicate"; value?: string };
 export type NlSplitType = "equal" | "exact" | "percent" | "shares";
 
 export type NlPrefill = {
@@ -216,7 +216,14 @@ export function resolveNl(model: NlModel, ctx: NlContext): NlResult {
         if (m.kind !== "all") flags.push({ field: "participants", reason: m.kind, value: v.name });
         continue;
       }
-      values.set(m.id, (values.get(m.id) ?? 0) + v.value);
+      // P3 (found by the NL eval, human-05): two names for the same person ("me" and "Aarav")
+      // are never added together; the split is left blank for the user to fill in.
+      if (values.has(m.id)) {
+        bad = true;
+        flags.push({ field: "split", reason: "duplicate", value: v.name });
+        continue;
+      }
+      values.set(m.id, v.value);
     }
     if (values.size === 0) bad = true;
     let input: SplitInput | null = null;

@@ -108,3 +108,4 @@ As a result, settle-up is QR-first (SPEC v0.5, D-18). The link is kept only as a
 - **Resetting the demo** re-creates its members, so each device picks its name again.
 - **Receipt reading** depends on Gemini's free tier: there is a daily scan limit, and the photo is sent to Google but not stored by Quits.
 - **The UPI deep link** is blocked by major UPI apps when opened from a website; use the QR code.
+- **Type-to-add with no payer named:** when a sentence doesn't say who paid (e.g. "paid for the movie", eval sentence human-06), the model may assume the speaker paid instead of leaving the payer blank. The prompt was deliberately not tuned for this, to keep the eval honest; always check "Paid by" before saving.
