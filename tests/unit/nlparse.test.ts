@@ -43,7 +43,8 @@ describe("AC-47: name matching (R62)", () => {
     expect(r.prefill.participantIds).toEqual(["aarav"]);
     expect(ctx.members).toHaveLength(5);
   });
-  it("expands everyone / sab to all members", () => {
+  it("expands everyone / all / sab / sabhi to all members (D-23)", () => {
+    for (const w of ["Everyone", "everybody", "ALL", "all of us", "sab", "Sabhi", "sab log", "hum sab"]) expect(matchName(w, ctx)).toEqual({ kind: "all" });
     const r = resolveNl(model({ amount: 450, payer: "maine", participants: ["sab"] }), ctx);
     expect(r.prefill.participantIds).toEqual(["aarav", "priya", "rk", "rs", "amit"]);
     expect(r.prefill.payerId).toBe("aarav");
@@ -51,8 +52,8 @@ describe("AC-47: name matching (R62)", () => {
 });
 
 describe("AC-48: 'me' words mean the current member (R62)", () => {
-  it("resolves me / I / maine / mujhe / mera in any case", () => {
-    for (const w of ["me", "I", "Maine", "MUJHE", "mera"]) expect(matchName(w, ctx)).toEqual({ kind: "member", id: "aarav" });
+  it("resolves me / I / main / maine / mujhe / mera in any case (D-24)", () => {
+    for (const w of ["me", "I", "Main", "MAIN", "Maine", "MUJHE", "mera"]) expect(matchName(w, ctx)).toEqual({ kind: "member", id: "aarav" });
   });
   it("is blank and flagged with no current member", () => {
     expect(matchName("me", { ...ctx, meId: null })).toEqual({ kind: "no-me", raw: "me" });

@@ -223,7 +223,7 @@ export function ExpenseForm({ baseCurrency, defaultSplit, today, initial }: Prop
         </Notice>
       )}
       <Field label="Description" htmlFor="desc" error={fieldErrors.description}>
-        <input id="desc" className={inputClass} value={description} onChange={(e) => setDescription(e.target.value)} maxLength={100} placeholder="e.g. Swiggy dinner" autoFocus={!initial} />
+        <input id="desc" className={inputClass} value={description} onChange={(e) => setDescription(e.target.value)} maxLength={100} placeholder="e.g. Swiggy dinner" />
       </Field>
 
       <div className="grid grid-cols-[minmax(0,1fr)_7rem] gap-3">

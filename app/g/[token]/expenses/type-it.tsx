@@ -76,6 +76,8 @@ export function TypeIt({ token, me, onFill }: { token: string; me: string | null
         value={text}
         onChange={(e) => setText(e.target.value)}
         placeholder='e.g. "Rahul paid 600 for pizza, split with Amit and me"'
+        // D-25: the cursor starts here on a new expense.
+        autoFocus
       />
       <div className="flex items-center justify-between gap-3">
         <p className="min-w-0 text-xs text-muted">

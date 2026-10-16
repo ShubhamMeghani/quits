@@ -10,9 +10,9 @@ import { addDays } from "./recurring";
 export const NL_MAX_CHARS = 300;
 const MAX_MAJOR = 10_000_000;
 
-/** Words that mean the current member (R62). */
-export const ME_WORDS: ReadonlySet<string> = new Set(["me", "i", "maine", "mujhe", "mera"]);
-/** Words that mean every active member ("sab mein" = among everyone). */
+/** Words that mean the current member (R62, D-24: matched here, not left to Gemini). */
+export const ME_WORDS: ReadonlySet<string> = new Set(["me", "i", "main", "maine", "mujhe", "mera"]);
+/** Words that mean every active member (D-23; "sab mein" = among everyone). */
 export const ALL_WORDS: ReadonlySet<string> = new Set(["everyone", "everybody", "all", "all of us", "sab", "sabhi", "sab log", "hum sab"]);
 
 // ---------- Model contract (SPEC §4.3) ----------

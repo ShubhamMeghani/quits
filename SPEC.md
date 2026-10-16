@@ -4,7 +4,7 @@
 
 | | |
 |---|---|
-| Version | v0.7 |
+| Version | v0.8 |
 | Date | 2026-10-16 |
 | Status | Ready for build. All open questions are decided (§10.1). Build order is in `PLAN.md`. |
 | Course | Applied Data Science & AI, IISc |
@@ -208,7 +208,9 @@ upi://pay?pa={vpa}&pn={name}&am={rupees, 2 decimals}&cu=INR&tn={note}
 - **Post-processing** (`lib/nlparse.ts`, deterministic) maps names to members and validates everything (R62, R63). The model never chooses member ids.
 
 **WhatsApp messages (v0.7, output)**
-- Built by `lib/share.ts`. Amounts use the "₹" sign with `en-IN` grouping, matching the rest of the app (D-22): `₹1,200` for whole rupees, `₹1,200.50` otherwise, `₹1,20,000` for larger amounts.
+- Built by `lib/share.ts`.
+  - **INR groups:** amounts use the "₹" sign with `en-IN` grouping, matching the rest of the app (D-22): `₹1,200` for whole rupees, `₹1,200.50` otherwise, `₹1,20,000` for larger amounts.
+  - **Other base currencies:** amounts use that currency's standard app format, e.g. `$12.50` (D-26). The `{amount}` placeholders below are then replaced by that text instead of `₹…`.
 - **Summary:**
   ```
   Quits: {group name}
@@ -477,9 +479,12 @@ Requirement IDs are stable. R59 and R60 were added in v0.5 and sit in their topi
   - The route calls Gemini with `responseJsonSchema` (§4.3), sending the text, the active members' first names, the base currency and today's IST date.
   - It returns description, amount, currency, payer, participants, split type and values, category and date.
   - Voice input works through the phone keyboard's mic; Quits has no speech code.
+  - When the Add expense screen opens for a new expense, the cursor starts in the "Type it" box (D-25).
+  - On a transient model error, the route retries the Gemini call **once**, inside the same 15 s limit (R64). There is no retry after a timeout or after invalid output.
 - **R62 [Must]** THE SYSTEM SHALL map names deterministically in the pure module `lib/nlparse.ts`:
   - A name matches a member when it equals the member's first name or full name, ignoring case and surrounding spaces.
-  - "me", "I", "maine", "mujhe" and "mera" (any case) mean the current member.
+  - "me", "I", "main", "maine", "mujhe" and "mera" (any case) mean the current member. Matching these words is done in code, not left to Gemini (D-24).
+  - "everyone", "everybody", "all", "all of us", "sab", "sabhi", "sab log" and "hum sab" (any case) mean all active members (D-23).
   - IF a name matches no member, or more than one member, THEN THE SYSTEM SHALL leave that field blank and highlight it. It SHALL never create a member.
 - **R63 [Must]** THE SYSTEM SHALL validate the parsed values in `lib/nlparse.ts`, using `lib/splits.ts` for the split, and leave every invalid value blank:
   - **Amount:** must be > 0 and ≤ the R8 maximum.
@@ -500,7 +505,7 @@ Requirement IDs are stable. R59 and R60 were added in v0.5 and sit in their topi
   - It uses the Web Share API when available, otherwise a `wa.me/?text=` link.
   - On desktop it also offers "Copy".
 - **R69 [Should]** WHEN a user taps "Remind" on a suggested payment, THE SYSTEM SHALL open WhatsApp (`wa.me/?text=`) with the polite reminder (§4.3) prefilled. The user picks the contact in WhatsApp. THE SYSTEM SHALL NOT store phone numbers.
-- **R70 [Should]** THE SYSTEM SHALL build all share and reminder text in the pure module `lib/share.ts`, with Indian number grouping (`₹1,20,000`) and URL encoding for `wa.me`.
+- **R70 [Should]** THE SYSTEM SHALL build all share and reminder text in the pure module `lib/share.ts`, with Indian number grouping (`₹1,20,000`) for INR groups, the currency's standard format for other groups (D-26), and URL encoding for `wa.me`.
 
 ## 6. Acceptance criteria
 
@@ -684,7 +689,7 @@ Unless marked *Should*, every AC is Must. Amounts are in ₹; the tests use pais
   - "Rahul" → blank and flagged ambiguous (two Rahuls). "Rahul Singh" → Rahul Singh.
   - "Karan" → blank and flagged unknown.
   - No member is ever added.
-- **AC-48 [Unit] (R62):** "me", "I", "Maine", "MUJHE" and "mera" → the current member. With no current member they → blank and flagged.
+- **AC-48 [Unit] (R62):** "me", "I", "Main", "Maine", "MUJHE" and "mera" → the current member. With no current member they → blank and flagged. "sab" and "Everyone" → all active members.
 - **AC-49 [Unit] (R63):**
   - Exact values 300 + 200 for a total of 600 → split values blank. Percentages 50 + 40 → blank. Valid shares 2:1:1 → kept.
   - Amount 0 or negative → blank.
@@ -707,7 +712,8 @@ Unless marked *Should*, every AC is Must. Amounts are in ₹; the tests use pais
 - **AC-54 [Unit, *Should*] (R68–R70):** `lib/share.ts` returns exact strings:
   - the summary for two payments, and the settled-up summary;
   - a reminder for ₹1,20,000 and one for ₹1,200.50;
-  - a `wa.me` URL whose text is `encodeURIComponent` of the message (newline → `%0A`, space → `%20`, "₹" → `%E2%82%B9`).
+  - a `wa.me` URL whose text is `encodeURIComponent` of the message (newline → `%0A`, space → `%20`, "₹" → `%E2%82%B9`);
+  - a USD group's amount as `$12.50` (D-26).
 - **AC-55 [Phone + Desktop, *Should*] (R68, R69):**
   - On a phone, "Remind" opens WhatsApp with the reminder prefilled and a contact picker, and "Share summary" opens the share sheet with the summary.
   - On desktop, "Copy" puts the summary on the clipboard.
@@ -795,6 +801,10 @@ Unless marked *Should*, every AC is Must. Amounts are in ₹; the tests use pais
 | D-19 | Build (2026-10-17) | **Itemized expenses cannot be edited after finalizing.** To correct one, delete it (soft delete; Restore is possible) and scan or enter the receipt again. The edit form refuses itemized expenses, and the expense detail offers only Delete. Before finalizing, every value stays editable in the draft (R33). |
 | D-20 | Build (2026-10-17) | **R46 is partially met.** Recurring rules can be paused, resumed or stopped (deleted), and the change applies to future occurrences only. Rules cannot be edited; to change one, stop it and add a new repeating expense. |
 | D-21 | OQ-18 (2026-10-17) | In type-to-add, "X paid 600, split with Amit and me" **includes the payer X** among the participants, unless the text excludes them ("only for Amit and me"). The NL ground truth follows this. |
+| D-23 | Build (2026-10-17) | In type-to-add, "everyone", "everybody", "all", "all of us", "sab", "sabhi", "sab log" and "hum sab" mean **all active members**, matched in code (R62). |
+| D-24 | Build (2026-10-17) | "main" (Hindi for "I") joins the words that mean the current member: me, I, main, maine, mujhe and mera. They are matched in `lib/nlparse.ts`, not left to Gemini (R62, AC-48). |
+| D-25 | Build (2026-10-17) | On the Add expense screen for a new expense, the cursor starts in the **"Type it"** box, not Description (R61). |
+| D-26 | Build (2026-10-17) | Share and reminder messages in **non-INR groups** use that currency's standard format (e.g. `$12.50`). The ₹ wording of D-22 applies to INR groups (R70, AC-54). |
 | D-22 | OQ-19 (2026-10-17) | Share and reminder messages use **"₹"** (e.g. `₹1,20,000`), not "Rs", to match the rest of the app. The exact strings in §4.3 are updated. |
 | D-17 | OQ-17 | When Frankfurter v2 has no rate for the exact date, use the most recent rate on or before `expense_date`, and store and show its `fx_rate_date` (R16). |
 
@@ -813,3 +823,4 @@ None open. New questions found during the build are added here with a proposed d
 | v0.5 | 2026-10-16 | **Settle-up is QR-first (D-18),** after P1-8 showed `upi://` P2P links blocked in GPay, PhonePe and Paytm from a website, while QR scans (laptop screen, gallery screenshot) worked with the payee and amount filled in.<br>**R24 (Must):** the QR is visible at every width, plus "Save QR image", "Show full screen", and "Copy UPI ID" with the amount in large text.<br>**R25:** settlement is never automatic, only on "Mark as paid"; the "Did the payment go through?" prompt is removed.<br>**New R59 (Should):** best-effort "Pay via UPI" link labelled "May be blocked by some UPI apps".<br>**New R60 (Should):** set a UPI ID from a screenshot of your own UPI QR, decoded in the browser; only `pa`/`pn` are saved; `members.upi_name` added; `pn` uses it.<br>**ACs:** AC-14 is now the phone QR path (save + gallery scan, full screen); the link format stays Unit (AC-13). AC-15 adds the large amount. New AC-46 (Should) covers R59/R60.<br>**Elsewhere:** §1 edge, S4, §4.1, §4.3, K1, K11 and D-14 updated.<br>**Counts:** 60 requirements (43 Must, 17 Should); 46 ACs (39 Must, 7 Should), one over the earlier ≤ 45 target because of the new Should AC. |
 | v0.6 | 2026-10-17 | **Honesty decisions recorded after the build.** D-19: itemized expenses can't be edited after finalizing; delete and rescan instead. D-20: R46 is partially met (pause, resume and stop; no edit), and R46 is annotated accordingly. Counts unchanged: 60 requirements (43 Must, 17 Should; R46 partially met), 46 ACs. |
 | v0.7 | 2026-10-17 | **Two features added; specification only, no code yet.**<br>**Feature A, type-to-add (Must):** R61 "Type it" box and parse route (Gemini `responseJsonSchema`); R62 deterministic name matching and "me" words in `lib/nlparse.ts`, never creating members; R63 validation, leaving invalid values blank; R64 never saves, only fills the form; R65 per-group NL limit (`NL_LIMIT_PER_GROUP`) plus the shared daily AI limit; R66 NL eval (`eval/nl/`, about 30 sentences, field accuracy, exact match, abstention) shown on `/about`. R67 (Should): targets of amount ≥ 95% and exact match ≥ 80%.<br>**Feature B, WhatsApp share and nudge (Should):** R68 Share summary (Web Share, `wa.me`, Copy), R69 Remind (no stored phone numbers), R70 `lib/share.ts` with exact strings.<br>**New ACs:** AC-47 to AC-55.<br>**Elsewhere:** §1, §2 (S8, S9), §3 env, §4.2, §4.3 (NL schema, message formats), deliverables, non-goals, K14, K15, K11 cut order, and OQ-18/OQ-19 with defaults.<br>**Decisions (same day):** OQ-18 → D-21 (the payer is included unless the text excludes them); OQ-19 → D-22 ("₹" in share messages, not "Rs"; §4.3, S9, R70 and AC-54 updated, with AC-54 also checking that "₹" encodes as `%E2%82%B9`).<br>**Counts:** 70 requirements (49 Must, 21 Should; R46 partially met); 55 ACs (45 Must, 10 Should). |
+| v0.8 | 2026-10-17 | **Decisions from the Phase 8 build.** D-23: everyone/all/sab/sabhi mean all active members. D-24: "main" added to the me-words, matched in code. D-25: the cursor starts in "Type it" on a new expense. D-26: non-INR groups' share messages use the currency's standard format. R61 now records the single retry on a transient Gemini error within the 15 s limit. R62, R70, §4.3, AC-48 and AC-54 updated. Counts unchanged: 70 requirements (49 Must, 21 Should), 55 ACs (45 Must, 10 Should). |
