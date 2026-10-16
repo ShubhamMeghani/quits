@@ -211,6 +211,18 @@ These are wording changes only; the code already follows them. Approving them ma
 
 ---
 
+## Build log
+
+- **2026-10-16, Phases 1–3 (unattended run):**
+  - Phase 1 AUTO tasks are done. Task 1.21 (delete `/api/lab/extract`) waits for P1-6 to pass on the phone. Until then the lab route is live on any deployment.
+  - Phase 2 is done: 78 unit tests.
+  - Phase 3 is done: migrations `…000100` to `…000400` are applied, and there are 15 DB tests.
+  - Two fix-up migrations were added rather than editing applied ones:
+    - `…000300`/`…000400`: member FKs are now `DEFERRABLE INITIALLY DEFERRED`, so deleting a whole group (demo reset, test cleanup) can cascade.
+    - The UPI-ID check no longer uses a regex `{2,256}`, which Postgres rejects (bound max 255).
+
+---
+
 ## AC status
 
 Rows P1-1 to P1-10 are the Phase 1 checks; each one de-risks the spec ACs shown in brackets. Every other row is a SPEC AC.
@@ -252,10 +264,10 @@ Rows P1-1 to P1-10 are the Phase 1 checks; each one de-risks the spec ACs shown 
 | AC-23 | Unit | 2 | Pass | tests/unit/receipt.test.ts › AC-23 (P 0.667, R 0.5, F1 0.571; Paneer Tikka match) |
 | AC-24 | Script + Deploy | 7 | Not run | |
 | AC-25 (Should) | Script | 7 | Not run | |
-| AC-26 | Unit + Deploy | 2 / 7 | Partial | unit part Pass: tests/unit/misc.test.ts › AC-26 (10,000 unique tokens); 404 part is Deploy (Phase 3 route + human) |
+| AC-26 | Unit + Deploy | 2 / 7 | Partial | unit Pass (tests/unit/misc.test.ts › AC-26); local Pass: `next start` → /g/doesnotexist and /g/{random 22} both 404 "Group not found"; valid token 200. Prod check pending (human) |
 | AC-27 | Desktop + Phone | 4 | Not run | |
 | AC-28 | Deploy | 4 | Not run | |
-| AC-29 | Deploy | 4 | Not run | |
+| AC-29 | Deploy | 4 | Partial | server Pass: tests/db/ledger.test.ts › AC-29 ("Amount ₹500.00 → ₹600.00", actor Priya; delete removes from balances/list); tests/unit/activity.test.ts › AC-29. UI part is Phase 4 |
 | AC-30 (Should) | Deploy | 4 | Not run | |
 | AC-31 | Deploy | 6 | Not run | |
 | AC-32 | Unit | 2 | Pass | tests/unit/misc.test.ts › AC-32 (BOM + header, formula guard, RFC 4180, deleted rows absent) |
@@ -267,8 +279,8 @@ Rows P1-1 to P1-10 are the Phase 1 checks; each one de-risks the spec ACs shown 
 | AC-38 | Deploy | 6 | Not run | |
 | AC-39 | Phone + Desktop | 7 | Not run | |
 | AC-40 (Should) | Phone | 7 | Not run | |
-| AC-41 | Script | 3 / 7 | Not run | |
-| AC-42 | Deploy + Script | 7 | Not run | |
-| AC-43 | Script | 3 / 7 | Not run | |
+| AC-41 | Script | 3 / 7 | Partial | SQL Pass: tests/db/security.test.ts › AC-41 (0 tables without RLS; `set role anon` → permission denied on all 14 tables; anon cannot run RPCs). REST with publishable key pending (human, 7.10) |
+| AC-42 | Deploy + Script | 7 | Partial | script part Pass: `.next/static` 0 matches; `git log -p --all` 0 key-like matches; `.env.local` ignored by `.gitignore:13`. Browser network check pending (human, 7.10) |
+| AC-43 | Script | 3 / 7 | Partial | server Pass: tests/db/security.test.ts › AC-43 (cross-group member → 404, no row; delete Y's expense via X → 404, unchanged; RPCs re-check). Local `curl -I` shows Referrer-Policy: no-referrer + X-Robots-Tag: noindex, nofollow. Prod curl pending (human) |
 | AC-44 | Script | 1 / 7 | Not run | |
 | AC-45 | Script | 7 | Not run | |

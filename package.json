@@ -10,7 +10,7 @@
     "typecheck": "next typegen && tsc --noEmit",
     "test": "vitest run",
     "test:db": "node --env-file-if-exists=.env.local node_modules/vitest/vitest.mjs run --config vitest.db.config.mts",
-    "test:db:clean": "node --env-file-if-exists=.env.local --import tsx scripts/test-db-clean.ts",
+    "test:db:clean": "node --env-file-if-exists=.env.local --import tsx scripts/test-db-clean.mts",
     "db:push": "node --env-file-if-exists=.env.local scripts/db-push.mjs",
     "eval": "node --env-file-if-exists=.env.local --import tsx eval/run.ts",
     "icons": "node scripts/gen-icons.mjs"

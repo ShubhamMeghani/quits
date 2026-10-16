@@ -255,3 +255,20 @@ export function computeBalances(
 export function balancesSumToZero(balances: Readonly<Record<MemberId, Minor>>): boolean {
   return sum(Object.values(balances)) === 0;
 }
+
+/** Fixed category list (R8). */
+export const CATEGORIES = [
+  "Food & Drinks",
+  "Groceries",
+  "Rent",
+  "Utilities",
+  "Travel",
+  "Transport",
+  "Entertainment",
+  "Shopping",
+  "Health",
+  "Education",
+  "Other",
+] as const;
+
+export type Category = (typeof CATEGORIES)[number];
