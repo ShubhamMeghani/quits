@@ -32,11 +32,14 @@ export async function updateMember(token: unknown, memberId: unknown, input: Mem
   const data = parseInput(memberInputSchema, input);
   const actorMemberId = actorId(members, actor);
   const upiId = data.upiId ? data.upiId : null;
+  // Keep the QR-decoded name only while the UPI ID is unchanged, unless a new one is supplied (R60).
+  const upiName = data.upiName !== undefined ? data.upiName || null : upiId === current.upiId ? current.upiName : null;
   await rpc("update_member", {
     p_group_id: group.id,
     p_member_id: id,
     p_name: data.name,
     p_upi_id: upiId,
+    p_upi_name: upiName,
     p_archived: current.archived,
     p_activity: {
       actor_member_id: actorMemberId,
@@ -62,6 +65,7 @@ export async function archiveMember(token: unknown, memberId: unknown, actor?: u
     p_member_id: id,
     p_name: current.name,
     p_upi_id: current.upiId,
+    p_upi_name: current.upiName,
     p_archived: true,
     p_activity: { actor_member_id: actorMemberId, action: "member.archived", summary: summaries.memberArchived(current.name) },
   });

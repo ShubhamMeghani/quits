@@ -1,6 +1,6 @@
 // Splits, payers, expense amounts and balances (R9–R11, R13, R14, R17).
-import { allocate, assertMinor, sum, type Minor } from "./money";
-import { convertParts } from "./currency";
+import { allocate, assertMinor, formatMoney, minorToMajorString, sum, type Minor } from "./money";
+import { convertParts, exponent } from "./currency";
 
 export type MemberId = string;
 
@@ -272,3 +272,30 @@ export const CATEGORIES = [
 ] as const;
 
 export type Category = (typeof CATEGORIES)[number];
+
+/** Human-readable split errors (R9, R10): show the difference. */
+export function splitErrorMessage(error: SplitError, currency: string): string {
+  const fmt = (m: number) => formatMoney(Math.abs(m), currency, exponent(currency));
+  switch (error.code) {
+    case "EXACT_MISMATCH":
+      return error.diff > 0 ? `${fmt(error.diff)} left to assign` : `${fmt(error.diff)} over the total`;
+    case "PERCENT_MISMATCH": {
+      const pct = minorToMajorString(Math.abs(error.diffBasisPoints), 2);
+      return error.diffBasisPoints > 0 ? `${pct}% left to assign` : `${pct}% over 100%`;
+    }
+    case "PAYERS_MISMATCH":
+      return error.diff > 0 ? `Payers are ${fmt(error.diff)} short of the total` : `Payers are ${fmt(error.diff)} over the total`;
+    case "NO_PARTICIPANTS":
+      return "Choose at least one person to split with";
+    case "SHARES_ZERO":
+      return "Give at least one person a share";
+    case "NO_PAYER":
+      return "Choose who paid";
+    case "INVALID_TOTAL":
+      return "Amount must be more than 0";
+    case "UNKNOWN_MEMBER":
+      return "Unknown member";
+    case "INVALID_VALUE":
+      return "Check the split values";
+  }
+}

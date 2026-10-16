@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildUpiLink, isValidUpiId, upiNote } from "@/lib/upi";
+import { buildUpiLink, isValidUpiId, parseUpiUri, upiNote } from "@/lib/upi";
 import { buildCsv, csvFilename, CSV_BASE_COLUMNS } from "@/lib/csv";
 import { occurrenceAt, occurrencesDue, type RecurringRule } from "@/lib/recurring";
 import { buildDemoSeed, DEMO_KEYS, DEMO_TARGET_BALANCES } from "@/lib/demo-seed";
@@ -20,6 +20,18 @@ describe("UPI (R6, R24)", () => {
   });
   it("truncates the note to 50 characters", () => {
     expect(upiNote("x".repeat(80))).toHaveLength(50);
+  });
+  it("AC-46: parses a UPI QR payload into the UPI ID and payee name", () => {
+    expect(parseUpiUri("upi://pay?pa=priya%40okicici&pn=Priya%20S&mc=0000")).toEqual({ pa: "priya@okicici", pn: "Priya S" });
+    expect(parseUpiUri("upi://pay?pa=rohan.k@oksbi&pn=ROHAN+KUMAR&aid=uGICAgID")).toEqual({ pa: "rohan.k@oksbi", pn: "ROHAN KUMAR" });
+    expect(parseUpiUri("UPI://pay?pa=9876543210@ybl")).toEqual({ pa: "9876543210@ybl", pn: null });
+    expect(parseUpiUri("https://example.com/?pa=x@ok")).toBeNull();
+    expect(parseUpiUri("upi://pay?pa=notavpa&pn=X")).toBeNull();
+    expect(parseUpiUri("hello")).toBeNull();
+  });
+  it("AC-46: the parsed values round-trip through buildUpiLink", () => {
+    const link = buildUpiLink({ pa: "priya@okicici", pn: "Priya S", amountMinor: 100, groupName: "G" });
+    expect(parseUpiUri(link)).toEqual({ pa: "priya@okicici", pn: "Priya S" });
   });
 });
 

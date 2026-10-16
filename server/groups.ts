@@ -32,16 +32,17 @@ export function actorId(members: readonly MemberRow[], actor: unknown): string |
 }
 
 /** R1: creates a group with a fresh 128-bit share token. */
-export async function createGroup(input: CreateGroupInput): Promise<{ token: string }> {
+export async function createGroup(input: CreateGroupInput): Promise<{ token: string; firstMemberId: string }> {
   const data = parseInput(createGroupSchema, input);
   const token = generateToken();
-  await rpc("create_group", {
+  const groupId = await rpc<string>("create_group", {
     p_token: token,
     p_name: data.name,
     p_base_currency: data.baseCurrency,
     p_member_names: data.memberNames,
   });
-  return { token };
+  const members = await loadMembers(groupId);
+  return { token, firstMemberId: members[0].id };
 }
 
 export type GroupView = {
@@ -107,6 +108,7 @@ export type ActivityEntry = {
   entityType: string;
   entityId: string | null;
   createdAt: string;
+  restorable: boolean;
 };
 
 /** R42: newest first, 50 per page. */
@@ -122,6 +124,14 @@ export async function listActivity(token: unknown, offset = 0, limit = 50): Prom
     .order("id", { ascending: true })
     .range(offset, offset + limit);
   if (error) throw fromDbError(error, "listActivity");
+  // R12: a deletion entry offers Restore only while its expense/settlement is still deleted.
+  const [delExp, delSet] = await Promise.all([
+    db().from("expenses").select("id").eq("group_id", group.id).not("deleted_at", "is", null),
+    db().from("settlements").select("id").eq("group_id", group.id).not("deleted_at", "is", null),
+  ]);
+  if (delExp.error) throw fromDbError(delExp.error, "listActivity.deleted");
+  if (delSet.error) throw fromDbError(delSet.error, "listActivity.deleted");
+  const deleted = new Set([...(delExp.data ?? []), ...(delSet.data ?? [])].map((r) => r.id as string));
   const rows = (data ?? []).map((a) => ({
     id: a.id,
     action: a.action,
@@ -130,6 +140,7 @@ export async function listActivity(token: unknown, offset = 0, limit = 50): Prom
     entityType: a.entity_type,
     entityId: a.entity_id,
     createdAt: a.created_at,
+    restorable: a.action.endsWith(".deleted") && !!a.entity_id && deleted.has(a.entity_id),
   }));
   return { items: rows.slice(0, limit), hasMore: rows.length > limit };
 }

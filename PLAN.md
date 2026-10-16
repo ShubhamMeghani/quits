@@ -227,6 +227,10 @@ No GitHub secrets are needed: CI runs only lint and unit tests, which make no ne
   - All checks P1-1 to P1-10 pass, at production https://quits-go.vercel.app.
   - Task 1.21 was done in `8460e83`; the compression helper stays in `app/_lib/compress.ts` for Phase 5.
   - P1-8 led to SPEC v0.5: QR-first settle-up (D-18).
+- **2026-10-16/17, Phase 4 (unattended run):**
+  - **UI built:** group shell (identity gate, bottom nav), expenses, add/edit form, Settle (QR-first), activity, group hub, share, members (incl. R60 QR import), settings, landing, offline page.
+  - **Checking without the browser extension:** the UI was checked with scripted headless Chrome over the DevTools protocol (local `next start`, real Supabase): a 75-step core-loop flow, an R60 upload flow with a network check, and screenshots plus a tap-target/overflow audit at 360 px and 1440 px.
+  - **Migration:** `…000500` adds `members.upi_name`.
 
 ---
 
@@ -259,9 +263,9 @@ Rows P1-1 to P1-10 are the Phase 1 checks; each one de-risks the spec ACs shown 
 | AC-11 | Unit | 2 | Pass | tests/unit/simplify.test.ts › AC-11 (edge cases; 300 random n ≤ 8 = brute force) |
 | AC-12 | Unit | 2 | Pass | tests/unit/simplify.test.ts › AC-12 (18 balances well under 2 s; 19 → greedy/null; deterministic) |
 | AC-13 | Unit | 2 | Pass | tests/unit/misc.test.ts › AC-13 (exact link string; UPI ID accept/reject list) |
-| AC-14 | Phone | 4 | Not run | |
-| AC-15 | Desktop + Phone | 4 | Not run | |
-| AC-16 | Deploy | 4 | Not run | |
+| AC-14 | Phone | 4 | Pending (human) | local: Settle renders a 220 px UPI QR per suggestion with "Save QR image" (PNG with payee + amount) and "Show full screen"; phone scan from gallery / second phone pending (4.12) |
+| AC-15 | Desktop + Phone | 4 | Partial | local headless Chrome 1440×900: QR visible on Settle with no toggle; "Copy UPI ID" next to the amount in large text. Phone scan of the desktop QR pending (4.12) |
+| AC-16 | Deploy | 4 | Partial | local headless Chrome flow (360 px): "Mark as paid" → Confirm records "Priya paid you", balances update, activity "Recorded payment: Priya paid Aarav ₹200.00"; payee without UPI ID shows "Add a UPI ID for Aarav". Non-INR hiding is code-only (R25 branch); prod check pending (4.12) |
 | AC-17 | Unit | 2 | Pass | tests/unit/receipt.test.ts › AC-17 (diff 0 / +150; 100 not flagged, 101 flagged) |
 | AC-18 | Unit | 2 | Pass | tests/unit/receipt.test.ts › AC-18 (₹840 and ₹845 cases, shared ₹100 item, negative remainder) |
 | AC-19 | Unit | 2 | Pass | tests/unit/receipt.test.ts › AC-19 (12.5 → 1250; missing items / negative rejected; timeout → EXTRACT_FAILED) |
@@ -271,11 +275,11 @@ Rows P1-1 to P1-10 are the Phase 1 checks; each one de-risks the spec ACs shown 
 | AC-23 | Unit | 2 | Pass | tests/unit/receipt.test.ts › AC-23 (P 0.667, R 0.5, F1 0.571; Paneer Tikka match) |
 | AC-24 | Script + Deploy | 7 | Not run | |
 | AC-25 (Should) | Script | 7 | Not run | |
-| AC-26 | Unit + Deploy | 2 / 7 | Partial | unit Pass (tests/unit/misc.test.ts › AC-26); local Pass: `next start` → /g/doesnotexist and /g/{random 22} both 404 "Group not found"; valid token 200. Prod check pending (human) |
-| AC-27 | Desktop + Phone | 4 | Not run | |
-| AC-28 | Deploy | 4 | Not run | |
-| AC-29 | Deploy | 4 | Partial | server Pass: tests/db/ledger.test.ts › AC-29 ("Amount ₹500.00 → ₹600.00", actor Priya; delete removes from balances/list); tests/unit/activity.test.ts › AC-29. UI part is Phase 4 |
-| AC-30 (Should) | Deploy | 4 | Not run | |
+| AC-26 | Unit + Deploy | 2 / 7 | Partial | unit Pass; local `next start`: /g/doesnotexist, /g/{random 22} and /g/{random}/settle → 404 "Group not found"; valid token 200. Prod check pending (7.10) |
+| AC-27 | Desktop + Phone | 4 | Partial | local headless Chrome flow (360 px): create group → share notice "Anyone with this link can view and edit this group."; identity remembered across navigations ("You: Aarav"); Switch person → picker → Priya; adding "priya" → "Name already used". Desktop→phone run pending (4.12) |
+| AC-28 | Deploy | 4 | Partial | local flow: default split set to shares 2:1:1 → new expense form opens with "Shares" selected and values 2,1,1. Prod check pending (4.12) |
+| AC-29 | Deploy | 4 | Partial | local flow: edit ₹500 → ₹600 logs "Aarav Edited “Snacks”: Amount ₹500.00 → ₹600.00"; delete → "No expenses yet" + activity entry; plus DB tests. Prod check pending (4.12) |
+| AC-30 (Should) | Deploy | 4 | Partial | local flow: Restore on the deletion entry → "Restored “Snacks”" and the expense is back in the list. Prod check pending (4.12) |
 | AC-31 | Deploy | 6 | Not run | |
 | AC-32 | Unit | 2 | Pass | tests/unit/misc.test.ts › AC-32 (BOM + header, formula guard, RFC 4180, deleted rows absent) |
 | AC-33 (Should) | Desktop | 6 | Not run | |
@@ -284,11 +288,11 @@ Rows P1-1 to P1-10 are the Phase 1 checks; each one de-risks the spec ACs shown 
 | AC-36 | Unit | 2 | Pass | tests/unit/misc.test.ts › AC-36 (seed balances exact; greedy 4, optimal 3) |
 | AC-37 | Desktop | 6 / 7 | Not run | |
 | AC-38 | Deploy | 6 | Not run | |
-| AC-39 | Phone + Desktop | 7 | Not run | |
+| AC-39 | Phone + Desktop | 7 | Partial | local headless Chrome 360×740, 11 screens: scrollWidth = innerWidth = 360 on all; all buttons/links/inputs ≥ 44 px (one header link fixed); 1440×900: centered ≤ 640 px column. Real-phone check pending (7.10) |
 | AC-40 (Should) | Phone | 7 | Not run | |
 | AC-41 | Script | 3 / 7 | Partial | SQL Pass: tests/db/security.test.ts › AC-41 (0 tables without RLS; `set role anon` → permission denied on all 14 tables; anon cannot run RPCs). REST with publishable key pending (human, 7.10) |
 | AC-42 | Deploy + Script | 7 | Partial | script part Pass: `.next/static` 0 matches; `git log -p --all` 0 key-like matches; `.env.local` ignored by `.gitignore:13`. Browser network check pending (human, 7.10) |
 | AC-43 | Script | 3 / 7 | Partial | server Pass: tests/db/security.test.ts › AC-43 (cross-group member → 404, no row; delete Y's expense via X → 404, unchanged; RPCs re-check). Local `curl -I` shows Referrer-Policy: no-referrer + X-Robots-Tag: noindex, nofollow. Prod curl pending (human) |
 | AC-44 | Script | 1 / 7 | Not run | |
 | AC-45 | Script | 7 | Not run | |
-| AC-46 (Should) | Unit + Phone | 4 | Not run | |
+| AC-46 (Should) | Unit + Phone | 4 | Partial | unit Pass (tests/unit/misc.test.ts › AC-46 parseUpiUri); local flow: uploading a UPI QR screenshot fills priya.sharma@okaxis + "Priya Sharma"; only network request was one 176-byte POST (no image); "Pay via UPI app" labelled "May be blocked by some UPI apps". Phone check pending (4.12) |

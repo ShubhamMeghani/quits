@@ -18,6 +18,8 @@ export type MemberRow = {
   id: string;
   name: string;
   upiId: string | null;
+  /** Payee name from the member's own UPI QR (R60); used as `pn` when set. */
+  upiName: string | null;
   displayOrder: number;
   archived: boolean;
 };
@@ -100,7 +102,7 @@ export async function requireGroup(token: unknown): Promise<GroupRow> {
 export async function loadMembers(groupId: string): Promise<MemberRow[]> {
   const { data, error } = await db()
     .from("members")
-    .select("id, name, upi_id, display_order, archived_at")
+    .select("id, name, upi_id, upi_name, display_order, archived_at")
     .eq("group_id", groupId)
     .order("display_order", { ascending: true });
   if (error) throw fromDbError(error, "loadMembers");
@@ -108,6 +110,7 @@ export async function loadMembers(groupId: string): Promise<MemberRow[]> {
     id: m.id,
     name: m.name,
     upiId: m.upi_id,
+    upiName: m.upi_name,
     displayOrder: m.display_order,
     archived: m.archived_at !== null,
   }));

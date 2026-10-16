@@ -1,7 +1,6 @@
 import "server-only";
 import { exponent } from "@/lib/currency";
-import { formatMoney, minorToMajorString } from "@/lib/money";
-import { buildExpenseAmounts, type SplitError, type SplitInput } from "@/lib/splits";
+import { buildExpenseAmounts, splitErrorMessage, type SplitInput } from "@/lib/splits";
 import { AppError, invalid, notFound } from "@/server/errors";
 import { summaries, type ExpenseSnapshot } from "@/server/activity";
 import {
@@ -32,33 +31,6 @@ function splitMemberIds(split: SplitInput): string[] {
       return Object.keys(split.shares);
     case "itemized":
       return Object.keys(split.owed);
-  }
-}
-
-/** Human-readable split errors (R9, R10): show the difference. */
-export function splitErrorMessage(error: SplitError, currency: string): string {
-  const fmt = (m: number) => formatMoney(Math.abs(m), currency, exponent(currency));
-  switch (error.code) {
-    case "EXACT_MISMATCH":
-      return error.diff > 0 ? `${fmt(error.diff)} left to assign` : `${fmt(error.diff)} over the total`;
-    case "PERCENT_MISMATCH": {
-      const pct = minorToMajorString(Math.abs(error.diffBasisPoints), 2);
-      return error.diffBasisPoints > 0 ? `${pct}% left to assign` : `${pct}% over 100%`;
-    }
-    case "PAYERS_MISMATCH":
-      return error.diff > 0 ? `Payers are ${fmt(error.diff)} short of the total` : `Payers are ${fmt(error.diff)} over the total`;
-    case "NO_PARTICIPANTS":
-      return "Choose at least one person to split with";
-    case "SHARES_ZERO":
-      return "Give at least one person a share";
-    case "NO_PAYER":
-      return "Choose who paid";
-    case "INVALID_TOTAL":
-      return "Amount must be more than 0";
-    case "UNKNOWN_MEMBER":
-      return "Unknown member";
-    case "INVALID_VALUE":
-      return "Check the split values";
   }
 }
 

@@ -5,6 +5,7 @@
   --foreground: #0f172a;
   --muted: #475569;
   --brand: #0f766e;
+  --brand-dark: #115e59;
   --brand-fg: #ffffff;
   --card: #ffffff;
   --border: #e2e8f0;
@@ -17,6 +18,7 @@
   --color-foreground: var(--foreground);
   --color-muted: var(--muted);
   --color-brand: var(--brand);
+  --color-brand-dark: var(--brand-dark);
   --color-brand-fg: var(--brand-fg);
   --color-card: var(--card);
   --color-border: var(--border);

@@ -30,3 +30,18 @@ export function buildUpiLink(params: {
   const tn = encodeURIComponent(upiNote(params.groupName));
   return `upi://pay?pa=${pa}&pn=${pn}&am=${am}&cu=INR&tn=${tn}`;
 }
+
+/**
+ * Parses a UPI QR payload (R60): `upi://pay?pa=...&pn=...`. Returns the UPI ID and payee
+ * name, or null when the text is not a UPI payment URI with a valid UPI ID.
+ */
+export function parseUpiUri(text: string): { pa: string; pn: string | null } | null {
+  const trimmed = text.trim();
+  if (!/^upi:\/\/pay\?/i.test(trimmed)) return null;
+  // URLSearchParams percent-decodes and maps '+' to a space (names in UPI QRs use both).
+  const params = new URLSearchParams(trimmed.slice(trimmed.indexOf("?") + 1));
+  const pa = (params.get("pa") ?? "").trim();
+  const pn = (params.get("pn") ?? "").replace(/\s+/g, " ").trim() || null;
+  if (!isValidUpiId(pa)) return null;
+  return { pa, pn: pn ? pn.slice(0, 100) : null };
+}

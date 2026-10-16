@@ -2,7 +2,7 @@ import "server-only";
 import { db } from "@/server/db";
 import { fromDbError, invalid, notFound } from "@/server/errors";
 import { summaries } from "@/server/activity";
-import { assertMembersBelong, loadMembers, requireGroup } from "@/server/context";
+import { assertMembersBelong, loadMembers, loadSettlements, requireGroup } from "@/server/context";
 import { actorId, rpc } from "@/server/groups";
 import { idSchema, parseInput, settlementInputSchema, type SettlementInput } from "@/server/schemas";
 
@@ -66,6 +66,13 @@ async function setDeleted(token: unknown, settlementId: unknown, deleted: boolea
       summary: deleted ? summaries.settlementDeleted(...args) : summaries.settlementRestored(...args),
     },
   });
+}
+
+/** Recent non-deleted settlements, newest first (Settle screen). */
+export async function listSettlements(token: unknown, limit = 20) {
+  const group = await requireGroup(token);
+  const all = await loadSettlements(group.id);
+  return all.slice(0, limit);
 }
 
 /** R11: soft delete a settlement. */

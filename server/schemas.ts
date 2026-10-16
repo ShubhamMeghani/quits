@@ -70,6 +70,8 @@ export const settlementInputSchema = z.object({
 export const memberInputSchema = z.object({
   name: memberNameSchema,
   upiId: z.union([upiIdSchema, z.literal("")]).nullish(),
+  /** Set only from a decoded UPI QR (R60). */
+  upiName: z.string().trim().max(100).nullish(),
 });
 
 export type CreateGroupInput = z.input<typeof createGroupSchema>;
