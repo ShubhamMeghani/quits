@@ -6,6 +6,7 @@
 - Name them `{id}.jpg`, `{id}.png` or `{id}.webp`, e.g. `r01.jpg`.
 - **Blur personal data before committing:** phone numbers, card digits, names, GSTIN if you prefer.
 - For each image, add `{id}.json` with the true values in the SPEC §4.3 schema. Amounts are in major units, exactly as printed.
+- Set `"reviewed": true` in a ground-truth file once a human has checked it against the paper bill. The eval ignores this field.
 
 ```json
 {
@@ -29,6 +30,9 @@ The rules for each field:
 - **`discount`:** a positive number.
 - **`round_off`:** negative when it reduces the bill.
 - **Missing fields:** use `0`, or `null` for `merchant`, `date` and `currency`.
+- **Modifiers** printed under an item (e.g. "Extra: 2 pcs = 150") stay inside that item's line total.
+- **Fees:** a voluntary staff contribution or a delivery app's platform fee counts as `service_charge`.
+- **Delivery apps:** `total` is the amount paid after coupons; the coupon is the `discount`.
 
 ## Run
 

@@ -1,0 +1,184 @@
+{
+  "reviewed": true,
+  "merchant": null,
+  "date": null,
+  "currency": "INR",
+  "items": [
+    {
+      "name": "Dorayaki",
+      "quantity": 2,
+      "amount": 490
+    },
+    {
+      "name": "Spicy Wings",
+      "quantity": 1,
+      "amount": 425
+    },
+    {
+      "name": "Spicy Tuna (4 Pieces)",
+      "quantity": 1,
+      "amount": 520
+    },
+    {
+      "name": "Non-Veg Sushi Platter Large-16 Pcs",
+      "quantity": 1,
+      "amount": 1645
+    },
+    {
+      "name": "Gyoza Chicken",
+      "quantity": 1,
+      "amount": 445
+    },
+    {
+      "name": "Teriyaki Chicken Bao",
+      "quantity": 1,
+      "amount": 425
+    },
+    {
+      "name": "Gyoza Veg",
+      "quantity": 1,
+      "amount": 425
+    },
+    {
+      "name": "Crystal Dumplings In Red Curry",
+      "quantity": 1,
+      "amount": 395
+    },
+    {
+      "name": "Cheese & Chilly Oil Dumplings",
+      "quantity": 2,
+      "amount": 850
+    },
+    {
+      "name": "Crispy Creamy Asparagus Maki (8 Pieces)",
+      "quantity": 1,
+      "amount": 665
+    },
+    {
+      "name": "Tempura Veggie Fiesta (8 Pieces)",
+      "quantity": 1,
+      "amount": 630
+    },
+    {
+      "name": "Korean Corn Dog",
+      "quantity": 1,
+      "amount": 245
+    },
+    {
+      "name": "Tori Karaage",
+      "quantity": 1,
+      "amount": 495
+    },
+    {
+      "name": "Virgin Pina Colada",
+      "quantity": 2,
+      "amount": 590
+    },
+    {
+      "name": "Chocolate Shake",
+      "quantity": 1,
+      "amount": 325
+    },
+    {
+      "name": "Pinklady",
+      "quantity": 2,
+      "amount": 550
+    },
+    {
+      "name": "Crimson Cooler",
+      "quantity": 1,
+      "amount": 275
+    },
+    {
+      "name": "Chiang Mai Chill",
+      "quantity": 1,
+      "amount": 295
+    },
+    {
+      "name": "God Father",
+      "quantity": 1,
+      "amount": 295
+    },
+    {
+      "name": "Litchi Sparking",
+      "quantity": 2,
+      "amount": 590
+    },
+    {
+      "name": "Vegan Ramen",
+      "quantity": 2,
+      "amount": 1250
+    },
+    {
+      "name": "Rakkasei Kara Miso (Veg)",
+      "quantity": 1,
+      "amount": 545
+    },
+    {
+      "name": "Naruto Ramen (Veg)",
+      "quantity": 1,
+      "amount": 575
+    },
+    {
+      "name": "Spicy Tonkatsu (Veg)",
+      "quantity": 1,
+      "amount": 595
+    },
+    {
+      "name": "Korean Ramen (Veg)",
+      "quantity": 1,
+      "amount": 545
+    },
+    {
+      "name": "Tantanmen Ramen (Veg)",
+      "quantity": 1,
+      "amount": 595
+    },
+    {
+      "name": "Rakkasei Kara Miso (Chicken)",
+      "quantity": 1,
+      "amount": 595
+    },
+    {
+      "name": "Tantanmen Ramen (Chicken)",
+      "quantity": 1,
+      "amount": 645
+    },
+    {
+      "name": "Fire Ramyun Chicken",
+      "quantity": 1,
+      "amount": 645
+    },
+    {
+      "name": "Dorayaki - Adzuki Beans Paste",
+      "quantity": 1,
+      "amount": 245
+    },
+    {
+      "name": "Cheese & Chilly Oil Dumplings",
+      "quantity": 1,
+      "amount": 575
+    },
+    {
+      "name": "Mochi Ice Cream",
+      "quantity": 4,
+      "amount": 1100
+    },
+    {
+      "name": "Hotteok With Ice Cream",
+      "quantity": 1,
+      "amount": 325
+    },
+    {
+      "name": "Katsu Banana With Ice Cream",
+      "quantity": 1,
+      "amount": 295
+    }
+  ],
+  "tax": 955.26,
+  "service_charge": 1910.5,
+  "tip": 0,
+  "discount": 0,
+  "round_off": 0.24,
+  "total": 21971
+}

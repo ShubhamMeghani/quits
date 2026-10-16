@@ -1,0 +1,29 @@
+{
+  "reviewed": true,
+  "merchant": "Domino's",
+  "date": "2026-10-08",
+  "currency": "INR",
+  "items": [
+    {
+      "name": "Classic",
+      "quantity": 2,
+      "amount": 100
+    },
+    {
+      "name": "Paneer & Capsicum with Videshi Hot Sauce",
+      "quantity": 1,
+      "amount": 109
+    },
+    {
+      "name": "Cheese Volcano Peppy Paneer",
+      "quantity": 1,
+      "amount": 319
+    }
+  ],
+  "tax": 57.04,
+  "service_charge": 0,
+  "tip": 0,
+  "discount": 80,
+  "round_off": 0,
+  "total": 505.04
+}

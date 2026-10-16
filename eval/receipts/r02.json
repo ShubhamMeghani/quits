@@ -1,0 +1,44 @@
+{
+  "reviewed": true,
+  "merchant": "The Godavari Hotel",
+  "date": "2026-10-04",
+  "currency": "INR",
+  "items": [
+    {
+      "name": "Butter Naan",
+      "quantity": 12,
+      "amount": 1200
+    },
+    {
+      "name": "Kaju Masala",
+      "quantity": 1,
+      "amount": 390
+    },
+    {
+      "name": "Mushroom Handi",
+      "quantity": 1,
+      "amount": 270
+    },
+    {
+      "name": "Paneer Butter Masala",
+      "quantity": 1,
+      "amount": 300
+    },
+    {
+      "name": "Paneer Kadai",
+      "quantity": 1,
+      "amount": 310
+    },
+    {
+      "name": "Paneer Kolhapuri",
+      "quantity": 1,
+      "amount": 300
+    }
+  ],
+  "tax": 138.5,
+  "service_charge": 0,
+  "tip": 0,
+  "discount": 0,
+  "round_off": -0.5,
+  "total": 2908
+}

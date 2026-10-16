@@ -1,0 +1,29 @@
+{
+  "reviewed": true,
+  "merchant": "Taco Bell",
+  "date": "2026-08-04",
+  "currency": "INR",
+  "items": [
+    {
+      "name": "Cheesy Lava Taco Veg",
+      "quantity": 1,
+      "amount": 239
+    },
+    {
+      "name": "Crispy Potato Wrap",
+      "quantity": 1,
+      "amount": 75
+    },
+    {
+      "name": "CT Wheat Pinto Bean",
+      "quantity": 1,
+      "amount": 99
+    }
+  ],
+  "tax": 17.56,
+  "service_charge": 0,
+  "tip": 0,
+  "discount": 61.95,
+  "round_off": 0.39,
+  "total": 369
+}
