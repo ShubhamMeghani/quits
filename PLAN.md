@@ -242,6 +242,10 @@ No GitHub secrets are needed: CI runs only lint and unit tests, which make no ne
   - **Migration:** `…000700`.
   - **Demo seed changes:** no recurring rules, since a monthly rent rule dated 40 days back would generate an occurrence on first open and break the exact R48 balances. All Goa items are categorised Travel (for AC-31), and "Flat rent" no longer names a month.
   - **R46 (Should) partial:** rules can be paused, resumed or stopped, but not edited; to change a rule, stop it and add a new repeating expense.
+- **Phase 7 (AUTO tasks):**
+  - **Eval:** `eval/run.ts` (`npm run eval`, plus `npm run eval:synthetic`) is built and checked on ONE synthetic receipt only (`eval/synthetic/`). No real results were invented: the committed `eval/results.json` says "not-run", and `/about` shows that.
+  - **Task 7.2 (draft ground truth) is waiting on 7.1:** there are no real images yet. `eval/README.md` documents the ground-truth format.
+  - **Done:** the security sweep, removal of `/lab/upi`, the README, and the AC table.
 
 ---
 
@@ -284,8 +288,8 @@ Rows P1-1 to P1-10 are the Phase 1 checks; each one de-risks the spec ACs shown 
 | AC-21 | Script | 5 | Pass | local `next start` with SCAN_LIMIT_PER_GROUP=2 in the shell, fresh group: 2 MB JPEG → 413; text renamed .jpg → 415; valid scans → 200, 200, then 429 "Daily scan limit reached — enter items manually". 413/415 did not count toward the limit, so they never reached Gemini; server log shows no extract errors. Also tests/db/receipts.test.ts › R30 counter |
 | AC-22 | Deploy | 5 | Partial | local headless Chrome flow: editing an item amount shows the "Total mismatch" banner immediately and clears when fixed; finalizing with an unassigned item shows "Choose who had …"; after claiming, finalize creates an itemized ₹660.00 expense (printed total) with per-item breakdown and per-person ₹132/₹330/₹198. DB test: printed ₹845 vs ₹840 → [31688, 21125, 31687] + mismatch. Prod check pending (5.11) |
 | AC-23 | Unit | 2 | Pass | tests/unit/receipt.test.ts › AC-23 (P 0.667, R 0.5, F1 0.571; Paneer Tikka match) |
-| AC-24 | Script + Deploy | 7 | Not run | |
-| AC-25 (Should) | Script | 7 | Not run | |
+| AC-24 | Script + Deploy | 7 | Partial | eval/run.ts (`npm run eval`) and /about built. Smoke run on ONE synthetic receipt (`npm run eval:synthetic`) → eval/synthetic/results.json + REPORT.md with all fields (P/R/F1 1.0, n = 1) — not the real eval. Committed eval/results.json is "not-run" and /about shows "Evaluation not run yet" with no Gemini call (network check). Real 10–15 receipts pending (7.1, 7.3) |
+| AC-25 (Should) | Script | 7 | Pending (human) | needs the real eval set (7.1, 7.3), then `npm run eval` |
 | AC-26 | Unit + Deploy | 2 / 7 | Partial | unit Pass; local `next start`: /g/doesnotexist, /g/{random 22} and /g/{random}/settle → 404 "Group not found"; valid token 200. Prod check pending (7.10) |
 | AC-27 | Desktop + Phone | 4 | Partial | local headless Chrome flow (360 px): create group → share notice "Anyone with this link can view and edit this group."; identity remembered across navigations ("You: Aarav"); Switch person → picker → Priya; adding "priya" → "Name already used". Desktop→phone run pending (4.12) |
 | AC-28 | Deploy | 4 | Partial | local flow: default split set to shares 2:1:1 → new expense form opens with "Shares" selected and values 2,1,1. Prod check pending (4.12) |
@@ -300,10 +304,10 @@ Rows P1-1 to P1-10 are the Phase 1 checks; each one de-risks the spec ACs shown 
 | AC-37 | Desktop | 6 / 7 | Partial | local headless Chrome 1440×900, fresh profile: "Try the demo" → group open in 0.73 s; demo banner; 15 expenses; itemized beach-shack receipt with per-item breakdown; USD expense shows "1 USD = 95.98 INR"; Settle shows Optimal 3 · Greedy 4 · Naive 10 with "Showing the optimal plan". Prod incognito run pending (7.10) |
 | AC-38 | Deploy | 6 | Partial | local DB test (tests/db/features.test.ts › AC-38): after deleting an expense, reset restores the exact target balances under the same token; a demo backdated 8 days is deleted when the next demo is created; reset on a non-demo group → NOT_FOUND. UI reset works in headless Chrome. Prod check pending (6.10) |
 | AC-39 | Phone + Desktop | 7 | Partial | local headless Chrome 360×740, 11 screens: scrollWidth = innerWidth = 360 on all; all buttons/links/inputs ≥ 44 px (one header link fixed); 1440×900: centered ≤ 640 px column. Real-phone check pending (7.10) |
-| AC-40 (Should) | Phone | 7 | Not run | |
+| AC-40 (Should) | Phone | 7 | Partial | P1-9 Pass on the Samsung (standalone, Q icon) with the Phase 1 build; re-check on the final build pending (7.10) |
 | AC-41 | Script | 3 / 7 | Partial | SQL Pass: tests/db/security.test.ts › AC-41 (0 tables without RLS; `set role anon` → permission denied on all 14 tables; anon cannot run RPCs). REST with publishable key pending (human, 7.10) |
-| AC-42 | Deploy + Script | 7 | Partial | script part Pass: `.next/static` 0 matches; `git log -p --all` 0 key-like matches; `.env.local` ignored by `.gitignore:13`. Browser network check pending (human, 7.10) |
+| AC-42 | Deploy + Script | 7 | Partial | script Pass: `.next/static` 0 key-like strings and 0 references to supabase.co/generativelanguage; `git log -p --all` 0 key-like matches; `.env.local` ignored. Local browser Pass: headless Chrome walk-through (demo, settle, add expense, receipt paste, search, activity, members, about) made 225 requests, all to the app origin. Prod network log pending (7.10) |
 | AC-43 | Script | 3 / 7 | Partial | server Pass: tests/db/security.test.ts › AC-43 (cross-group member → 404, no row; delete Y's expense via X → 404, unchanged; RPCs re-check). Local `curl -I` shows Referrer-Policy: no-referrer + X-Robots-Tag: noindex, nofollow. Prod curl pending (human) |
-| AC-44 | Script | 1 / 7 | Not run | |
-| AC-45 | Script | 7 | Not run | |
+| AC-44 | Script | 1 / 7 | Partial | P1-5 Pass (keep-alive run #1 green, {"ok":true}); local `next start` with SUPABASE_URL set to an invalid host in the shell → /api/health 503 {"ok":false}. Preview-deployment check pending (7.10) |
+| AC-45 | Script | 7 | Pass | local on the Phase 7 commit: `npm run lint` clean, `npm run typecheck` clean, `npm test` 83/83, `npm run test:db` 24/24, `npm run build` exit 0. CI re-checks lint/typecheck/unit tests on push |
 | AC-46 (Should) | Unit + Phone | 4 | Partial | unit Pass (tests/unit/misc.test.ts › AC-46 parseUpiUri); local flow: uploading a UPI QR screenshot fills priya.sharma@okaxis + "Priya Sharma"; only network request was one 176-byte POST (no image); "Pay via UPI app" labelled "May be blocked by some UPI apps". Phone check pending (4.12) |

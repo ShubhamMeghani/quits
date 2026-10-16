@@ -1,0 +1,16 @@
+{
+  "merchant": "CAFE MONSOON",
+  "date": "2026-10-12",
+  "currency": "INR",
+  "items": [
+    { "name": "Masala Dosa", "quantity": 1, "amount": 120.0 },
+    { "name": "Cold Coffee", "quantity": 2, "amount": 300.0 },
+    { "name": "Paneer Roll", "quantity": 1, "amount": 180.0 }
+  ],
+  "tax": 30.0,
+  "service_charge": 30.0,
+  "tip": 0,
+  "discount": 0,
+  "round_off": 0,
+  "total": 660.0
+}

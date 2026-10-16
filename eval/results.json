@@ -1,0 +1,5 @@
+{
+  "status": "not-run",
+  "dataset": "real receipts",
+  "note": "The real eval set (10–15 labelled receipts in eval/receipts/) has not been added yet. Run `npm run eval` after adding them; this file is then overwritten with the measured results."
+}

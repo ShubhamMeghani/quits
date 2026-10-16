@@ -1,0 +1,25 @@
+{
+  "status": "ok",
+  "dataset": "synthetic smoke test",
+  "model": "gemini-3.5-flash-lite",
+  "runAt": "2026-10-16T13:57:05.711Z",
+  "n": 1,
+  "precision": 1,
+  "recall": 1,
+  "f1": 1,
+  "totalAccuracy": 1,
+  "reconciliationRate": 1,
+  "meanLatencySec": 11.816,
+  "perReceipt": [
+    {
+      "id": "synthetic-001",
+      "predictedItems": 3,
+      "truthItems": 3,
+      "matched": 3,
+      "totalCorrect": true,
+      "reconciled": true,
+      "latencySec": 11.816,
+      "error": false
+    }
+  ]
+}
