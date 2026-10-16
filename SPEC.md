@@ -52,7 +52,7 @@ Quits is a free, mobile-first web app for Indian students to track shared expens
 - **S5 Foreign trip.** A THB expense is converted to INR at the rate for the expense date, and that rate is stored.
 - **S6 Recurring rent.** Monthly rent appears automatically the next time the group is opened after its due date.
 - **S8 Type-to-add.** On Add expense, a student types or dictates (through the keyboard mic) "Rahul paid 600 for pizza, split with Amit and me". The form fills in; they check it and tap Save.
-- **S9 Nudge.** On Settle, a student taps "Remind" next to "Rohan -> Aarav Rs 1,200". WhatsApp opens with a polite message prefilled, and they pick Rohan as the contact.
+- **S9 Nudge.** On Settle, a student taps "Remind" next to "Rohan -> Aarav ₹1,200". WhatsApp opens with a polite message prefilled, and they pick Rohan as the contact.
 - **S7 Evaluator demo.** On desktop: "Try the demo" opens realistic data. Settle shows optimal fewer payments than greedy, a UPI QR code is visible, there is an itemized receipt, and the About page shows the eval metrics.
 
 ## 3. Constraints
@@ -208,16 +208,16 @@ upi://pay?pa={vpa}&pn={name}&am={rupees, 2 decimals}&cu=INR&tn={note}
 - **Post-processing** (`lib/nlparse.ts`, deterministic) maps names to members and validates everything (R62, R63). The model never chooses member ids.
 
 **WhatsApp messages (v0.7, output)**
-- Built by `lib/share.ts`. Amounts use `en-IN` grouping with an ASCII "Rs" prefix: `Rs 1,200` for whole rupees, `Rs 1,200.50` otherwise, `Rs 1,20,000` for larger amounts.
+- Built by `lib/share.ts`. Amounts use the "₹" sign with `en-IN` grouping, matching the rest of the app (D-22): `₹1,200` for whole rupees, `₹1,200.50` otherwise, `₹1,20,000` for larger amounts.
 - **Summary:**
   ```
   Quits: {group name}
   Payments to settle up:
-  - {from} -> {to} Rs {amount}
+  - {from} -> {to} ₹{amount}
   Open the group: {link}
   ```
   With no payments, the middle lines become `Everyone is settled up.`
-- **Reminder:** `Hi {from}, a gentle reminder from Quits: please pay {to} Rs {amount} for "{group name}". You can scan the UPI QR in the group: {link} Thanks!`
+- **Reminder:** `Hi {from}, a gentle reminder from Quits: please pay {to} ₹{amount} for "{group name}". You can scan the UPI QR in the group: {link} Thanks!`
 - **Link without Web Share:** `https://wa.me/?text={encodeURIComponent(message)}`.
 
 ## 5. Requirements
@@ -500,7 +500,7 @@ Requirement IDs are stable. R59 and R60 were added in v0.5 and sit in their topi
   - It uses the Web Share API when available, otherwise a `wa.me/?text=` link.
   - On desktop it also offers "Copy".
 - **R69 [Should]** WHEN a user taps "Remind" on a suggested payment, THE SYSTEM SHALL open WhatsApp (`wa.me/?text=`) with the polite reminder (§4.3) prefilled. The user picks the contact in WhatsApp. THE SYSTEM SHALL NOT store phone numbers.
-- **R70 [Should]** THE SYSTEM SHALL build all share and reminder text in the pure module `lib/share.ts`, with Indian number grouping (`Rs 1,20,000`) and URL encoding for `wa.me`.
+- **R70 [Should]** THE SYSTEM SHALL build all share and reminder text in the pure module `lib/share.ts`, with Indian number grouping (`₹1,20,000`) and URL encoding for `wa.me`.
 
 ## 6. Acceptance criteria
 
@@ -706,8 +706,8 @@ Unless marked *Should*, every AC is Must. Amounts are in ₹; the tests use pais
   4. A sentence with an unknown name leaves that field blank and highlighted.
 - **AC-54 [Unit, *Should*] (R68–R70):** `lib/share.ts` returns exact strings:
   - the summary for two payments, and the settled-up summary;
-  - a reminder for Rs 1,20,000 and one for Rs 1,200.50;
-  - a `wa.me` URL whose text is `encodeURIComponent` of the message (newline → `%0A`, space → `%20`).
+  - a reminder for ₹1,20,000 and one for ₹1,200.50;
+  - a `wa.me` URL whose text is `encodeURIComponent` of the message (newline → `%0A`, space → `%20`, "₹" → `%E2%82%B9`).
 - **AC-55 [Phone + Desktop, *Should*] (R68, R69):**
   - On a phone, "Remind" opens WhatsApp with the reminder prefilled and a contact picker, and "Share summary" opens the share sheet with the summary.
   - On desktop, "Copy" puts the summary on the clipboard.
@@ -794,14 +794,13 @@ Unless marked *Should*, every AC is Must. Amounts are in ₹; the tests use pais
 | D-18 | P1-8 (2026-10-16) | **Settle-up is QR-first.**<br>**Must:** the QR with payee and amount, "Save QR image", "Show full screen", and "Copy UPI ID" with the amount in large text (R24).<br>**Should, best-effort:** the `upi://` button, labelled "May be blocked by some UPI apps" (R59).<br>**Recording:** settlement is never automatic; it happens only on "Mark as paid" (R25).<br>**Should:** set your UPI ID from a screenshot of your own UPI QR, decoded in the browser; only the ID and name are saved (R60). |
 | D-19 | Build (2026-10-17) | **Itemized expenses cannot be edited after finalizing.** To correct one, delete it (soft delete; Restore is possible) and scan or enter the receipt again. The edit form refuses itemized expenses, and the expense detail offers only Delete. Before finalizing, every value stays editable in the draft (R33). |
 | D-20 | Build (2026-10-17) | **R46 is partially met.** Recurring rules can be paused, resumed or stopped (deleted), and the change applies to future occurrences only. Rules cannot be edited; to change one, stop it and add a new repeating expense. |
+| D-21 | OQ-18 (2026-10-17) | In type-to-add, "X paid 600, split with Amit and me" **includes the payer X** among the participants, unless the text excludes them ("only for Amit and me"). The NL ground truth follows this. |
+| D-22 | OQ-19 (2026-10-17) | Share and reminder messages use **"₹"** (e.g. `₹1,20,000`), not "Rs", to match the rest of the app. The exact strings in §4.3 are updated. |
 | D-17 | OQ-17 | When Frankfurter v2 has no rate for the exact date, use the most recent rate on or before `expense_date`, and store and show its `fx_rate_date` (R16). |
 
 ### 10.2 Open questions
 
-| ID | Question | Proposed default |
-|---|---|---|
-| OQ-18 | Does "X paid 600, split with Amit and me" include the payer X among the participants? | Yes. "Split with" includes the payer unless the text excludes them ("only for Amit and me"). The NL ground truth follows this. |
-| OQ-19 | Should share messages use "Rs" or "₹"? | ASCII "Rs", as in the requested example, so the text survives every keyboard and SMS fallback. |
+None open. New questions found during the build are added here with a proposed default (see the `PLAN.md` rules).
 
 ## 11. Changelog
 
@@ -813,4 +812,4 @@ Unless marked *Should*, every AC is Must. Amounts are in ₹; the tests use pais
 | v0.4 | 2026-10-16 | Approved PLAN.md proposals SC-1 to SC-3 (wording only; the code already followed them). **SC-1 (§4.3, §3, K6):** the Frankfurter v2 request and response confirmed in P1-7 (`/v2/rate/{BASE}/{QUOTE}?date=`; same-date blended weekend rates; 404 for future dates, so those use the latest rate; 422 for unknown currencies). **SC-2 (§3, §4.3, R31):** Gemini structured output uses `responseJsonSchema`. **SC-3 (R17):** base payer and split amounts are allocated by exact original-currency proportions (the split's own weights), not rounded minor-unit shares, matching AC-6. Counts unchanged: 58 requirements (43 Must, 15 Should), 45 ACs. |
 | v0.5 | 2026-10-16 | **Settle-up is QR-first (D-18),** after P1-8 showed `upi://` P2P links blocked in GPay, PhonePe and Paytm from a website, while QR scans (laptop screen, gallery screenshot) worked with the payee and amount filled in.<br>**R24 (Must):** the QR is visible at every width, plus "Save QR image", "Show full screen", and "Copy UPI ID" with the amount in large text.<br>**R25:** settlement is never automatic, only on "Mark as paid"; the "Did the payment go through?" prompt is removed.<br>**New R59 (Should):** best-effort "Pay via UPI" link labelled "May be blocked by some UPI apps".<br>**New R60 (Should):** set a UPI ID from a screenshot of your own UPI QR, decoded in the browser; only `pa`/`pn` are saved; `members.upi_name` added; `pn` uses it.<br>**ACs:** AC-14 is now the phone QR path (save + gallery scan, full screen); the link format stays Unit (AC-13). AC-15 adds the large amount. New AC-46 (Should) covers R59/R60.<br>**Elsewhere:** §1 edge, S4, §4.1, §4.3, K1, K11 and D-14 updated.<br>**Counts:** 60 requirements (43 Must, 17 Should); 46 ACs (39 Must, 7 Should), one over the earlier ≤ 45 target because of the new Should AC. |
 | v0.6 | 2026-10-17 | **Honesty decisions recorded after the build.** D-19: itemized expenses can't be edited after finalizing; delete and rescan instead. D-20: R46 is partially met (pause, resume and stop; no edit), and R46 is annotated accordingly. Counts unchanged: 60 requirements (43 Must, 17 Should; R46 partially met), 46 ACs. |
-| v0.7 | 2026-10-17 | **Two features added; specification only, no code yet.**<br>**Feature A, type-to-add (Must):** R61 "Type it" box and parse route (Gemini `responseJsonSchema`); R62 deterministic name matching and "me" words in `lib/nlparse.ts`, never creating members; R63 validation, leaving invalid values blank; R64 never saves, only fills the form; R65 per-group NL limit (`NL_LIMIT_PER_GROUP`) plus the shared daily AI limit; R66 NL eval (`eval/nl/`, about 30 sentences, field accuracy, exact match, abstention) shown on `/about`. R67 (Should): targets of amount ≥ 95% and exact match ≥ 80%.<br>**Feature B, WhatsApp share and nudge (Should):** R68 Share summary (Web Share, `wa.me`, Copy), R69 Remind (no stored phone numbers), R70 `lib/share.ts` with exact strings.<br>**New ACs:** AC-47 to AC-55.<br>**Elsewhere:** §1, §2 (S8, S9), §3 env, §4.2, §4.3 (NL schema, message formats), deliverables, non-goals, K14, K15, K11 cut order, and OQ-18/OQ-19 with defaults.<br>**Counts:** 70 requirements (49 Must, 21 Should; R46 partially met); 55 ACs (45 Must, 10 Should). |
+| v0.7 | 2026-10-17 | **Two features added; specification only, no code yet.**<br>**Feature A, type-to-add (Must):** R61 "Type it" box and parse route (Gemini `responseJsonSchema`); R62 deterministic name matching and "me" words in `lib/nlparse.ts`, never creating members; R63 validation, leaving invalid values blank; R64 never saves, only fills the form; R65 per-group NL limit (`NL_LIMIT_PER_GROUP`) plus the shared daily AI limit; R66 NL eval (`eval/nl/`, about 30 sentences, field accuracy, exact match, abstention) shown on `/about`. R67 (Should): targets of amount ≥ 95% and exact match ≥ 80%.<br>**Feature B, WhatsApp share and nudge (Should):** R68 Share summary (Web Share, `wa.me`, Copy), R69 Remind (no stored phone numbers), R70 `lib/share.ts` with exact strings.<br>**New ACs:** AC-47 to AC-55.<br>**Elsewhere:** §1, §2 (S8, S9), §3 env, §4.2, §4.3 (NL schema, message formats), deliverables, non-goals, K14, K15, K11 cut order, and OQ-18/OQ-19 with defaults.<br>**Decisions (same day):** OQ-18 → D-21 (the payer is included unless the text excludes them); OQ-19 → D-22 ("₹" in share messages, not "Rs"; §4.3, S9, R70 and AC-54 updated, with AC-54 also checking that "₹" encodes as `%E2%82%B9`).<br>**Counts:** 70 requirements (49 Must, 21 Should; R46 partially met); 55 ACs (45 Must, 10 Should). |

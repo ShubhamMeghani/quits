@@ -220,7 +220,7 @@ No GitHub secrets are needed: CI runs only lint and unit tests, which make no ne
 
 | # | Task | Mode | Satisfies |
 |---|---|---|---|
-| 8.8 | `lib/share.ts` (pure): summary and reminder text per SPEC §4.3 (`Rs` with en-IN grouping, whole rupees without decimals); `waLink(text)`. Exact-string unit tests. | AUTO | R70 · AC-54 |
+| 8.8 | `lib/share.ts` (pure): summary and reminder text per SPEC §4.3 ("₹" with en-IN grouping, whole rupees without decimals; D-22); `waLink(text)`. Exact-string unit tests. | AUTO | R70 · AC-54 |
 | 8.9 | Settle screen: "Share summary" (Web Share API, otherwise `wa.me`; "Copy" on desktop) and "Remind" on each suggested payment (`wa.me/?text=`). No phone numbers are stored. | AUTO | R68, R69 |
 | 8.10 | Commit `feat(nl,share): ...`. | AUTO | — |
 | 8.11 | Push, then: AC-53 on the phone (type or dictate, form fills, nothing saved); AC-55 (Remind opens WhatsApp prefilled; Share summary; Copy on desktop); run `npm run eval:nl` on all ~30 sentences, or ask Claude to, then check AC-51 and AC-52 on `/about`. | HUMAN | AC-51–AC-53, AC-55 |
