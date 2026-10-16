@@ -2,7 +2,7 @@
 
 ## Data
 
-- Put 10–15 **real** receipt photos in `eval/receipts/`: restaurant, café, grocery and food-delivery screenshots.
+- Put at least 5 **real** receipt photos in `eval/receipts/` (SPEC R37, D-33): restaurant, café, grocery and food-delivery screenshots. The current set is 5 (n = 5, small sample).
 - Name them `{id}.jpg`, `{id}.png` or `{id}.webp`, e.g. `r01.jpg`.
 - **Blur personal data before committing:** phone numbers, card digits, names, GSTIN if you prefer.
 - For each image, add `{id}.json` with the true values in the SPEC §4.3 schema. Amounts are in major units, exactly as printed.
@@ -39,9 +39,12 @@ The rules for each field:
 ```bash
 npm run eval                 # real set: eval/receipts → eval/results.json + eval/REPORT.md
 npm run eval:synthetic       # smoke test only: eval/synthetic (one generated receipt)
+npm run eval -- --report     # rebuild eval/REPORT.md from the saved results (no Gemini call)
 ```
 
 **What the run uses:** the same compression rules, prompt, JSON schema, model (`GEMINI_MODEL`) and parser as the app. `GEMINI_API_KEY` comes from `.env.local`.
+
+**What it saves (D-32):** for every receipt, the predicted values (fields, items, `diff`, unmatched items) or the failure reason. Earlier runs are kept: `results-run1.json` and `REPORT-run1.md` hold run 1 exactly as run.
 
 **Metrics** (all micro-averaged):
 

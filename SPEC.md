@@ -4,7 +4,7 @@
 
 | | |
 |---|---|
-| Version | v1.0 |
+| Version | v1.1 |
 | Date | 2026-10-16 |
 | Status | Ready for build. All open questions are decided (§10.1). Build order is in `PLAN.md`. |
 | Course | Applied Data Science & AI, IISc |
@@ -378,7 +378,7 @@ Requirement IDs are stable. R59 and R60 were added in v0.5 and sit in their topi
 - **R36 [Should]** WHEN a receipt is saved as a draft, THE SYSTEM SHALL let members on other devices open it and toggle their own items. Changes appear on refresh.
 
 ### 5.9 Receipt-extraction evaluation
-- **R37 [Must]** THE SYSTEM SHALL include `eval/receipts/` with 10–15 images. Each `{id}.jpg` has a ground-truth `{id}.json` in the §4.3 schema, and personal data is blurred.
+- **R37 [Must]** THE SYSTEM SHALL include `eval/receipts/` with **at least 5 real receipts** (D-33). Each `{id}.jpg` has a ground-truth `{id}.json` in the §4.3 schema, checked by a human against the paper bill, and personal data is blurred or covered.
 
   WHEN `npm run eval` is run, THE SYSTEM SHALL pass each image through the same compression, prompt, schema and model as the app, then write `eval/results.json` and `eval/REPORT.md` with these metrics:
   - **Item match:** amounts within ₹1 **and** normalized-name similarity ≥ 0.6.
@@ -389,6 +389,8 @@ Requirement IDs are stable. R59 and R60 were added in v0.5 and sit in their topi
   - **Total accuracy:** the share of receipts whose predicted total is within ₹1 of the ground truth.
   - **Reconciliation rate:** the share of receipts whose predicted values give `|diff| ≤ ₹1` (R33).
   - **Mean latency** in seconds.
+  - For every receipt it SHALL save the predicted values (fields, items, `diff`, unmatched items) or the failure reason. Earlier runs are kept alongside the latest one, never overwritten (D-32).
+  - Wherever the numbers appear (REPORT.md, `/about`), they SHALL state the sample size as "n = 5, small sample" (or the actual n) (D-33).
 - **R38 [Must]** WHEN `/about` is opened, THE SYSTEM SHALL show the metrics from the committed `eval/results.json` (model, run date, n, precision, recall, F1, total accuracy, reconciliation rate, mean latency), a per-receipt table and a method note. It SHALL make no live Gemini call.
 - **R39 [Should]** THE SYSTEM SHALL reach item F1 ≥ 0.80 and a reconciliation rate ≥ 0.70 on the eval set.
 
@@ -500,6 +502,7 @@ Requirement IDs are stable. R59 and R60 were added in v0.5 and sit in their topi
 - **R66 [Must]** THE SYSTEM SHALL include `eval/nl/` with about 30 sentences, each with a ground-truth JSON. About 5 are deliberately ambiguous, where the correct result is a blank field.
   - WHEN `npm run eval:nl` is run, it SHALL use the same prompt, schema, model and post-processing as the app.
   - It SHALL report field accuracy (amount, payer, participant set, split type), the exact-match rate, and the correct-abstention rate on the ambiguous sentences.
+  - For every run, REPORT.md and `/about` SHALL also show two separate figures next to these overall ones (D-31): the **answer rate** (share of sentences that got a usable answer within the limit) and the **accuracy when answered** (every metric over answered sentences only). R67 is still judged on the overall figures.
   - **Exact match** means amount, payer and participant set are correct, and the two splits are **equivalent** (D-27): they give every participant the same amount in paise. Split-type accuracy is still reported separately.
   - It SHALL write `eval/nl/results.json` and `eval/nl/REPORT.md`, and `/about` SHALL show the results next to the receipt eval, with no live call.
   - For every sentence it SHALL record the predicted values, and for every failure the reason (`timeout`, `model_error` or `invalid_output`) with Gemini's real HTTP status when there is one (D-30). Earlier runs are kept alongside the latest one, never overwritten.
@@ -613,8 +616,9 @@ Unless marked *Should*, every AC is Must. Amounts are in ₹; the tests use pais
 **Evaluation**
 - **AC-23 [Unit] (R37):** a fixture with 4 ground-truth items and 3 predicted items, 2 of them matching, gives precision 0.667, recall 0.500, F1 0.571 (to 3 dp). `"Paneer Tikka"` vs `"paneer tikka."` with equal amounts is a match.
 - **AC-24 [Script + Deploy] (R37, R38):**
-  - `eval/receipts/` holds 10–15 image/JSON pairs.
+  - `eval/receipts/` holds at least 5 image/JSON pairs, each marked `"reviewed": true`.
   - `npm run eval` exits 0 and writes `eval/results.json` (`model, runAt, n, precision, recall, f1, totalAccuracy, reconciliationRate, meanLatencySec, perReceipt[]`) and `eval/REPORT.md`.
+  - `results.json` has each receipt's predicted values (or failure reason); REPORT.md and `/about` state "n = 5, small sample"; `/about`'s method note describes the actual set.
   - `/about` shows the same numbers, and the network log shows no Gemini call.
 - **AC-25 [Script, *Should*] (R39):** `results.json` has `f1 ≥ 0.80` and `reconciliationRate ≥ 0.70`.
 
@@ -814,6 +818,9 @@ Unless marked *Should*, every AC is Must. Amounts are in ₹; the tests use pais
 | D-28 | Investigation (2026-10-17) | A failed type-to-add parse is usually temporary (Gemini 503 "high demand"), so the message is "Couldn't read that — try again", with a **Try again** button (resends the same text) and a smaller "or fill in the form". After about 6 s the box says "Still reading… Gemini is busy". The daily limit keeps its own message, without Try again (R64). |
 | D-29 | Investigation (2026-10-17) | The type-to-add limit rises from 15 s to **20 s**, and the single retry waits about 1 s first. In a 60-call probe no answered call took longer than 12.4 s, and every error was HTTP 503, some arriving after 12 s. So 15 s left the retry too little time (R61, R64). The thinking level stays at the model default: it used 0 thinking tokens either way, and `thinkingBudget: 0` is rejected. |
 | D-30 | Investigation (2026-10-17) | Failures record Gemini's real HTTP status: in the route log, and per sentence in the NL eval results (e.g. `model_error 503`) (R66). No fallback model (Q4 rejected). |
+| D-31 | Review of NL runs 1–3 (2026-10-17) | Overall accuracy mixes "no answer" (Gemini busy or slow) with "wrong answer". Every run is also reported as **answer rate** + **accuracy when answered**, computed from the saved results (no re-run). Run 3 stays the main result; no more NL re-runs (R66). |
+| D-32 | Receipt eval run 1 (2026-10-17) | Run 1 saved only per-receipt flags, so two unreconciled receipts could not be explained. The receipt eval now saves every receipt's predicted values, like the NL eval (D-30); run 1 is kept as it was (R37). |
+| D-33 | Receipt eval set (2026-10-17) | The eval set is **at least 5** real receipts (was 10–15): 5 were collected and checked against the paper bills. Results always say "n = 5, small sample", since one receipt moves a per-receipt rate by 20 points (R37, AC-24). |
 | D-22 | OQ-19 (2026-10-17) | Share and reminder messages use **"₹"** (e.g. `₹1,20,000`), not "Rs", to match the rest of the app. The exact strings in §4.3 are updated. |
 | D-17 | OQ-17 | When Frankfurter v2 has no rate for the exact date, use the most recent rate on or before `expense_date`, and store and show its `fx_rate_date` (R16). |
 
@@ -835,3 +842,4 @@ None open. New questions found during the build are added here with a proposed d
 | v0.8 | 2026-10-17 | **Decisions from the Phase 8 build.** D-23: everyone/all/sab/sabhi mean all active members. D-24: "main" added to the me-words, matched in code. D-25: the cursor starts in "Type it" on a new expense. D-26: non-INR groups' share messages use the currency's standard format. R61 now records the single retry on a transient Gemini error within the 15 s limit. R62, R70, §4.3, AC-48 and AC-54 updated. Counts unchanged: 70 requirements (49 Must, 21 Should), 55 ACs (45 Must, 10 Should). |
 | v0.9 | 2026-10-17 | **NL eval review.** D-21 clarified: an explicit per-person list of shares or amounts is the complete split, so the payer is not added; a "treat" means the payer is the only participant. The NL prompt gets one matching line, added before the first eval run. D-27: NL splits are scored by the amounts they give each participant (in paise), with split-type accuracy still reported separately; R66 updated. Ground truth: human-09 is now participants = Rahul only and not ambiguous; the leading "." is removed from human-06 and human-07; all 30 sentences reviewed. Counts unchanged: 70 requirements, 55 ACs. |
 | v1.0 | 2026-10-17 | **Type-to-add reliability, after investigating the eval failures** (all errors were HTTP 503 "high demand"; no 429; thinking is not the cause).<br>**D-28 (Q1):** "Couldn't read that — try again" with a Try again button, a smaller "or fill in the form", and "Still reading… Gemini is busy" after about 6 s.<br>**D-29 (Q2):** the limit rises from 15 s to 20 s, and the single retry waits about 1 s.<br>**D-30 (Q3):** Gemini's real HTTP status is recorded in the route log and in the NL eval results.<br>**Updated:** R61, R64 (wording and limit), R66 (failure reasons recorded; earlier runs kept), AC-50.<br>**Not applied:** Q4 (fallback model); the thinking level stays at the default.<br>Counts unchanged: 70 requirements (49 Must, 21 Should), 55 ACs. |
+| v1.1 | 2026-10-17 | **Eval reporting.**<br>**D-31:** every NL run (1–3) is also reported as answer rate + accuracy when answered, in REPORT.md and on `/about`; run 3 stays the main result, no more NL re-runs (R66).<br>**D-32:** the receipt eval saves each receipt's predicted values; run 1 kept, run 2 added (R37).<br>**D-33:** R37 asks for at least 5 real receipts (was 10–15), and results state "n = 5, small sample"; AC-24 and the `/about` method note updated.<br>Counts unchanged: 70 requirements (49 Must, 21 Should), 55 ACs. |

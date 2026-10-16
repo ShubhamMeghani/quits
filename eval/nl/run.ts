@@ -1,5 +1,6 @@
 // Type-to-add evaluation (SPEC R66). Run:  npm run eval:nl            (calls Gemini, writes results)
 //                                          npm run eval:nl -- --check  (validates the files only)
+//                                          npm run eval:nl -- --report (rebuilds REPORT.md from the saved results; no model calls)
 // Each eval/nl/{claude,human}-NN.json holds one sentence, its group context and the ground truth
 // (see README.md). Since run 2, every sentence goes through the app's own parse handler
 // (server/nl-handler.ts: same prompt, schema, model, 20 s deadline, one delayed retry on a model error,
@@ -11,7 +12,7 @@ import path from "node:path";
 import { z } from "zod";
 import { exponent, isSupportedCurrency } from "@/lib/currency";
 import { decimalToMinor, minorToMajorString } from "@/lib/money";
-import { NL_MAX_CHARS, scoreNl, type NlEvalCase, type NlField, type NlGold, type NlResult } from "@/lib/nlparse";
+import { answeredSummary, NL_MAX_CHARS, scoreNl, type NlEvalCase, type NlEvalRow, type NlEvalSummary, type NlField, type NlGold, type NlResult } from "@/lib/nlparse";
 import { createParseHandler } from "@/server/nl-handler";
 
 const DIR = "eval/nl";
@@ -112,12 +113,118 @@ function gold(c: EvalFile, id: (name: string) => string): NlGold {
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 const pct = (x: number) => `${(x * 100).toFixed(1)}%`;
 
+type SavedRow = NlEvalRow & { status?: number; reason?: string; geminiStatus?: number; predicted?: Record<string, unknown> };
+type SavedRun = Omit<NlEvalSummary, "perSentence"> &
+  Partial<typeof RUN> & { status: string; model: string; runAt: string; authors: { claude: number; human: number }; perSentence: SavedRow[] };
+
+const readRun = (file: string) => JSON.parse(fs.readFileSync(path.join(DIR, file), "utf8")) as SavedRun;
+
+/** Each run's limit, as run (for the answer-rate table). */
+const LIMITS: Record<number, string> = { 1: "15 s, no retry", 2: "15 s, one retry", 3: "20 s, one retry after ~1 s" };
+
+/** D-31: answer rate and accuracy when answered, next to the overall figures, for every run (from the saved results). */
+function answerRateSection(runs: { label: string; limit: string; r: SavedRun }[]): string[] {
+  const rows = runs.map(({ r }) => ({ r, a: answeredSummary(r.perSentence) }));
+  const both = (pick: (x: (typeof rows)[number]) => [number, number]) =>
+    rows
+      .map((x) => {
+        const [overall, answered] = pick(x);
+        return `${pct(overall)} / ${pct(answered)}`;
+      })
+      .join(" | ");
+  return [
+    "## Answer rate and accuracy when answered (all runs)",
+    "",
+    '"Answered" means the app returned a usable prefill within its limit. **Overall** counts a sentence with no answer as wrong on every field; **when answered** counts only the answered sentences. Computed from each run\'s saved results file; no run was repeated.',
+    "",
+    `| | ${runs.map((x) => x.label).join(" | ")} |`,
+    `|---|${runs.map(() => "---|").join("")}`,
+    `| Limit | ${runs.map((x) => x.limit).join(" | ")} |`,
+    `| **Answer rate** | ${rows.map(({ a }) => `**${pct(a.answerRate)}** (${a.answered}/${a.n})`).join(" | ")} |`,
+    `| Amount: overall / when answered | ${both(({ r, a }) => [r.amountAccuracy, a.amountAccuracy])} |`,
+    `| Payer | ${both(({ r, a }) => [r.payerAccuracy, a.payerAccuracy])} |`,
+    `| Participant set | ${both(({ r, a }) => [r.participantsAccuracy, a.participantsAccuracy])} |`,
+    `| Split type | ${both(({ r, a }) => [r.splitTypeAccuracy, a.splitTypeAccuracy])} |`,
+    `| **Exact match** | ${both(({ r, a }) => [r.exactMatchRate, a.exactMatchRate])} |`,
+    `| Correct abstention (ambiguous) | ${rows.map(({ r, a }) => `${pct(r.abstentionRate)} / ${pct(a.abstentionRate)} (${a.ambiguousAnswered} of ${r.ambiguousN} answered)`).join(" | ")} |`,
+    "",
+  ];
+}
+
+/** REPORT.md from saved results only: the all-runs table, the main run, then earlier runs verbatim. */
+function writeReport(results: SavedRun) {
+  const run = results.run ?? RUN.run;
+  const s = results;
+  const show = (v: unknown) => (v === null || v === undefined ? "—" : Array.isArray(v) ? v.join(", ") || "—" : typeof v === "object" ? JSON.stringify(v) : String(v));
+  const kept = (n: number) => (fs.existsSync(path.join(DIR, `REPORT-run${n}.md`)) ? fs.readFileSync(path.join(DIR, `REPORT-run${n}.md`), "utf8").trimEnd() : "");
+  const report = [
+    "# Type-to-add eval",
+    "",
+    ...answerRateSection([
+      { label: "Run 1", limit: LIMITS[1], r: readRun("results-run1.json") },
+      { label: "Run 2", limit: LIMITS[2], r: readRun("results-run2.json") },
+      { label: `Run ${run} (main)`, limit: LIMITS[run] ?? "", r: results },
+    ]),
+    `## Run ${run} (main result)`,
+    "",
+    `- Model: \`${results.model}\` · run ${results.runAt}`,
+    `- Sentences: ${s.n} (${s.ambiguousN} ambiguous) · by Claude ${results.authors.claude}, by the human ${results.authors.human}`,
+    "",
+    "**Eval-setup fixes since run 1 (how the eval calls the app):**",
+    "",
+    ...(results.evalSetupFixes ?? []).map((x) => `- ${x}`),
+    "",
+    "**Code fixes found by the eval (the app changed):**",
+    "",
+    ...(results.codeFixes ?? []).map((x) => `- ${x}`),
+    "",
+    `**Blindness:** ${results.blindness}`,
+    "",
+    "| Metric | Value |",
+    "|---|---|",
+    `| Amount accuracy | ${pct(s.amountAccuracy)} |`,
+    `| Payer accuracy | ${pct(s.payerAccuracy)} |`,
+    `| Participant-set accuracy | ${pct(s.participantsAccuracy)} |`,
+    `| Split-type accuracy | ${pct(s.splitTypeAccuracy)} |`,
+    `| Exact match (D-27) | ${pct(s.exactMatchRate)} |`,
+    `| Correct abstention (ambiguous) | ${pct(s.abstentionRate)} |`,
+    `| Mean latency | ${s.meanLatencySec.toFixed(2)} s |`,
+    "",
+    "| Sentence | Amount | Payer | Participants | Split type | Exact | Abstained | Predicted (amount · payer · participants · split) |",
+    "|---|---|---|---|---|---|---|---|",
+    ...results.perSentence.map((r) => {
+      const p = r.predicted;
+      const pred = p
+        ? `${show(p.amount)} · ${show(p.payer)} · ${show(p.participants)} · ${show(p.splitType)}${p.splitValues ? ` ${show(p.splitValues)}` : ""}`
+        : `no answer (${r.reason ?? r.status}${r.geminiStatus ? `, Gemini HTTP ${r.geminiStatus}` : ""}, ${r.latencySec} s)`;
+      return `| ${r.id}${r.error ? " (failed)" : ""} | ${r.amount ? "✓" : "✗"} | ${r.payer ? "✓" : "✗"} | ${r.participants ? "✓" : "✗"} | ${r.splitType ? "✓" : "✗"} | ${r.exact ? "✓" : "✗"} | ${r.abstained === null ? "—" : r.abstained ? "✓" : "✗"} | ${pred.replace(/\|/g, "\\|")} |`;
+    }),
+    "",
+    "## Run 2 (kept exactly as run; `results-run2.json`)",
+    "",
+    '_Run 2\'s report section, verbatim (it says "main result" because it was the main result then)._',
+    "",
+    kept(2),
+    "",
+    "## Run 1 (kept exactly as run; `results-run1.json`)",
+    "",
+    kept(1),
+    "",
+  ].join("\n");
+  fs.writeFileSync(path.join(DIR, "REPORT.md"), report);
+}
+
 async function main() {
   const cases = load();
   const by = (a: string) => cases.filter((c) => c.author === a).length;
   console.log(`${cases.length} sentences (${by("claude")} by Claude, ${by("human")} by the human; ${cases.filter((c) => c.ambiguous).length} ambiguous; ${cases.filter((c) => c.reviewed).length} reviewed)`);
   if (process.argv.includes("--check")) {
     console.log("check: all files are valid. No model calls were made.");
+    return;
+  }
+  if (process.argv.includes("--report")) {
+    writeReport(readRun("results.json"));
+    console.log("report: REPORT.md rebuilt from the saved results. No model calls were made.");
     return;
   }
   if (!process.env.GEMINI_API_KEY) {
@@ -188,57 +295,7 @@ async function main() {
   };
   fs.writeFileSync(path.join(DIR, "results.json"), JSON.stringify(results, null, 2) + "\n");
 
-  const show = (v: unknown) => (v === null || v === undefined ? "—" : Array.isArray(v) ? v.join(", ") || "—" : typeof v === "object" ? JSON.stringify(v) : String(v));
-  const kept = (n: number) => (fs.existsSync(path.join(DIR, `REPORT-run${n}.md`)) ? fs.readFileSync(path.join(DIR, `REPORT-run${n}.md`), "utf8").trimEnd() : "");
-  const report = [
-    "# Type-to-add eval",
-    "",
-    `## Run ${RUN.run} (main result)`,
-    "",
-    `- Model: \`${results.model}\` · run ${results.runAt}`,
-    `- Sentences: ${s.n} (${s.ambiguousN} ambiguous) · by Claude ${results.authors.claude}, by the human ${results.authors.human}`,
-    "",
-    "**Eval-setup fixes since run 1 (how the eval calls the app):**",
-    "",
-    ...RUN.evalSetupFixes.map((x) => `- ${x}`),
-    "",
-    "**Code fixes found by the eval (the app changed):**",
-    "",
-    ...RUN.codeFixes.map((x) => `- ${x}`),
-    "",
-    `**Blindness:** ${RUN.blindness}`,
-    "",
-    "| Metric | Value |",
-    "|---|---|",
-    `| Amount accuracy | ${pct(s.amountAccuracy)} |`,
-    `| Payer accuracy | ${pct(s.payerAccuracy)} |`,
-    `| Participant-set accuracy | ${pct(s.participantsAccuracy)} |`,
-    `| Split-type accuracy | ${pct(s.splitTypeAccuracy)} |`,
-    `| Exact match (D-27) | ${pct(s.exactMatchRate)} |`,
-    `| Correct abstention (ambiguous) | ${pct(s.abstentionRate)} |`,
-    `| Mean latency | ${s.meanLatencySec.toFixed(2)} s |`,
-    "",
-    "| Sentence | Amount | Payer | Participants | Split type | Exact | Abstained | Predicted (amount · payer · participants · split) |",
-    "|---|---|---|---|---|---|---|---|",
-    ...results.perSentence.map((r) => {
-      const d = details[r.id];
-      const p = d.predicted as Record<string, unknown> | undefined;
-      const pred = p ? `${show(p.amount)} · ${show(p.payer)} · ${show(p.participants)} · ${show(p.splitType)}${p.splitValues ? ` ${show(p.splitValues)}` : ""}` : `no answer (${d.reason ?? d.status}${d.geminiStatus ? `, Gemini HTTP ${d.geminiStatus}` : ""}, ${r.latencySec} s)`;
-      return `| ${r.id}${r.error ? " (failed)" : ""} | ${r.amount ? "✓" : "✗"} | ${r.payer ? "✓" : "✗"} | ${r.participants ? "✓" : "✗"} | ${r.splitType ? "✓" : "✗"} | ${r.exact ? "✓" : "✗"} | ${r.abstained === null ? "—" : r.abstained ? "✓" : "✗"} | ${pred.replace(/\|/g, "\\|")} |`;
-    }),
-    "",
-    "## Run 2 (kept exactly as run; `results-run2.json`)",
-    "",
-    "_Run 2's report section, verbatim (it says \"main result\" because it was the main result then)._",
-    "",
-    kept(2),
-    "",
-    "## Run 1 (kept exactly as run; `results-run1.json`)",
-    "",
-    kept(1),
-    "",
-  ].join("\n");
-  fs.writeFileSync(path.join(DIR, "REPORT.md"), report);
+  writeReport(results as SavedRun);
   console.log(`run ${RUN.run}: amount ${pct(s.amountAccuracy)} · exact ${pct(s.exactMatchRate)} · abstention ${pct(s.abstentionRate)} → eval/nl/results.json, REPORT.md`);
 }
 

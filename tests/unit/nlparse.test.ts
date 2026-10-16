@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { matchName, nlUserText, owedBySplit, parseNlModel, resolveNl, scoreNl, splitsMatch, type NlContext, type NlModel } from "@/lib/nlparse";
+import { answeredSummary, matchName, nlUserText, owedBySplit, parseNlModel, resolveNl, scoreNl, splitsMatch, type NlContext, type NlModel } from "@/lib/nlparse";
 
 const ctx: NlContext = {
   members: [
@@ -197,5 +197,30 @@ describe("NL eval metrics (R66)", () => {
     expect(s.abstentionRate).toBe(1);
     expect(s.meanLatencySec).toBe(6.333);
     expect(s.perSentence[2].error).toBe(true);
+  });
+
+  it("answeredSummary separates the answer rate from accuracy when answered (no answer is not a wrong answer)", () => {
+    const row = (o: Partial<Parameters<typeof answeredSummary>[0][number]>) => ({ amount: true, payer: true, participants: true, splitType: true, exact: true, ambiguous: false, abstained: null, error: false, ...o });
+    const off = { amount: false, payer: false, participants: false, splitType: false, exact: false };
+    const a = answeredSummary([
+      row({}),
+      row({ payer: false, exact: false }),
+      row({ ambiguous: true, abstained: true }),
+      row({ ...off, error: true }),
+      row({ ...off, error: true, ambiguous: true, abstained: false }),
+    ]);
+    expect(a).toEqual({
+      n: 5,
+      answered: 3,
+      answerRate: 0.6,
+      amountAccuracy: 1,
+      payerAccuracy: 0.667,
+      participantsAccuracy: 1,
+      splitTypeAccuracy: 1,
+      exactMatchRate: 0.667,
+      ambiguousAnswered: 1,
+      abstentionRate: 1,
+    });
+    expect(answeredSummary([])).toMatchObject({ n: 0, answered: 0, answerRate: 0, exactMatchRate: 0 });
   });
 });

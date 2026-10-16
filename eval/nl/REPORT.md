@@ -1,5 +1,20 @@
 # Type-to-add eval
 
+## Answer rate and accuracy when answered (all runs)
+
+"Answered" means the app returned a usable prefill within its limit. **Overall** counts a sentence with no answer as wrong on every field; **when answered** counts only the answered sentences. Computed from each run's saved results file; no run was repeated.
+
+| | Run 1 | Run 2 | Run 3 (main) |
+|---|---|---|---|
+| Limit | 15 s, no retry | 15 s, one retry | 20 s, one retry after ~1 s |
+| **Answer rate** | **86.7%** (26/30) | **90.0%** (27/30) | **80.0%** (24/30) |
+| Amount: overall / when answered | 83.3% / 96.2% | 86.7% / 96.3% | 76.7% / 95.8% |
+| Payer | 80.0% / 92.3% | 83.3% / 92.6% | 76.7% / 95.8% |
+| Participant set | 83.3% / 96.2% | 90.0% / 100.0% | 80.0% / 100.0% |
+| Split type | 86.7% / 100.0% | 90.0% / 100.0% | 80.0% / 100.0% |
+| **Exact match** | 80.0% / 92.3% | 83.3% / 92.6% | 76.7% / 95.8% |
+| Correct abstention (ambiguous) | 71.4% / 71.4% (7 of 7 answered) | 71.4% / 71.4% (7 of 7 answered) | 57.1% / 80.0% (5 of 7 answered) |
+
 ## Run 3 (main result)
 
 - Model: `gemini-3.5-flash-lite` · run 2026-10-16T19:35:36.346Z

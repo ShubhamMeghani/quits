@@ -1,0 +1,65 @@
+{
+  "status": "ok",
+  "dataset": "real receipts",
+  "model": "gemini-3.5-flash-lite",
+  "runAt": "2026-10-16T19:48:46.441Z",
+  "n": 5,
+  "precision": 0.98,
+  "recall": 1,
+  "f1": 0.99,
+  "totalAccuracy": 1,
+  "reconciliationRate": 0.6,
+  "meanLatencySec": 5.893,
+  "perReceipt": [
+    {
+      "id": "r01",
+      "predictedItems": 35,
+      "truthItems": 34,
+      "matched": 34,
+      "totalCorrect": true,
+      "reconciled": false,
+      "latencySec": 10.078,
+      "error": false
+    },
+    {
+      "id": "r02",
+      "predictedItems": 6,
+      "truthItems": 6,
+      "matched": 6,
+      "totalCorrect": true,
+      "reconciled": true,
+      "latencySec": 4.217,
+      "error": false
+    },
+    {
+      "id": "r03",
+      "predictedItems": 3,
+      "truthItems": 3,
+      "matched": 3,
+      "totalCorrect": true,
+      "reconciled": true,
+      "latencySec": 6.169,
+      "error": false
+    },
+    {
+      "id": "r04",
+      "predictedItems": 2,
+      "truthItems": 2,
+      "matched": 2,
+      "totalCorrect": true,
+      "reconciled": false,
+      "latencySec": 4.919,
+      "error": false
+    },
+    {
+      "id": "r05",
+      "predictedItems": 3,
+      "truthItems": 3,
+      "matched": 3,
+      "totalCorrect": true,
+      "reconciled": true,
+      "latencySec": 4.083,
+      "error": false
+    }
+  ]
+}

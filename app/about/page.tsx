@@ -1,10 +1,12 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import results from "@/eval/results.json";
+import receiptRun1 from "@/eval/results-run1.json";
 import nlResults from "@/eval/nl/results.json";
 import nlRun1 from "@/eval/nl/results-run1.json";
 import nlRun2 from "@/eval/nl/results-run2.json";
 import { Card, Notice } from "@/app/_components/ui";
+import { answeredSummary, type NlAnsweredRow } from "@/lib/nlparse";
 
 export const metadata: Metadata = { title: "About — Quits" };
 
@@ -43,6 +45,7 @@ type NlResults =
       exactMatchRate: number;
       abstentionRate: number;
       meanLatencySec: number;
+      perSentence: NlAnsweredRow[];
     };
 
 /** R66: the committed type-to-add eval results, next to the receipt eval (no live call). */
@@ -65,23 +68,38 @@ function NlEvalSection() {
           <p className="text-sm text-muted">
             {r.n} sentences ({r.ambiguousN} deliberately ambiguous) · model <code>{r.model}</code> · run {r.runAt.slice(0, 10)}
           </p>
-          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-            {(
-              [
-                ["Amount", pct(r.amountAccuracy)],
-                ["Payer", pct(r.payerAccuracy)],
-                ["Who shares", pct(r.participantsAccuracy)],
-                ["Split type", pct(r.splitTypeAccuracy)],
-                ["Exact match", pct(r.exactMatchRate)],
-                ["Correctly left blank", pct(r.abstentionRate)],
-              ] as const
-            ).map(([k, v]) => (
-              <Card key={k} className="p-3">
-                <p className="text-xs font-semibold uppercase text-muted">{k}</p>
-                <p className="text-2xl font-bold">{v}</p>
-              </Card>
-            ))}
-          </div>
+          {(() => {
+            const a = answeredSummary(r.perSentence);
+            return (
+              <>
+                <Card className="p-3">
+                  <p className="text-xs font-semibold uppercase text-muted">Answer rate</p>
+                  <p className="text-2xl font-bold">{pct(a.answerRate)}</p>
+                  <p className="text-sm text-muted">
+                    {a.answered} of {a.n} sentences got an answer within 20 s
+                  </p>
+                </Card>
+                <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                  {(
+                    [
+                      ["Amount", r.amountAccuracy, a.amountAccuracy],
+                      ["Payer", r.payerAccuracy, a.payerAccuracy],
+                      ["Who shares", r.participantsAccuracy, a.participantsAccuracy],
+                      ["Split type", r.splitTypeAccuracy, a.splitTypeAccuracy],
+                      ["Exact match", r.exactMatchRate, a.exactMatchRate],
+                      ["Correctly left blank", r.abstentionRate, a.abstentionRate],
+                    ] as const
+                  ).map(([k, overall, answered]) => (
+                    <Card key={k} className="p-3">
+                      <p className="text-xs font-semibold uppercase text-muted">{k}</p>
+                      <p className="text-2xl font-bold">{pct(overall)}</p>
+                      <p className="text-sm text-muted">{pct(answered)} when answered</p>
+                    </Card>
+                  ))}
+                </div>
+              </>
+            );
+          })()}
           <p className="text-sm">
             Run 3 gives Gemini up to 20 s and waits before its one retry. It is not blind for two fixes chosen after earlier runs.{" "}
             <a href="#nl-earlier" className="font-semibold text-brand underline">
@@ -97,35 +115,42 @@ function NlEvalSection() {
             ["Run 2", run2, "Through the app's own handler with one retry and a 15 s limit; three sentences got no answer."],
             ["Run 1", run1, "Called Gemini without the app's retry; four sentences got no answer (two timeouts, two server errors)."],
           ] as const
-        ).map(([label, run, note]) => (
-          <div key={label} className="mt-2">
-            <p className="font-semibold">
-              {label} · {run.n} sentences · {run.runAt.slice(0, 10)}
-            </p>
-            <ul className="mt-1 grid grid-cols-2 gap-1 sm:grid-cols-3">
-              {(
-                [
-                  ["Amount", run.amountAccuracy],
-                  ["Payer", run.payerAccuracy],
-                  ["Who shares", run.participantsAccuracy],
-                  ["Split type", run.splitTypeAccuracy],
-                  ["Exact match", run.exactMatchRate],
-                  ["Correctly left blank", run.abstentionRate],
-                ] as const
-              ).map(([k, v]) => (
-                <li key={k}>
-                  {k}: <span className="font-semibold">{pct(v)}</span>
-                </li>
-              ))}
-            </ul>
-            <p className="text-muted">{note}</p>
-          </div>
-        ))}
+        ).map(([label, run, note]) => {
+          const a = answeredSummary(run.perSentence);
+          return (
+            <div key={label} className="mt-2">
+              <p className="font-semibold">
+                {label} · {run.n} sentences · {run.runAt.slice(0, 10)}
+              </p>
+              <p className="mt-1">
+                Answer rate: <span className="font-semibold">{pct(a.answerRate)}</span> ({a.answered} of {a.n})
+              </p>
+              <ul className="mt-1 grid grid-cols-1 gap-1 sm:grid-cols-2">
+                {(
+                  [
+                    ["Amount", run.amountAccuracy, a.amountAccuracy],
+                    ["Payer", run.payerAccuracy, a.payerAccuracy],
+                    ["Who shares", run.participantsAccuracy, a.participantsAccuracy],
+                    ["Split type", run.splitTypeAccuracy, a.splitTypeAccuracy],
+                    ["Exact match", run.exactMatchRate, a.exactMatchRate],
+                    ["Correctly left blank", run.abstentionRate, a.abstentionRate],
+                  ] as const
+                ).map(([k, overall, answered]) => (
+                  <li key={k}>
+                    {k}: <span className="font-semibold">{pct(overall)}</span> <span className="text-muted">({pct(answered)} when answered)</span>
+                  </li>
+                ))}
+              </ul>
+              <p className="text-muted">{note}</p>
+            </div>
+          );
+        })}
       </details>
       <p className="text-sm text-muted">
         Method: about 30 English and Hinglish sentences with hand-checked answers, about 5 of them deliberately unclear (for example two people with the same name). A
         field counts as correct only if it matches exactly. “Exact match” needs the amount, the payer and the set of people right, and the split must give everyone the same amount (an equal split and 1:1 shares count as the same). “Correctly left blank”
-        is the share of unclear sentences where Quits left the unclear field empty instead of guessing.
+        is the share of unclear sentences where Quits left the unclear field empty instead of guessing. “Answer rate” is the share of sentences that got an answer within the
+        time limit; the big figures count a sentence with no answer as wrong, and “when answered” counts only the sentences that got an answer.
       </p>
     </section>
   );
@@ -183,7 +208,7 @@ export default function AboutPage() {
         ) : (
           <>
             <p className="text-sm text-muted">
-              {r.dataset} · {r.n} receipts · model <code>{r.model}</code> · run {r.runAt.slice(0, 10)}
+              {r.dataset} · <span className="font-semibold">n = {r.n}, small sample</span> · model <code>{r.model}</code> · run {r.runAt.slice(0, 10)}
             </p>
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
               {(
@@ -226,12 +251,35 @@ export default function AboutPage() {
                 </tbody>
               </table>
             </div>
+            <details className="rounded-2xl border border-border bg-card p-3 text-sm">
+              <summary className="min-h-11 cursor-pointer content-center font-semibold">Earlier run (kept as it was)</summary>
+              <p className="mt-2 font-semibold">
+                Run 1 · n = {receiptRun1.n}, small sample · {receiptRun1.runAt.slice(0, 10)}
+              </p>
+              <ul className="mt-1 grid grid-cols-2 gap-1 sm:grid-cols-3">
+                {(
+                  [
+                    ["Item precision", receiptRun1.precision],
+                    ["Item recall", receiptRun1.recall],
+                    ["Item F1", receiptRun1.f1],
+                    ["Total accuracy", receiptRun1.totalAccuracy],
+                    ["Reconciliation rate", receiptRun1.reconciliationRate],
+                  ] as const
+                ).map(([k, v]) => (
+                  <li key={k}>
+                    {k}: <span className="font-semibold">{pct(v)}</span>
+                  </li>
+                ))}
+              </ul>
+              <p className="text-muted">Same receipts, prompt and model; it did not save what Gemini read, so its misses can&apos;t be explained.</p>
+            </details>
           </>
         )}
         <p className="text-sm text-muted">
-          Method: 10–15 real receipts with hand-labelled ground truth. An item counts as correct when its amount is within ₹1 and its name is at least 60% similar. Precision,
-          recall and F1 are averaged over all items. “Total accuracy” means the total was read within ₹1. “Reconciled” means the items, tax and charges add up to the total
-          within ₹1.
+          Method: 5 real receipts (n = 5, small sample: one receipt moves a per-receipt rate by 20 points): three restaurant bills and two food-delivery
+          screenshots, with ground truth checked by hand against the paper bills. An item counts as correct when its amount is within ₹1 and its name is at least 60%
+          similar. Precision, recall and F1 are averaged over all items. “Total accuracy” means the total was read within ₹1. “Reconciled” means the items, tax and charges
+          add up to the total within ₹1.
         </p>
       </section>
 

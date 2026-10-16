@@ -84,7 +84,7 @@ npm run build
 npm run eval             # receipt-extraction eval on eval/receipts (see eval/README.md)
 ```
 
-**Receipt eval:** precision, recall, F1, total accuracy and reconciliation rate are measured on 10–15 hand-labelled real receipts, and the results appear on the About page. The `eval/synthetic/` run is only a smoke test of the script.
+**Receipt eval:** precision, recall, F1, total accuracy and reconciliation rate are measured on 5 hand-checked real receipts (n = 5, small sample), and the results appear on the About page. The `eval/synthetic/` run is only a smoke test of the script.
 
 ## UPI app results (AC-14, P1-8)
 

@@ -471,3 +471,40 @@ export function scoreNl(cases: readonly NlEvalCase[]): NlEvalSummary {
     perSentence: rows,
   };
 }
+
+/** The per-sentence fields that answer rate and accuracy-when-answered need (saved in every run's results). */
+export type NlAnsweredRow = Pick<NlEvalRow, "amount" | "payer" | "participants" | "splitType" | "exact" | "ambiguous" | "abstained" | "error">;
+
+export type NlAnsweredSummary = {
+  n: number;
+  answered: number;
+  /** Share of sentences that got a usable answer within the limit. */
+  answerRate: number;
+  /** The accuracies below count only the answered sentences. */
+  amountAccuracy: number;
+  payerAccuracy: number;
+  participantsAccuracy: number;
+  splitTypeAccuracy: number;
+  exactMatchRate: number;
+  ambiguousAnswered: number;
+  abstentionRate: number;
+};
+
+/** Splits "no answer" from "wrong answer": answer rate, then every accuracy over answered sentences only. */
+export function answeredSummary(rows: readonly NlAnsweredRow[]): NlAnsweredSummary {
+  const a = rows.filter((r) => !r.error);
+  const rate = (f: (r: NlAnsweredRow) => boolean) => (a.length ? r3(a.filter(f).length / a.length) : 0);
+  const amb = a.filter((r) => r.ambiguous);
+  return {
+    n: rows.length,
+    answered: a.length,
+    answerRate: rows.length ? r3(a.length / rows.length) : 0,
+    amountAccuracy: rate((r) => r.amount),
+    payerAccuracy: rate((r) => r.payer),
+    participantsAccuracy: rate((r) => r.participants),
+    splitTypeAccuracy: rate((r) => r.splitType),
+    exactMatchRate: rate((r) => r.exact),
+    ambiguousAnswered: amb.length,
+    abstentionRate: amb.length ? r3(amb.filter((r) => r.abstained).length / amb.length) : 0,
+  };
+}
