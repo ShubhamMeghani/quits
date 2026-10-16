@@ -4,7 +4,7 @@
 
 | | |
 |---|---|
-| Version | v0.3 |
+| Version | v0.4 |
 | Date | 2026-10-16 |
 | Status | Ready for build. All open questions are decided (§10.1). Build order is in `PLAN.md`. |
 | Course | Applied Data Science & AI, IISc |
@@ -56,8 +56,8 @@ Quits is a free, mobile-first web app for Indian students to track shared expens
 **Stack (fixed)**
 - Next.js (App Router, TypeScript), Tailwind CSS, Vercel Hobby.
 - Supabase Postgres (its own free project).
-- **Gemini:** model `gemini-3.5-flash-lite` (env var `GEMINI_MODEL`), with structured JSON output (`responseMimeType: application/json` + `responseSchema`). Server only.
-- **Frankfurter v2 API** (free, no key; v1 is superseded). The exact v2 endpoint and response shape are confirmed in Phase 1 and wrapped in one adapter in `lib/currency.ts` (risk K6).
+- **Gemini:** model `gemini-3.5-flash-lite` (env var `GEMINI_MODEL`), with structured JSON output (`responseMimeType: application/json` + `responseJsonSchema`). Server only.
+- **Frankfurter v2 API** (free, no key; v1 is superseded). The endpoint and response shape were confirmed in Phase 1 (§4.3) and are wrapped in one adapter in `lib/currency.ts` (risk K6).
 - Vitest for unit tests.
 - **Pure, UI-free core modules** (no React, Next.js, Supabase or `fetch` imports; I/O is injected):
 
@@ -144,7 +144,7 @@ Multi-table writes run in **one Postgres function (RPC)** each, so they are atom
 ### 4.3 External interfaces
 
 **Gemini** (server only)
-- **Input:** a compressed JPEG sent as inline data, a fixed extraction prompt, and a `responseSchema`.
+- **Input:** a compressed JPEG sent as inline data, a fixed extraction prompt, and a `responseJsonSchema`.
 - **Output:** amounts in **major units as printed**. The server converts them to minor units with half-up rounding.
 
 ```json
@@ -161,7 +161,12 @@ Multi-table writes run in **one Postgres function (RPC)** each, so they are atom
 Missing extras are `0`. `tax` is the sum of all tax lines (CGST + SGST, VAT, etc.).
 
 **Frankfurter v2**
-- **Request:** the rate for one date, one base currency and one quote currency. The exact URL is confirmed in Phase 1.
+- **Request:** `GET https://api.frankfurter.dev/v2/rate/{BASE}/{QUOTE}?date=YYYY-MM-DD` (confirmed in Phase 1, P1-7).
+- **Response:** `{"date":"2026-10-01","base":"USD","quote":"INR","rate":95.98}`, where `rate` is a JSON number.
+- **Dates:**
+  - Weekends and holidays return a blended rate for that same date.
+  - Dates after today return 404, so those requests omit `date` and get the latest rate (D-17).
+  - An unknown currency returns 422.
 - **Required parsed output:** `{ rate: string, sourceDate: YYYY-MM-DD }`. `sourceDate` may be earlier than the requested date (weekends and holidays); it is stored as `fx_rate_date`.
 - **Supported currencies:** a static list in `lib/currency.ts`, taken from Frankfurter's currency list.
 - **ISO 4217 exponents:** JPY, KRW and ISK use 0; all other supported currencies use 2.
@@ -248,7 +253,7 @@ upi://pay?pa={vpa}&pn={name}&am={rupees, 2 decimals}&cu=INR&tn={note}
   - It stores `fx_rate`, `fx_rate_date` and `fx_source = frankfurter`.
   - WHEN such an expense is edited, it SHALL re-fetch only if the date or currency changed.
   - The expense SHALL display its original amount, its base equivalent, and the rate with the rate date.
-- **R17 [Must]** THE SYSTEM SHALL convert an amount as `base_amount_minor = round_half_up(amount_minor × rate × 10^(exp_base − exp_src))`, using exact decimal arithmetic. It SHALL then derive the base amounts of each payer and split by allocating `base_amount_minor` with R13, weighted by their original-currency amounts.
+- **R17 [Must]** THE SYSTEM SHALL convert an amount as `base_amount_minor = round_half_up(amount_minor × rate × 10^(exp_base − exp_src))`, using exact decimal arithmetic. It SHALL then derive the base amounts of each payer and split by allocating `base_amount_minor` with R13, weighted by their exact original-currency proportions: payer amounts for payers, and for splits the split's own weights (1 per person for equal, basis points for percent, shares for shares, the amounts for exact and itemized), not the rounded minor-unit shares. An equal split therefore stays equal in the base currency, within 1 minor unit (AC-6).
 - **R18 [Must]** IF the rate fetch fails or times out (5 s) and no cached rate exists, THEN THE SYSTEM SHALL ask for a manual rate (> 0, ≤ 10 decimals) and store it with `fx_source = manual`.
 
 ### 5.6 Debt simplification
@@ -303,7 +308,7 @@ upi://pay?pa={vpa}&pn={name}&am={rupees, 2 decimals}&cu=INR&tn={note}
   - IF its magic bytes are not JPEG, PNG or WebP, THEN reply 415.
   - IF the group has made more than 30 extract calls today (IST), or the whole app more than 300 (set by `SCAN_LIMIT_PER_GROUP` and `SCAN_LIMIT_PER_APP`), THEN reply 429 with "Daily scan limit reached — enter items manually".
 - **R31 [Must]** WHEN a valid image is received, THE SYSTEM SHALL:
-  1. Call Gemini with the §4.3 `responseSchema`.
+  1. Call Gemini with the §4.3 schema as `responseJsonSchema`.
   2. Validate the response with zod: all amounts ≥ 0 except `round_off`, and at least the `items` array present.
   3. Convert the amounts to minor units.
 
@@ -596,7 +601,7 @@ Unless marked *Should*, every AC is Must. Amounts are in ₹; the tests use pais
 | Deployed app | Vercel production URL (in README and repo description) |
 | Source repo | GitHub repository `quits` |
 | Specification | `SPEC.md` |
-| Plan | `PLAN.md`: phases and tasks mapped to R#/AC-#. Phase 1 includes confirming the Frankfurter v2 endpoint. |
+| Plan | `PLAN.md`: phases and tasks mapped to R#/AC-#. The Frankfurter v2 endpoint was confirmed in Phase 1. |
 | Migrations | `supabase/migrations/*.sql` (tables, constraints, RLS, RPC functions) |
 | Unit tests | `tests/**/*.test.ts`; `npm test` |
 | Eval | `eval/receipts/*.{jpg,json}`, `eval/run.ts` (`npm run eval`), `eval/results.json`, `eval/REPORT.md`; rendered on `/about` |
@@ -632,7 +637,7 @@ Unless marked *Should*, every AC is Must. Amounts are in ₹; the tests use pais
 | K3 | Gemini is unavailable, the model is renamed, or the quota runs out during grading. | `GEMINI_MODEL` env var; rate limits (R30); the demo includes an already itemized receipt; eval results are pre-computed. |
 | K4 | Vercel body-size limit or function timeout. | ≤ 1 MB browser compression; binary multipart upload; `maxDuration = 60` and a 25 s Gemini timeout with Retry. |
 | K5 | The Supabase free project pauses. | Daily GitHub Action health ping (R57). GitHub can delay schedules or disable them after 60 days of repo inactivity: re-enable the workflow and run `workflow_dispatch` the day before grading. |
-| K6 | **The Frankfurter v2 endpoint, parameters or response shape differ from what is assumed**, or the service is down. | Confirm in Phase 1 with one real request. Keep all Frankfurter specifics in one adapter plus a parser unit test. `fx_rates` cache; manual rate entry (R18); demo rates fixed in the seed. |
+| K6 | **The Frankfurter v2 endpoint, parameters or response shape change**, or the service is down. | Confirmed in Phase 1 (§4.3). Keep all Frankfurter specifics in one adapter plus a parser unit test. `fx_rates` cache; manual rate entry (R18); demo rates fixed in the seed. |
 | K7 | A group link leaks. | 128-bit tokens; `no-referrer` and `noindex` headers; soft delete plus activity log (Restore is Should). The limitation is stated in the UI (R2). |
 | K8 | Concurrent edits overwrite each other. | Accepted: last write wins (non-goal); the activity log records both edits. |
 | K9 | iPhone HEIC photos or very large images fail to decode. | `accept="image/*"` (iOS converts to JPEG); a clear error (R29); upload a screenshot instead. |
@@ -676,3 +681,4 @@ None open. New questions found during the build are added here with a proposed d
 | v0.1 | 2026-10-16 | Initial draft |
 | v0.2 | 2026-10-16 | **Scope cut for a 3-day build:** 102 → 58 requirements (43 Must, 15 Should); 73 → 45 ACs (39 Must, 6 Should); overlapping requirements merged. **Moved to non-goals:** version-conflict checks (now last write wins, stated explicitly) and Vercel Cron. **Made Should:** drag-and-drop upload, QR of the group link, Restore, multi-device item claiming (single-device claiming stays Must). **Recurring expenses:** now created lazily on group open, with no cron. **Keep-alive:** the GitHub Action only, calling `/api/health`; `CRON_SECRET` removed. **Greedy:** defined exactly, with the deterministic 4-vs-3 example sequence in AC-9; the optimal partition is now recovered deterministically. **Decisions:** OQ-1 to OQ-14 resolved as D-1 to D-14. D-3 changes receipt finalize to use the printed total, with a mismatch badge, and adds a printed-total case to AC-18. D-5 adds lazy cleanup of old demos; D-14 makes the UPI QR code Must. **§1:** rewritten with Splitwise free/Pro details, Spliit and Tricount, and Quits' edge. **Exchange rates:** Frankfurter v1 replaced by v2 (endpoint confirmed in Phase 1; new risk K6); added K13 and OQ-15 to OQ-17. **Kept:** every Must test of money maths, the balance invariant, simplification, the UPI link, reconciliation, security and demo mode. The only ACs dropped were for version conflicts (now a non-goal) and member archiving (Should). |
 | v0.3 | 2026-10-16 | **Decisions:** OQ-15 to OQ-17 accepted as D-15 to D-17 (public `/api/health`; no extra confirmation for receipt mismatches; nearest earlier rate for weekend and holiday dates). **Env names (§3):** listed in full, adding `SUPABASE_DB_URL` (local only, for migrations), `SCAN_LIMIT_PER_GROUP`, `SCAN_LIMIT_PER_APP` and the repo variable `APP_URL`. **Deliverables:** CI workflow (`ci.yml`, ubuntu-24.04) added. Counts unchanged: 58 requirements (43 Must, 15 Should), 45 ACs. `PLAN.md` created. |
+| v0.4 | 2026-10-16 | Approved PLAN.md proposals SC-1 to SC-3 (wording only; the code already followed them). **SC-1 (§4.3, §3, K6):** the Frankfurter v2 request and response confirmed in P1-7 (`/v2/rate/{BASE}/{QUOTE}?date=`; same-date blended weekend rates; 404 for future dates, so those use the latest rate; 422 for unknown currencies). **SC-2 (§3, §4.3, R31):** Gemini structured output uses `responseJsonSchema`. **SC-3 (R17):** base payer and split amounts are allocated by exact original-currency proportions (the split's own weights), not rounded minor-unit shares, matching AC-6. Counts unchanged: 58 requirements (43 Must, 15 Should), 45 ACs. |

@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| Spec | [SPEC.md](SPEC.md) **v0.3**. If SPEC.md and this plan disagree, SPEC.md wins. |
+| Spec | [SPEC.md](SPEC.md) **v0.4**. If SPEC.md and this plan disagree, SPEC.md wins. |
 | Stack | Next.js (App Router, TS) · Tailwind · Vitest · Supabase Postgres (server-only, RLS on, no policies) · Gemini `gemini-3.5-flash-lite` · Frankfurter v2 · Vercel Hobby · GitHub Actions (ubuntu-24.04) · Node 24 |
 | Tests | `npm test` (unit, `lib/` + `server/token.ts`) · `npm run test:db` (DB integration; loads `.env.local`; skips when `SUPABASE_DB_URL` is absent) · `npm run test:db:clean` (removes leftover `__test__` groups) · `npm run lint` · `npm run build` · `npm run eval` (receipt eval; loads `.env.local`) |
 | Migrations | `npm run db:push`: applies `supabase/migrations/*.sql` using `SUPABASE_DB_URL` |
@@ -60,7 +60,7 @@ No GitHub secrets are needed: CI runs only lint and unit tests, which make no ne
 | 1.12 | `/lab/receipt` (file picker, camera, paste; canvas compression to < 1 MB, with the size shown) and `/api/lab/extract` (size and magic-byte check, Gemini structured output, zod). Both are `noindex`. | AUTO | R27, R29–R31 · P1-6 |
 | 1.13 | Photograph a real bill with the Samsung phone on the deployed `/lab/receipt`, and confirm the JSON appears in < 20 s. | HUMAN | P1-6 |
 | 1.14 | Probe Frankfurter v2 for USD→INR on 2026-10-01 and on a Sunday. Record the exact URL and response shape, and propose the SPEC §4.3 update. | AUTO | R16 · P1-7 |
-| 1.15 | Approve the §4.3 Frankfurter update (this becomes SPEC v0.4). | HUMAN | P1-7 |
+| 1.15 | Approve the §4.3 Frankfurter update (this becomes SPEC v0.4). **Done 2026-10-16:** SC-1 to SC-3 approved and applied. | HUMAN | P1-7 |
 | 1.16 | `/lab/upi`: a form (VPA, name, amount; nothing stored) that shows the `upi://pay` button and its QR code, built from `lib/upi.ts` (stub). | AUTO | R24 · P1-8 |
 | 1.17 | On the Samsung phone, open the link in GPay, PhonePe and Paytm and record which apps fill in the amount. Scan the desktop QR code. | HUMAN | P1-8 |
 | 1.18 | `manifest.webmanifest` and icons (192, 512, 512 maskable, apple 180) generated from `public/icon.svg` with `sharp`. | AUTO | R52 · P1-9 |
@@ -199,9 +199,9 @@ No GitHub secrets are needed: CI runs only lint and unit tests, which make no ne
 
 ---
 
-## Proposed SPEC changes (awaiting approval)
+## SPEC change proposals
 
-These are wording changes only; the code already follows them. Approving them makes SPEC v0.4.
+**Status: approved 2026-10-16 and applied in SPEC v0.4.** These were wording changes only; the code already followed them.
 
 | ID | Where | Change | Why |
 |---|---|---|---|
@@ -235,7 +235,7 @@ Rows P1-1 to P1-10 are the Phase 1 checks; each one de-risks the spec ACs shown 
 | P1-4 `/api/health` via Supabase, RLS on [AC-41, AC-44] | Deploy | 1 | Pending (human) | local pass: `db:push` applied `_health` (RLS on); `next start` → `GET /api/health` = `{"ok":true}` 200; prod check after 1.5 |
 | P1-5 Keep-alive `workflow_dispatch` green [AC-44] | Script | 1 | Pending (human) | `keepalive.yml` written; needs repo variable `APP_URL` + manual run (1.10) |
 | P1-6 Phone photo < 1 MB → Gemini JSON [AC-20] | Phone | 1 | Pending (human) | server part local pass: synthetic bill → `gemini-3.5-flash-lite` JSON in 4.3 s, items/tax/service/total exact; fake JPEG → 415; phone test is 1.13 |
-| P1-7 Frankfurter v2 historical + weekend USD→INR [AC-8] | Script | 1 | Pass | `GET /v2/rate/USD/INR?date=2026-10-01` → `{"date":"2026-10-01","base":"USD","quote":"INR","rate":95.98}`; Sunday 2026-10-04 → 96.19 (same date); future date → 404. SPEC wording awaits approval (SC-1, task 1.15) |
+| P1-7 Frankfurter v2 historical + weekend USD→INR [AC-8] | Script | 1 | Pass | `GET /v2/rate/USD/INR?date=2026-10-01` → `{"date":"2026-10-01","base":"USD","quote":"INR","rate":95.98}`; Sunday 2026-10-04 → 96.19 (same date); future date → 404. Recorded in SPEC v0.4 §4.3 (SC-1) |
 | P1-8 UPI link in GPay/PhonePe/Paytm + QR [AC-14, AC-15] | Phone | 1 | Pending (human) | `/lab/upi` ready (link, QR, copy UPI ID); phone test is 1.17 |
 | P1-9 PWA installs on Android [AC-40] | Phone | 1 | Pending (human) | manifest + 4 icons served (200 locally); install test is 1.19 |
 | P1-10 No secrets in `.next/static` [AC-42] | Script | 1 | Pass | `grep -rE "sb_secret_\|AIza" .next/static` → no matches |
@@ -244,7 +244,7 @@ Rows P1-1 to P1-10 are the Phase 1 checks; each one de-risks the spec ACs shown 
 | AC-3 | Unit | 2 | Pass | tests/unit/splits.test.ts › AC-3 (EXACT_MISMATCH diff 1; PERCENT_MISMATCH 99.99) |
 | AC-4 | Unit | 2 | Pass | tests/unit/splits.test.ts › AC-4 (3 cases incl. multi-payer and soft delete) |
 | AC-5 | Unit | 2 | Pass | tests/unit/invariants.test.ts › AC-5 (1,000 groups, >10,000 expenses, 5 split types, 5 currencies) |
-| AC-6 | Unit | 2 | Pass | tests/unit/currency.test.ts › AC-6 (USD 102986 → [34329,34329,34328]; THB 2362; JPY 56120). See SC-3 |
+| AC-6 | Unit | 2 | Pass | tests/unit/currency.test.ts › AC-6 (USD 102986 → [34329,34329,34328]; THB 2362; JPY 56120); matches R17 as worded in SPEC v0.4 (SC-3) |
 | AC-7 | Unit | 2 | Pass | tests/unit/currency.test.ts › AC-7 (timeout → RATE_UNAVAILABLE; manual rate source = manual) |
 | AC-8 | Deploy | 6 | Not run | |
 | AC-9 | Unit | 2 | Pass | tests/unit/simplify.test.ts › AC-9 (greedy 4 exact sequence; optimal 3 exact sequence; both zero balances) |
