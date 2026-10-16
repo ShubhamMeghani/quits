@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| Spec | [SPEC.md](SPEC.md) **v0.4**. If SPEC.md and this plan disagree, SPEC.md wins. |
+| Spec | [SPEC.md](SPEC.md) **v0.5**. If SPEC.md and this plan disagree, SPEC.md wins. |
 | Production | https://quits-go.vercel.app (Vercel, deploys from `main`) |
 | Stack | Next.js (App Router, TS) · Tailwind · Vitest · Supabase Postgres (server-only, RLS on, no policies) · Gemini `gemini-3.5-flash-lite` · Frankfurter v2 · Vercel Hobby · GitHub Actions (ubuntu-24.04) · Node 24 |
 | Tests | `npm test` (unit, `lib/` + `server/token.ts`) · `npm run test:db` (DB integration; loads `.env.local`; skips when `SUPABASE_DB_URL` is absent) · `npm run test:db:clean` (removes leftover `__test__` groups) · `npm run lint` · `npm run build` · `npm run eval` (receipt eval; loads `.env.local`) |
@@ -20,7 +20,7 @@
 6. **AC status:** in the same commit, update the AC status table below: status plus evidence (test file › test name, or a command and its result). Deploy, Phone and Desktop ACs stay **Not run** until the human records them. Claude may add "local pass" to the evidence.
 7. **[HUMAN] tasks:** skip them and keep doing the [AUTO] tasks that don't depend on them. At the end of the run, list every pending [HUMAN] task in order.
 8. **Dependencies:** only these, unless a SPEC change is approved.
-   - Runtime: `next`, `react`, `react-dom`, `tailwindcss`, `@supabase/supabase-js`, `@google/genai`, `zod`, `qrcode`, `server-only`.
+   - Runtime: `next`, `react`, `react-dom`, `tailwindcss`, `@supabase/supabase-js`, `@google/genai`, `zod`, `qrcode`, `server-only`, `jsqr` (R60, Should; only used when the browser has no `BarcodeDetector`).
    - Dev: `typescript`, `vitest`, `eslint` + Next config, `supabase` (CLI), `postgres` (DB tests only), `tsx`, `dotenv` (only if `--env-file` cannot be used), `sharp` (icon generation), `@types/*`.
    - Charts, CSV, Levenshtein and image compression are hand-written.
 9. **Migrations:** never edit a migration that has been applied; add a new file instead.
@@ -117,7 +117,7 @@ No GitHub secrets are needed: CI runs only lint and unit tests, which make no ne
 
 ## Phase 4 — Mobile UI: groups, expenses, balances, settle-up
 
-**Goal:** the core loop works on a 360 px phone: create → share → pick identity → add expenses → settle with UPI.
+**Goal:** the core loop works on a 360 px phone: create → share → pick identity → add expenses → settle with a UPI QR code → "Mark as paid".
 
 | # | Task | Mode | Satisfies |
 |---|---|---|---|
@@ -126,13 +126,15 @@ No GitHub secrets are needed: CI runs only lint and unit tests, which make no ne
 | 4.3 | Share screen: the access notice, copy link, `navigator.share`; group-link QR code (Should). | AUTO | R2, R3 |
 | 4.4 | Member picker with `localStorage` identity, "I'm not on the list", Switch person; recent groups (Should). | AUTO | R4, R5 |
 | 4.5 | Members screen: add, rename, UPI ID with validation; archive (Should). | AUTO | R6, R7 |
+| 4.5a | Should: "Set from my UPI QR" on the member screen. Decode the screenshot in the browser (`BarcodeDetector`, falling back to `jsqr`) with `lib/upi.ts` `parseUpiUri` (unit-tested). Send only `pa`/`pn`; the image never leaves the browser. Migration adds `members.upi_name`, which `pn` then uses. | AUTO | R60 · AC-46 |
 | 4.6 | Expense list (50 per page), add/edit form with the 4 split types, live difference, default-split prefill, Group settings default split; multi-payer UI (Should). | AUTO | R8, R9, R10 |
 | 4.7 | Expense detail, edit, soft delete; activity screen; Restore (Should). | AUTO | R11, R12, R42 |
 | 4.8 | Settle screen: balances in words, naive/greedy/optimal counts and algorithm label, suggestions, Mark as paid, manual settlement. | AUTO | R22, R23, R51 |
-| 4.9 | UPI actions: Pay via UPI, QR code (shown by default ≥ 768 px), Copy UPI ID, no-UPI-ID and non-INR conditions, "Did the payment go through?" on `visibilitychange`; > ₹1 lakh warning (Should). Promote the `/lab/upi` code into this screen. | AUTO | R24–R26 |
+| 4.9 | **QR-first UPI actions** per suggestion: the UPI QR (payee + amount, visible at every width); "Save QR image" (PNG labelled with payee and amount); "Show full screen" QR; "Copy UPI ID" with the amount in large text; no-UPI-ID and non-INR conditions. Nothing is recorded until "Mark as paid". > ₹1 lakh warning (Should). Reuse the `/lab/upi` QR code. | AUTO | R24–R26 |
+| 4.9a | Should: best-effort "Pay via UPI" link labelled "May be blocked by some UPI apps"; opening it records nothing. | AUTO | R59 · AC-46 |
 | 4.10 | Offline fallback page via service worker (Should). | AUTO | R53 |
 | 4.11 | Commit `feat(ui): ...`. | AUTO | — |
-| 4.12 | Push, then on the deployment run AC-14, AC-15, AC-16, AC-27, AC-28, AC-29 and AC-30 (Should). | HUMAN | — |
+| 4.12 | Push, then on the deployment run AC-14 (save QR → scan from gallery; full-screen QR → second phone), AC-15, AC-16, AC-27, AC-28, AC-29, plus AC-30 and AC-46 (Should). | HUMAN | — |
 
 **Done when:** AC-14, AC-15, AC-16, AC-27, AC-28, AC-29 Pass.
 **Prove it:** `npm run lint && npm test && npm run test:db && npm run build`, plus the human checks.
@@ -237,7 +239,7 @@ Rows P1-1 to P1-10 are the Phase 1 checks; each one de-risks the spec ACs shown 
 | P1-5 Keep-alive `workflow_dispatch` green [AC-44] | Script | 1 | Pass | human 2026-10-16: repo variable `APP_URL` set; Keep-alive run #1 green, logged `{"ok":true}` |
 | P1-6 Phone photo < 1 MB → Gemini JSON [AC-20] | Phone | 1 | Pass | human 2026-10-16 (Samsung, Chrome, prod): real bill 3,986,619 → 415,486 bytes uploaded (≤ 1 MB); HTTP 200 in 9.0 s (Gemini 6.7 s); items, tax and total match the bill. Lab route deleted in 1.21 |
 | P1-7 Frankfurter v2 historical + weekend USD→INR [AC-8] | Script | 1 | Pass | `GET /v2/rate/USD/INR?date=2026-10-01` → `{"date":"2026-10-01","base":"USD","quote":"INR","rate":95.98}`; Sunday 2026-10-04 → 96.19 (same date); future date → 404. Recorded in SPEC v0.4 §4.3 (SC-1) |
-| P1-8 UPI link in GPay/PhonePe/Paytm + QR [AC-14, AC-15] | Phone | 1 | Pending (human) | `/lab/upi` ready (link, QR, copy UPI ID); phone test is 1.17 |
+| P1-8 UPI link in GPay/PhonePe/Paytm + QR [AC-14, AC-15] | Phone | 1 | Pass (via QR) | human 2026-10-16 (Samsung, prod `/lab/upi`): the `upi://` "Pay via UPI" deep link is **blocked** in GPay, PhonePe and Paytm (P2P intent links from websites restricted; GPay shows a misleading "exceeded bank limit" at ₹1). QR shown on the laptop, scanned by the phone: works, payee and ₹1.00 prefilled. QR screenshot scanned from the gallery in GPay: works. Led to SPEC v0.5: QR-first settle-up (D-18) |
 | P1-9 PWA installs on Android [AC-40] | Phone | 1 | Pending (human) | manifest + 4 icons served (200 locally); install test is 1.19 |
 | P1-10 No secrets in `.next/static` [AC-42] | Script | 1 | Pass | `grep -rE "sb_secret_\|AIza" .next/static` → no matches |
 | AC-1 | Unit | 2 | Pass | tests/unit/splits.test.ts › AC-1 (equal ₹100/3, 100 paise/7); tests/unit/money.test.ts › AC-1 |
@@ -285,3 +287,4 @@ Rows P1-1 to P1-10 are the Phase 1 checks; each one de-risks the spec ACs shown 
 | AC-43 | Script | 3 / 7 | Partial | server Pass: tests/db/security.test.ts › AC-43 (cross-group member → 404, no row; delete Y's expense via X → 404, unchanged; RPCs re-check). Local `curl -I` shows Referrer-Policy: no-referrer + X-Robots-Tag: noindex, nofollow. Prod curl pending (human) |
 | AC-44 | Script | 1 / 7 | Not run | |
 | AC-45 | Script | 7 | Not run | |
+| AC-46 (Should) | Unit + Phone | 4 | Not run | |

@@ -4,7 +4,7 @@
 
 | | |
 |---|---|
-| Version | v0.4 |
+| Version | v0.5 |
 | Date | 2026-10-16 |
 | Status | Ready for build. All open questions are decided (§10.1). Build order is in `PLAN.md`. |
 | Course | Applied Data Science & AI, IISc |
@@ -29,7 +29,7 @@ Quits is a free, mobile-first web app for Indian students to track shared expens
 - **Tricount:** a free app with groups shared by link.
 
 **Quits' edge:** everything Splitwise Pro unlocks is free in Quits, with no caps. On top of that, Quits offers:
-- **UPI settle-up:** a one-tap `upi://pay` link with the amount filled in, plus a QR code of the same link for desktop.
+- **UPI QR settle-up with the amount prefilled:** each suggested payment has a UPI QR code with the payee and amount filled in. You can scan it from a laptop screen, from a friend's phone in full screen, or as a saved image from the gallery in any UPI app. You then tap "Mark as paid".
 - **Itemized receipt splitting:** each person taps what they had; tax and tips are split in proportion.
 - **Provably optimal debt simplification:** the payment count is shown next to greedy and naive counts.
 - **Measured receipt accuracy:** precision, recall and reconciliation rate on a labelled test set, published in the app.
@@ -46,7 +46,7 @@ Quits is a free, mobile-first web app for Indian students to track shared expens
 - **S1 Create and share.** A student creates a group with members' names and shares the link on WhatsApp. Friends open it and pick their own name.
 - **S2 Add an expense.** "Swiggy ₹1,240, paid by Priya, split equally among 4" takes ≤ 15 seconds on a phone.
 - **S3 Itemized bill.** One phone photographs the bill. Gemini extracts the items, and the phone is passed around so each person taps what they had. Tax and service charge are split in proportion.
-- **S4 Settle up.** Settle shows the minimum set of payments. "Pay via UPI" opens GPay with the amount filled in; back in Quits, the user confirms the payment.
+- **S4 Settle up.** Settle shows the minimum set of payments, each with a UPI QR code that has the amount filled in. The payer scans it with any UPI app: from the laptop screen, from a friend's phone in full screen, or as a saved QR image from the gallery. After paying, they tap "Mark as paid", and only then is the payment recorded.
 - **S5 Foreign trip.** A THB expense is converted to INR at the rate for the expense date, and that rate is stored.
 - **S6 Recurring rent.** Monthly rent appears automatically the next time the group is opened after its due date.
 - **S7 Evaluator demo.** On desktop: "Try the demo" opens realistic data. Settle shows optimal fewer payments than greedy, a UPI QR code is visible, there is an itemized receipt, and the About page shows the eval metrics.
@@ -111,7 +111,7 @@ Quits is a free, mobile-first web app for Indian students to track shared expens
 | Table | Key columns | Notes |
 |---|---|---|
 | `groups` | `id uuid pk`, `share_token text unique`, `name`, `base_currency char(3)` default `INR`, `default_split jsonb`, `is_demo bool`, `created_at`, `updated_at` | `default_split = {type, participants[], weights{}}` |
-| `members` | `id`, `group_id`, `name`, `upi_id null`, `display_order int`, `archived_at null`, `created_at` | unique `(group_id, lower(name))` |
+| `members` | `id`, `group_id`, `name`, `upi_id null`, `upi_name null` (payee name from their UPI QR, R60), `display_order int`, `archived_at null`, `created_at` | unique `(group_id, lower(name))` |
 | `expenses` | `id`, `group_id`, `description`, `category`, `notes`, `expense_date`, `currency`, `amount_minor`, `fx_rate numeric(20,10)`, `fx_rate_date`, `fx_source` (`identity`\|`frankfurter`\|`manual`), `base_amount_minor`, `split_type` (`equal`\|`exact`\|`percent`\|`shares`\|`itemized`), `receipt_id null`, `recurring_rule_id null`, `recurring_occurrence null`, `created_by_member_id null`, `created_at`, `updated_at`, `deleted_at null` | unique `(recurring_rule_id, recurring_occurrence)` |
 | `expense_payers` | `expense_id`, `member_id`, `amount_minor`, `base_amount_minor` | pk both IDs; Σ = expense totals |
 | `expense_splits` | `expense_id`, `member_id`, `input_value numeric null`, `owed_minor`, `owed_base_minor` | `input_value` holds exact minor units, basis points, or a share count; Σ = expense totals |
@@ -178,8 +178,12 @@ upi://pay?pa={vpa}&pn={name}&am={rupees, 2 decimals}&cu=INR&tn={note}
 - `pn` and `tn` are encoded with `encodeURIComponent`.
 - `@` in `pa` stays literal.
 - `tn = "Quits: {group name}"`, truncated to 50 characters.
+- `pn` is the payee's `upi_name` if set (R60); otherwise it is their member name.
+- **Use:** the settle-up QR code encodes this exact string, and the QR is the primary path (R24). The best-effort "Pay via UPI" button (R59) opens the same string.
 
 ## 5. Requirements
+
+Requirement IDs are stable. R59 and R60 were added in v0.5 and sit in their topic sections (5.7 and 5.2).
 
 ### 5.1 Groups and identity
 - **R1 [Must]** WHEN a user submits the create-group form with a name (1–60 chars), a base currency, and ≥ 2 distinct member names, THE SYSTEM SHALL create the group and open `/g/{token}`.
@@ -202,6 +206,9 @@ upi://pay?pa={vpa}&pn={name}&am={rupees, 2 decimals}&cu=INR&tn={note}
   - IF the name is outside 1–30 chars or equals another member's name in the group (case-insensitive), THEN THE SYSTEM SHALL reject it with "Name already used" or a length message.
   - IF the UPI ID does not match `^[a-zA-Z0-9._-]{2,256}@[a-zA-Z]{2,64}$`, THEN THE SYSTEM SHALL reject it with "Invalid UPI ID".
 - **R7 [Should]** WHEN a user archives a member whose balance is 0, THE SYSTEM SHALL hide them from pickers and new splits and keep them in history. IF the balance is nonzero, THEN THE SYSTEM SHALL refuse with "Settle up first".
+- **R60 [Should]** WHEN a member uploads a screenshot of their own UPI QR code, THE SYSTEM SHALL decode it in the browser and fill in their UPI ID (`pa`) and UPI name (`pn`).
+  - Only the UPI ID and the name are saved. The image is never uploaded or stored.
+  - IF the image contains no valid UPI QR code, THEN THE SYSTEM SHALL show "No UPI QR code found" and save nothing.
 
 ### 5.3 Expenses and splits
 - **R8 [Must]** WHEN a user saves an expense, THE SYSTEM SHALL validate it and atomically persist the expense, its payers and its splits.
@@ -281,15 +288,17 @@ upi://pay?pa={vpa}&pn={name}&am={rupees, 2 decimals}&cu=INR&tn={note}
 - **R23 [Must]** THE SYSTEM SHALL record settlements in two ways, each updating balances and logging `settlement.created`:
   - WHEN a user taps "Mark as paid" on a suggestion and confirms, it creates a settlement for that amount (editable, > 0).
   - WHEN a user enters a manual settlement (from, to, amount, date, method), it creates that settlement.
-- **R24 [Must]** WHEN the group's base currency is INR and the payee has a UPI ID, THE SYSTEM SHALL show, for each suggested payment:
-  - a "Pay via UPI" button that opens the deep link in §4.3;
-  - a **QR code of the identical string** (≥ 200 × 200 px), visible by default at widths ≥ 768 px and behind "Show QR" below that;
-  - a "Copy UPI ID" button that confirms "Copied".
+- **R24 [Must]** WHEN the group's base currency is INR and the payee has a UPI ID, THE SYSTEM SHALL show a **QR-first** settle-up for each suggested payment (D-18):
+  - a **UPI QR code** of the §4.3 link, with the payee and amount filled in (≥ 200 × 200 px), visible by default at every width;
+  - on phones, **"Save QR image"**, which saves a PNG of the QR labelled with the payee and amount, so any UPI app can scan it from the gallery;
+  - **"Show full screen"**, which enlarges the QR to fill the screen so a friend can scan it from this phone;
+  - **"Copy UPI ID"**, which copies the payee's UPI ID and confirms "Copied", with the amount shown in large text next to it for manual entry.
 - **R25 [Must]** THE SYSTEM SHALL NOT process, receive or verify payments.
+  - It SHALL never record a settlement automatically. Showing, saving, scanning or opening a UPI link records nothing; a payment is recorded only WHEN the user taps "Mark as paid" and confirms (R23).
   - IF the payee has no UPI ID, THEN THE SYSTEM SHALL show "Add a UPI ID for {name}" in place of the UPI actions.
   - IF the base currency is not INR, THEN THE SYSTEM SHALL hide the UPI actions and keep "Mark as paid".
-  - WHEN the page becomes visible again after a UPI link was opened, THE SYSTEM SHALL ask "Did the payment go through?". "Yes" opens R23 and "No" does nothing.
 - **R26 [Should]** IF a suggested UPI amount exceeds ₹1,00,000, THEN THE SYSTEM SHALL warn that UPI apps may limit single payments.
+- **R59 [Should]** WHEN UPI actions are shown (R24), THE SYSTEM SHALL also show a best-effort "Pay via UPI" button that opens the same §4.3 link. The button is labelled "May be blocked by some UPI apps". Opening it records nothing (R25).
 
 ### 5.8 Receipt scanning and itemized split
 - **R27 [Must]** WHEN the user opens Scan receipt, THE SYSTEM SHALL accept an image in three ways:
@@ -480,16 +489,21 @@ Unless marked *Should*, every AC is Must. Amounts are in ₹; the tests use pais
 - **AC-13 [Unit] (R6, R24):**
   - `buildUpiLink({pa:"priya@okicici", pn:"Priya S", amountMinor:45050, groupName:"Goa Trip"})` returns exactly `upi://pay?pa=priya@okicici&pn=Priya%20S&am=450.50&cu=INR&tn=Quits%3A%20Goa%20Trip`.
   - The UPI ID check accepts `rohan.k@oksbi` and `9876543210@ybl`, and rejects `rohan`, `@ybl`, `a b@ok` and `x@1`.
-- **AC-14 [Phone] (R24, R25):** a member is set to the tester's own UPI ID.
-  1. "Pay via UPI" opens a UPI app (or the app chooser) with that payee and the amount filled in.
-  2. On returning, "Did the payment go through?" appears.
+- **AC-14 [Phone] (R24, R25):** on a real phone in Chrome, with a payee set to the tester's own UPI ID, on the Settle screen:
+  1. "Save QR image" saves the QR. Scanning it from the gallery in at least one of GPay, PhonePe or Paytm shows that payee and the amount filled in.
+  2. "Show full screen" shows the QR large enough for a second phone's UPI app to scan, again with the payee and amount filled in.
+  3. Saving, scanning and opening record nothing; balances change only after "Mark as paid".
 
-  The test passes if at least one of GPay, PhonePe or Paytm opens with the amount filled in. The results for all three are recorded in the README.
-- **AC-15 [Desktop + Phone] (R24):** on desktop, the Settle screen shows the UPI QR code without any toggle. Scanning it with a phone UPI app shows the same payee and amount. "Copy UPI ID" puts the exact ID on the clipboard.
+  The deep link's format is covered by AC-13 (Unit). Its per-app behaviour is best-effort (R59) and is recorded in the README, but does not affect this AC.
+- **AC-15 [Desktop + Phone] (R24):** on desktop, the Settle screen shows the UPI QR code without any toggle. Scanning it with a phone UPI app shows the same payee and amount. "Copy UPI ID" puts the exact ID on the clipboard, and the amount is shown in large text next to it.
 - **AC-16 [Deploy] (R23, R25):**
   - "Mark as paid" → confirm: the suggestion disappears, both balances change by the amount, and the activity log shows `settlement.created`.
   - A payee without a UPI ID shows "Add a UPI ID for {name}".
   - A non-INR group shows no UPI actions.
+- **AC-46 [Unit + Phone, *Should*] (R59, R60):**
+  - `parseUpiUri("upi://pay?pa=priya%40okicici&pn=Priya%20S&mc=0000")` returns `{ pa: "priya@okicici", pn: "Priya S" }`, and a non-UPI string returns `null`.
+  - On a phone, uploading a screenshot of the tester's own UPI QR sets their UPI ID and name. The network log shows only those two values sent, and no image.
+  - The "Pay via UPI" button is labelled "May be blocked by some UPI apps", and tapping it records no payment.
 
 **Receipts**
 - **AC-17 [Unit] (R33):** items `[25000, 18000]` with tax 2150:
@@ -632,7 +646,7 @@ Unless marked *Should*, every AC is Must. Amounts are in ₹; the tests use pais
 
 | # | Risk | Fallback / mitigation |
 |---|---|---|
-| K1 | UPI apps block or restrict P2P deep links from unknown apps (declined "for security reasons", `am` ignored, amount caps). | **UPI QR code (Must)**, scannable by any UPI app; "Copy UPI ID" plus the amount in large text; manual "Mark as paid". GPay, PhonePe and Paytm results are recorded (AC-14). |
+| K1 | UPI apps block P2P deep links from websites. **Confirmed in P1-8:** blocked in GPay, PhonePe and Paytm; GPay shows a misleading "exceeded bank limit" error at ₹1. | Settle-up is **QR-first** (R24), and each path was confirmed in P1-8: a QR on a laptop scanned by the phone, and a QR screenshot scanned from the gallery in GPay. Also "Copy UPI ID" with the amount in large text. The deep link is only a best-effort Should (R59), and recording is always manual via "Mark as paid" (R25). |
 | K2 | Gemini misreads receipts or returns invalid JSON. | Schema-constrained output and zod validation; the ₹1 mismatch banner and badge; every field editable; manual entry. Accuracy is measured and published (R37, R38). |
 | K3 | Gemini is unavailable, the model is renamed, or the quota runs out during grading. | `GEMINI_MODEL` env var; rate limits (R30); the demo includes an already itemized receipt; eval results are pre-computed. |
 | K4 | Vercel body-size limit or function timeout. | ≤ 1 MB browser compression; binary multipart upload; `maxDuration = 60` and a 25 s Gemini timeout with Retry. |
@@ -642,7 +656,7 @@ Unless marked *Should*, every AC is Must. Amounts are in ₹; the tests use pais
 | K8 | Concurrent edits overwrite each other. | Accepted: last write wins (non-goal); the activity log records both edits. |
 | K9 | iPhone HEIC photos or very large images fail to decode. | `accept="image/*"` (iOS converts to JPEG); a clear error (R29); upload a screenshot instead. |
 | K10 | Exact DP becomes slow. | Cap at 18 nonzero balances (2¹⁸ states, milliseconds); greedy above that. |
-| K11 | Three days is not enough. | Build order: `lib/` + tests → DB + RLS → groups and expenses → settle + UPI → receipts → demo → eval → polish. Cut Shoulds in this order: R36, R53, R41, R44–R46, R10, R52, R3, R5, R7, R12, R26, R28, R39. |
+| K11 | Three days is not enough. | Build order: `lib/` + tests → DB + RLS → groups and expenses → settle + UPI → receipts → demo → eval → polish. Cut Shoulds in this order: R60, R36, R53, R41, R44–R46, R10, R52, R3, R5, R7, R12, R26, R59, R28, R39. |
 | K12 | Free-tier Gemini inputs may be used by Google. | Notice on the scan screen (R31); eval images have personal data removed; images are not stored by Quits. |
 | K13 | Lazy recurring expenses appear only when someone opens the group. | Accepted: each is dated on its occurrence date, so balances are correct the moment they are viewed. |
 
@@ -665,9 +679,10 @@ Unless marked *Should*, every AC is Must. Amounts are in ₹; the tests use pais
 | D-11 | OQ-11 | Anyone with the link can delete. Soft delete is Must (R11); Restore is Should (R12). |
 | D-12 | OQ-12 | Running the eval script and reporting precision, recall and reconciliation is Must (R37, R38). The quality targets are Should (R39). |
 | D-13 | OQ-13 | Partial settlements need no special handling; the amount is editable. |
-| D-14 | OQ-14 | At least one of GPay, PhonePe or Paytm must pass AC-14, with all three recorded. The UPI QR fallback is **Must** (R24, AC-15). |
+| D-14 | OQ-14 | At least one of GPay, PhonePe or Paytm must pass AC-14, with all three recorded. The UPI QR fallback is **Must** (R24, AC-15). *Superseded by D-18 for the deep link.* |
 | D-15 | OQ-15 | `/api/health` is public with no secret. It runs one trivial query and returns only `{"ok":true}` (R57). |
 | D-16 | OQ-16 | No extra confirmation when finalizing a receipt with \|diff\| > ₹1; the banner on the review screen and the badge on the expense are enough (R33, R35). |
+| D-18 | P1-8 (2026-10-16) | **Settle-up is QR-first.**<br>**Must:** the QR with payee and amount, "Save QR image", "Show full screen", and "Copy UPI ID" with the amount in large text (R24).<br>**Should, best-effort:** the `upi://` button, labelled "May be blocked by some UPI apps" (R59).<br>**Recording:** settlement is never automatic; it happens only on "Mark as paid" (R25).<br>**Should:** set your UPI ID from a screenshot of your own UPI QR, decoded in the browser; only the ID and name are saved (R60). |
 | D-17 | OQ-17 | When Frankfurter v2 has no rate for the exact date, use the most recent rate on or before `expense_date`, and store and show its `fx_rate_date` (R16). |
 
 ### 10.2 Open questions
@@ -682,3 +697,4 @@ None open. New questions found during the build are added here with a proposed d
 | v0.2 | 2026-10-16 | **Scope cut for a 3-day build:** 102 → 58 requirements (43 Must, 15 Should); 73 → 45 ACs (39 Must, 6 Should); overlapping requirements merged. **Moved to non-goals:** version-conflict checks (now last write wins, stated explicitly) and Vercel Cron. **Made Should:** drag-and-drop upload, QR of the group link, Restore, multi-device item claiming (single-device claiming stays Must). **Recurring expenses:** now created lazily on group open, with no cron. **Keep-alive:** the GitHub Action only, calling `/api/health`; `CRON_SECRET` removed. **Greedy:** defined exactly, with the deterministic 4-vs-3 example sequence in AC-9; the optimal partition is now recovered deterministically. **Decisions:** OQ-1 to OQ-14 resolved as D-1 to D-14. D-3 changes receipt finalize to use the printed total, with a mismatch badge, and adds a printed-total case to AC-18. D-5 adds lazy cleanup of old demos; D-14 makes the UPI QR code Must. **§1:** rewritten with Splitwise free/Pro details, Spliit and Tricount, and Quits' edge. **Exchange rates:** Frankfurter v1 replaced by v2 (endpoint confirmed in Phase 1; new risk K6); added K13 and OQ-15 to OQ-17. **Kept:** every Must test of money maths, the balance invariant, simplification, the UPI link, reconciliation, security and demo mode. The only ACs dropped were for version conflicts (now a non-goal) and member archiving (Should). |
 | v0.3 | 2026-10-16 | **Decisions:** OQ-15 to OQ-17 accepted as D-15 to D-17 (public `/api/health`; no extra confirmation for receipt mismatches; nearest earlier rate for weekend and holiday dates). **Env names (§3):** listed in full, adding `SUPABASE_DB_URL` (local only, for migrations), `SCAN_LIMIT_PER_GROUP`, `SCAN_LIMIT_PER_APP` and the repo variable `APP_URL`. **Deliverables:** CI workflow (`ci.yml`, ubuntu-24.04) added. Counts unchanged: 58 requirements (43 Must, 15 Should), 45 ACs. `PLAN.md` created. |
 | v0.4 | 2026-10-16 | Approved PLAN.md proposals SC-1 to SC-3 (wording only; the code already followed them). **SC-1 (§4.3, §3, K6):** the Frankfurter v2 request and response confirmed in P1-7 (`/v2/rate/{BASE}/{QUOTE}?date=`; same-date blended weekend rates; 404 for future dates, so those use the latest rate; 422 for unknown currencies). **SC-2 (§3, §4.3, R31):** Gemini structured output uses `responseJsonSchema`. **SC-3 (R17):** base payer and split amounts are allocated by exact original-currency proportions (the split's own weights), not rounded minor-unit shares, matching AC-6. Counts unchanged: 58 requirements (43 Must, 15 Should), 45 ACs. |
+| v0.5 | 2026-10-16 | **Settle-up is QR-first (D-18),** after P1-8 showed `upi://` P2P links blocked in GPay, PhonePe and Paytm from a website, while QR scans (laptop screen, gallery screenshot) worked with the payee and amount filled in.<br>**R24 (Must):** the QR is visible at every width, plus "Save QR image", "Show full screen", and "Copy UPI ID" with the amount in large text.<br>**R25:** settlement is never automatic, only on "Mark as paid"; the "Did the payment go through?" prompt is removed.<br>**New R59 (Should):** best-effort "Pay via UPI" link labelled "May be blocked by some UPI apps".<br>**New R60 (Should):** set a UPI ID from a screenshot of your own UPI QR, decoded in the browser; only `pa`/`pn` are saved; `members.upi_name` added; `pn` uses it.<br>**ACs:** AC-14 is now the phone QR path (save + gallery scan, full screen); the link format stays Unit (AC-13). AC-15 adds the large amount. New AC-46 (Should) covers R59/R60.<br>**Elsewhere:** §1 edge, S4, §4.1, §4.3, K1, K11 and D-14 updated.<br>**Counts:** 60 requirements (43 Must, 17 Should); 46 ACs (39 Must, 7 Should), one over the earlier ≤ 45 target because of the new Should AC. |
