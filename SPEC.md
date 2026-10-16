@@ -4,7 +4,7 @@
 
 | | |
 |---|---|
-| Version | v0.6 |
+| Version | v0.7 |
 | Date | 2026-10-16 |
 | Status | Ready for build. All open questions are decided (§10.1). Build order is in `PLAN.md`. |
 | Course | Applied Data Science & AI, IISc |
@@ -33,6 +33,8 @@ Quits is a free, mobile-first web app for Indian students to track shared expens
 - **Itemized receipt splitting:** each person taps what they had; tax and tips are split in proportion.
 - **Provably optimal debt simplification:** the payment count is shown next to greedy and naive counts.
 - **Measured receipt accuracy:** precision, recall and reconciliation rate on a labelled test set, published in the app.
+- **Type-to-add in English or Hinglish (v0.7):** "maine 450 diye auto ke, sab mein" fills the expense form, which you review before saving. Its accuracy is measured too.
+- **WhatsApp nudges (v0.7, Should):** share the settle-up summary, or send a polite prefilled reminder, without Quits storing any phone numbers.
 
 ## 2. Users and main scenarios
 
@@ -49,6 +51,8 @@ Quits is a free, mobile-first web app for Indian students to track shared expens
 - **S4 Settle up.** Settle shows the minimum set of payments, each with a UPI QR code that has the amount filled in. The payer scans it with any UPI app: from the laptop screen, from a friend's phone in full screen, or as a saved QR image from the gallery. After paying, they tap "Mark as paid", and only then is the payment recorded.
 - **S5 Foreign trip.** A THB expense is converted to INR at the rate for the expense date, and that rate is stored.
 - **S6 Recurring rent.** Monthly rent appears automatically the next time the group is opened after its due date.
+- **S8 Type-to-add.** On Add expense, a student types or dictates (through the keyboard mic) "Rahul paid 600 for pizza, split with Amit and me". The form fills in; they check it and tap Save.
+- **S9 Nudge.** On Settle, a student taps "Remind" next to "Rohan -> Aarav Rs 1,200". WhatsApp opens with a polite message prefilled, and they pick Rohan as the contact.
 - **S7 Evaluator demo.** On desktop: "Try the demo" opens realistic data. Settle shows optimal fewer payments than greedy, a UPI QR code is visible, there is an itemized receipt, and the About page shows the eval metrics.
 
 ## 3. Constraints
@@ -82,7 +86,8 @@ Quits is a free, mobile-first web app for Indian students to track shared expens
 - **Secret names:** `SUPABASE_URL`, `SUPABASE_SECRET_KEY`, `GEMINI_API_KEY`, and `SUPABASE_DB_URL`. `SUPABASE_DB_URL` is local only and is used just to apply migrations; it is never set in Vercel.
 - **Non-secret config:**
   - `GEMINI_MODEL`.
-  - `SCAN_LIMIT_PER_GROUP` and `SCAN_LIMIT_PER_APP` (optional; defaults 30 and 300).
+  - `SCAN_LIMIT_PER_GROUP` and `SCAN_LIMIT_PER_APP` (optional; defaults 30 and 300). From v0.7, `SCAN_LIMIT_PER_APP` is the app-wide **daily AI limit**, shared by receipt scans and type-to-add.
+  - `NL_LIMIT_PER_GROUP` (optional; default 50): type-to-add calls per group per IST day (R65).
   - The GitHub repository variable `APP_URL`, used by the keep-alive.
 - No `NEXT_PUBLIC_*` variable holds a secret.
 - Keys are never pasted into chat, code or commits.
@@ -140,6 +145,7 @@ Multi-table writes run in **one Postgres function (RPC)** each, so they are atom
 | CSV export | token | `text/csv` |
 | Demo create / reset | — / token | `{ token }` |
 | Health | `GET /api/health` | `{ "ok": true }` after one trivial DB query, or 503 |
+| Parse expense text (v0.7) | `POST /api/g/[token]/expenses/parse` with `{ text (≤ 300 chars), me (member id or null) }` | `{ prefill, flags }` for the expense form (R61–R65). Nothing is saved. |
 
 ### 4.3 External interfaces
 
@@ -181,9 +187,42 @@ upi://pay?pa={vpa}&pn={name}&am={rupees, 2 decimals}&cu=INR&tn={note}
 - `pn` is the payee's `upi_name` if set (R60); otherwise it is their member name.
 - **Use:** the settle-up QR code encodes this exact string, and the QR is the primary path (R24). The best-effort "Pay via UPI" button (R59) opens the same string.
 
+**Gemini type-to-add (v0.7, server only)**
+- **Input:** the text (≤ 300 chars), the group's active member first names, the base currency, today's IST date (for "yesterday" or "on Friday"), and a fixed prompt.
+- **Output** (`responseJsonSchema`). Names are returned exactly as written in the text, and `"me"` stands for the speaker. Unknown values are `null`.
+
+```json
+{
+  "description": "string | null",
+  "amount": "number | null (major units)",
+  "currency": "ISO-4217 | null",
+  "payer": "string | null (a name as written, or \"me\")",
+  "participants": ["string"],
+  "split_type": "equal | exact | percent | shares | null",
+  "split_values": [{ "name": "string", "value": "number" }],
+  "category": "string | null",
+  "date": "YYYY-MM-DD | null"
+}
+```
+
+- **Post-processing** (`lib/nlparse.ts`, deterministic) maps names to members and validates everything (R62, R63). The model never chooses member ids.
+
+**WhatsApp messages (v0.7, output)**
+- Built by `lib/share.ts`. Amounts use `en-IN` grouping with an ASCII "Rs" prefix: `Rs 1,200` for whole rupees, `Rs 1,200.50` otherwise, `Rs 1,20,000` for larger amounts.
+- **Summary:**
+  ```
+  Quits: {group name}
+  Payments to settle up:
+  - {from} -> {to} Rs {amount}
+  Open the group: {link}
+  ```
+  With no payments, the middle lines become `Everyone is settled up.`
+- **Reminder:** `Hi {from}, a gentle reminder from Quits: please pay {to} Rs {amount} for "{group name}". You can scan the UPI QR in the group: {link} Thanks!`
+- **Link without Web Share:** `https://wa.me/?text={encodeURIComponent(message)}`.
+
 ## 5. Requirements
 
-Requirement IDs are stable. R59 and R60 were added in v0.5 and sit in their topic sections (5.7 and 5.2).
+Requirement IDs are stable. R59 and R60 were added in v0.5 and sit in their topic sections (5.7 and 5.2). R61–R70 were added in v0.7 (sections 5.15 and 5.16).
 
 ### 5.1 Groups and identity
 - **R1 [Must]** WHEN a user submits the create-group form with a name (1–60 chars), a base currency, and ≥ 2 distinct member names, THE SYSTEM SHALL create the group and open `/g/{token}`.
@@ -433,6 +472,36 @@ Requirement IDs are stable. R59 and R60 were added in v0.5 and sit in their topi
   - IF the DB query fails, THEN the endpoint SHALL return 503 and the workflow SHALL fail.
 - **R58 [Must]** THE SYSTEM SHALL ship Vitest unit tests for every `lib/` module. `npm test` and `npm run build` SHALL both exit 0 on the delivered commit.
 
+### 5.15 Type-to-add (v0.7)
+- **R61 [Must]** WHEN a user types free text (1–300 chars, English or Hinglish) in the "Type it" box at the top of the Add expense screen and taps "Fill form", THE SYSTEM SHALL send it to `POST /api/g/[token]/expenses/parse`.
+  - The route calls Gemini with `responseJsonSchema` (§4.3), sending the text, the active members' first names, the base currency and today's IST date.
+  - It returns description, amount, currency, payer, participants, split type and values, category and date.
+  - Voice input works through the phone keyboard's mic; Quits has no speech code.
+- **R62 [Must]** THE SYSTEM SHALL map names deterministically in the pure module `lib/nlparse.ts`:
+  - A name matches a member when it equals the member's first name or full name, ignoring case and surrounding spaces.
+  - "me", "I", "maine", "mujhe" and "mera" (any case) mean the current member.
+  - IF a name matches no member, or more than one member, THEN THE SYSTEM SHALL leave that field blank and highlight it. It SHALL never create a member.
+- **R63 [Must]** THE SYSTEM SHALL validate the parsed values in `lib/nlparse.ts`, using `lib/splits.ts` for the split, and leave every invalid value blank:
+  - **Amount:** must be > 0 and ≤ the R8 maximum.
+  - **Currency:** must be supported; otherwise the base currency is used.
+  - **Date:** must be a real date that is not in the future and not more than a year in the past.
+  - **Category:** must be from the R8 list.
+  - **Split:** exact amounts must sum to the total and percentages to 100.00. If the split is invalid, or names any blank participant, the split values are left blank.
+- **R64 [Must]** THE SYSTEM SHALL NOT save anything from type-to-add. It only fills the normal expense form; blank or ambiguous fields are highlighted and must be completed. The user reviews and saves through R8–R10. A parse that fails or times out (15 s) shows "Couldn't understand that — fill in the form" and leaves the form unchanged.
+- **R65 [Must]** IF a group has made more than `NL_LIMIT_PER_GROUP` (default 50) type-to-add calls today (IST), or the app has exceeded the shared daily AI limit (`SCAN_LIMIT_PER_APP`, counting scans and type-to-add together), THEN THE SYSTEM SHALL reply 429 without calling Gemini. IF the text is empty or longer than 300 chars, THEN it SHALL reply 400.
+- **R66 [Must]** THE SYSTEM SHALL include `eval/nl/` with about 30 sentences, each with a ground-truth JSON. About 5 are deliberately ambiguous, where the correct result is a blank field.
+  - WHEN `npm run eval:nl` is run, it SHALL use the same prompt, schema, model and post-processing as the app.
+  - It SHALL report field accuracy (amount, payer, participant set, split type), the exact-match rate, and the correct-abstention rate on the ambiguous sentences.
+  - It SHALL write `eval/nl/results.json` and `eval/nl/REPORT.md`, and `/about` SHALL show the results next to the receipt eval, with no live call.
+- **R67 [Should]** THE SYSTEM SHALL reach amount accuracy ≥ 95% and an exact-match rate ≥ 80% on the NL eval set.
+
+### 5.16 WhatsApp share and nudge (v0.7)
+- **R68 [Should]** WHEN a user taps "Share summary" on the Settle screen, THE SYSTEM SHALL build the summary message (§4.3) with the group name, each suggested payment and the group link.
+  - It uses the Web Share API when available, otherwise a `wa.me/?text=` link.
+  - On desktop it also offers "Copy".
+- **R69 [Should]** WHEN a user taps "Remind" on a suggested payment, THE SYSTEM SHALL open WhatsApp (`wa.me/?text=`) with the polite reminder (§4.3) prefilled. The user picks the contact in WhatsApp. THE SYSTEM SHALL NOT store phone numbers.
+- **R70 [Should]** THE SYSTEM SHALL build all share and reminder text in the pure module `lib/share.ts`, with Indian number grouping (`Rs 1,20,000`) and URL encoding for `wa.me`.
+
 ## 6. Acceptance criteria
 
 **Test types**
@@ -609,6 +678,40 @@ Unless marked *Should*, every AC is Must. Amounts are in ₹; the tests use pais
 - **AC-44 [Script] (R57):** a manual `workflow_dispatch` run succeeds, and `GET /api/health` returns `{"ok":true}`. With a wrong DB URL on a preview deployment, the endpoint returns 503.
 - **AC-45 [Script] (R58):** `npm test` and `npm run build` both exit 0 on the delivered commit.
 
+**Type-to-add and sharing (v0.7)**
+- **AC-47 [Unit] (R62):** with members Aarav, Priya, Rahul Kumar, Rahul Singh and Amit:
+  - "priya", "PRIYA" and " Priya " → Priya; "Amit" → Amit.
+  - "Rahul" → blank and flagged ambiguous (two Rahuls). "Rahul Singh" → Rahul Singh.
+  - "Karan" → blank and flagged unknown.
+  - No member is ever added.
+- **AC-48 [Unit] (R62):** "me", "I", "Maine", "MUJHE" and "mera" → the current member. With no current member they → blank and flagged.
+- **AC-49 [Unit] (R63):**
+  - Exact values 300 + 200 for a total of 600 → split values blank. Percentages 50 + 40 → blank. Valid shares 2:1:1 → kept.
+  - Amount 0 or negative → blank.
+  - Currency "XYZ" → base currency.
+  - A future date, or one more than a year old → blank.
+  - Category "Party" → blank.
+- **AC-50 [Unit] (R61, R64, R65):** with the Gemini client mocked:
+  - The route returns the expected prefill for "Rahul Singh paid 600 for pizza, split with Amit and me", and calls no write function.
+  - 301 chars → 400. The per-group limit exceeded → 429, with no Gemini call. A mocked timeout → 502 with the "Couldn't understand that" message.
+- **AC-51 [Script + Deploy] (R66):**
+  - `eval/nl/` holds about 30 sentence/ground-truth pairs: 20 drafted by Claude (about 5 ambiguous) and about 10 written by the human, all reviewed by the human.
+  - `npm run eval:nl` exits 0 and writes `eval/nl/results.json` with `model, runAt, n, amountAccuracy, payerAccuracy, participantsAccuracy, splitTypeAccuracy, exactMatchRate, abstentionRate, perSentence[]`, plus `REPORT.md`.
+  - `/about` shows the same numbers with no live call.
+- **AC-52 [Script, *Should*] (R67):** `eval/nl/results.json` has `amountAccuracy ≥ 0.95` and `exactMatchRate ≥ 0.80`.
+- **AC-53 [Phone] (R61, R62, R64):** in a group with Rahul, Amit and the tester:
+  1. Type or dictate (keyboard mic) "Rahul paid 600 for pizza, split with Amit and me" in "Type it" and tap "Fill form".
+  2. The form shows amount 600, payer Rahul, and participants Rahul, Amit and the tester.
+  3. The expense count is unchanged until Save is tapped.
+  4. A sentence with an unknown name leaves that field blank and highlighted.
+- **AC-54 [Unit, *Should*] (R68–R70):** `lib/share.ts` returns exact strings:
+  - the summary for two payments, and the settled-up summary;
+  - a reminder for Rs 1,20,000 and one for Rs 1,200.50;
+  - a `wa.me` URL whose text is `encodeURIComponent` of the message (newline → `%0A`, space → `%20`).
+- **AC-55 [Phone + Desktop, *Should*] (R68, R69):**
+  - On a phone, "Remind" opens WhatsApp with the reminder prefilled and a contact picker, and "Share summary" opens the share sheet with the summary.
+  - On desktop, "Copy" puts the summary on the clipboard.
+
 ## 7. Deliverables
 
 | Deliverable | Location |
@@ -620,6 +723,7 @@ Unless marked *Should*, every AC is Must. Amounts are in ₹; the tests use pais
 | Migrations | `supabase/migrations/*.sql` (tables, constraints, RLS, RPC functions) |
 | Unit tests | `tests/**/*.test.ts`; `npm test` |
 | Eval | `eval/receipts/*.{jpg,json}`, `eval/run.ts` (`npm run eval`), `eval/results.json`, `eval/REPORT.md`; rendered on `/about` |
+| NL eval (v0.7) | `eval/nl/*.json` (sentences + ground truth), `npm run eval:nl`, `eval/nl/results.json`, `eval/nl/REPORT.md`; rendered on `/about` |
 | Keep-alive | `.github/workflows/keepalive.yml` (calls `${{ vars.APP_URL }}/api/health`) |
 | CI | `.github/workflows/ci.yml`: on `ubuntu-24.04`, runs `npm ci`, lint and `npm test` on every push |
 | Env template | `.env.example` (names only) |
@@ -640,6 +744,8 @@ Unless marked *Should*, every AC is Must. Amounts are in ₹; the tests use pais
 - Custom categories, budgets, income tracking, loans.
 - Deleting groups (other than demo cleanup) or rotating links.
 - Storing receipt images, or reading PDF receipts.
+- Speech-recognition code (voice comes from the phone keyboard's mic), auto-saving parsed expenses, or creating members from text (v0.7).
+- Storing phone numbers or sending WhatsApp messages automatically (v0.7).
 - Localization beyond English with Indian number formatting.
 - Groups with more than 50 members.
 
@@ -657,9 +763,11 @@ Unless marked *Should*, every AC is Must. Amounts are in ₹; the tests use pais
 | K8 | Concurrent edits overwrite each other. | Accepted: last write wins (non-goal); the activity log records both edits. |
 | K9 | iPhone HEIC photos or very large images fail to decode. | `accept="image/*"` (iOS converts to JPEG); a clear error (R29); upload a screenshot instead. |
 | K10 | Exact DP becomes slow. | Cap at 18 nonzero balances (2¹⁸ states, milliseconds); greedy above that. |
-| K11 | Three days is not enough. | Build order: `lib/` + tests → DB + RLS → groups and expenses → settle + UPI → receipts → demo → eval → polish. Cut Shoulds in this order: R60, R36, R53, R41, R44–R46, R10, R52, R3, R5, R7, R12, R26, R59, R28, R39. |
+| K11 | Three days is not enough. | Build order: `lib/` + tests → DB + RLS → groups and expenses → settle + UPI → receipts → demo → eval → polish. Cut Shoulds in this order: R69, R68, R70, R67, R60, R36, R53, R41, R44–R46, R10, R52, R3, R5, R7, R12, R26, R59, R28, R39. |
 | K12 | Free-tier Gemini inputs may be used by Google. | Notice on the scan screen (R31); eval images have personal data removed; images are not stored by Quits. |
 | K13 | Lazy recurring expenses appear only when someone opens the group. | Accepted: each is dated on its occurrence date, so balances are correct the moment they are viewed. |
+| K14 | Gemini misreads Hinglish, names or split intent in type-to-add. | Nothing is saved automatically (R64); deterministic name matching and validation leave unclear fields blank and highlighted (R62, R63); accuracy and abstention are measured (R66). |
+| K15 | `wa.me` links behave differently on desktop without WhatsApp, or the Web Share API is missing. | Web Share first, then `wa.me`, with "Copy" always available on desktop (R68). |
 
 ## 10. Decisions and open questions
 
@@ -690,7 +798,10 @@ Unless marked *Should*, every AC is Must. Amounts are in ₹; the tests use pais
 
 ### 10.2 Open questions
 
-None open. New questions found during the build are added here with a proposed default (see the `PLAN.md` rules).
+| ID | Question | Proposed default |
+|---|---|---|
+| OQ-18 | Does "X paid 600, split with Amit and me" include the payer X among the participants? | Yes. "Split with" includes the payer unless the text excludes them ("only for Amit and me"). The NL ground truth follows this. |
+| OQ-19 | Should share messages use "Rs" or "₹"? | ASCII "Rs", as in the requested example, so the text survives every keyboard and SMS fallback. |
 
 ## 11. Changelog
 
@@ -702,3 +813,4 @@ None open. New questions found during the build are added here with a proposed d
 | v0.4 | 2026-10-16 | Approved PLAN.md proposals SC-1 to SC-3 (wording only; the code already followed them). **SC-1 (§4.3, §3, K6):** the Frankfurter v2 request and response confirmed in P1-7 (`/v2/rate/{BASE}/{QUOTE}?date=`; same-date blended weekend rates; 404 for future dates, so those use the latest rate; 422 for unknown currencies). **SC-2 (§3, §4.3, R31):** Gemini structured output uses `responseJsonSchema`. **SC-3 (R17):** base payer and split amounts are allocated by exact original-currency proportions (the split's own weights), not rounded minor-unit shares, matching AC-6. Counts unchanged: 58 requirements (43 Must, 15 Should), 45 ACs. |
 | v0.5 | 2026-10-16 | **Settle-up is QR-first (D-18),** after P1-8 showed `upi://` P2P links blocked in GPay, PhonePe and Paytm from a website, while QR scans (laptop screen, gallery screenshot) worked with the payee and amount filled in.<br>**R24 (Must):** the QR is visible at every width, plus "Save QR image", "Show full screen", and "Copy UPI ID" with the amount in large text.<br>**R25:** settlement is never automatic, only on "Mark as paid"; the "Did the payment go through?" prompt is removed.<br>**New R59 (Should):** best-effort "Pay via UPI" link labelled "May be blocked by some UPI apps".<br>**New R60 (Should):** set a UPI ID from a screenshot of your own UPI QR, decoded in the browser; only `pa`/`pn` are saved; `members.upi_name` added; `pn` uses it.<br>**ACs:** AC-14 is now the phone QR path (save + gallery scan, full screen); the link format stays Unit (AC-13). AC-15 adds the large amount. New AC-46 (Should) covers R59/R60.<br>**Elsewhere:** §1 edge, S4, §4.1, §4.3, K1, K11 and D-14 updated.<br>**Counts:** 60 requirements (43 Must, 17 Should); 46 ACs (39 Must, 7 Should), one over the earlier ≤ 45 target because of the new Should AC. |
 | v0.6 | 2026-10-17 | **Honesty decisions recorded after the build.** D-19: itemized expenses can't be edited after finalizing; delete and rescan instead. D-20: R46 is partially met (pause, resume and stop; no edit), and R46 is annotated accordingly. Counts unchanged: 60 requirements (43 Must, 17 Should; R46 partially met), 46 ACs. |
+| v0.7 | 2026-10-17 | **Two features added; specification only, no code yet.**<br>**Feature A, type-to-add (Must):** R61 "Type it" box and parse route (Gemini `responseJsonSchema`); R62 deterministic name matching and "me" words in `lib/nlparse.ts`, never creating members; R63 validation, leaving invalid values blank; R64 never saves, only fills the form; R65 per-group NL limit (`NL_LIMIT_PER_GROUP`) plus the shared daily AI limit; R66 NL eval (`eval/nl/`, about 30 sentences, field accuracy, exact match, abstention) shown on `/about`. R67 (Should): targets of amount ≥ 95% and exact match ≥ 80%.<br>**Feature B, WhatsApp share and nudge (Should):** R68 Share summary (Web Share, `wa.me`, Copy), R69 Remind (no stored phone numbers), R70 `lib/share.ts` with exact strings.<br>**New ACs:** AC-47 to AC-55.<br>**Elsewhere:** §1, §2 (S8, S9), §3 env, §4.2, §4.3 (NL schema, message formats), deliverables, non-goals, K14, K15, K11 cut order, and OQ-18/OQ-19 with defaults.<br>**Counts:** 70 requirements (49 Must, 21 Should; R46 partially met); 55 ACs (45 Must, 10 Should). |

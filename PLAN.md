@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| Spec | [SPEC.md](SPEC.md) **v0.6**. If SPEC.md and this plan disagree, SPEC.md wins. |
+| Spec | [SPEC.md](SPEC.md) **v0.7**. If SPEC.md and this plan disagree, SPEC.md wins. |
 | Production | https://quits-go.vercel.app (Vercel, deploys from `main`) |
 | Stack | Next.js (App Router, TS) · Tailwind · Vitest · Supabase Postgres (server-only, RLS on, no policies) · Gemini `gemini-3.5-flash-lite` · Frankfurter v2 · Vercel Hobby · GitHub Actions (ubuntu-24.04) · Node 24 |
 | Tests | `npm test` (unit, `lib/` + `server/token.ts`) · `npm run test:db` (DB integration; loads `.env.local`; skips when `SUPABASE_DB_URL` is absent) · `npm run test:db:clean` (removes leftover `__test__` groups) · `npm run lint` · `npm run build` · `npm run eval` (receipt eval; loads `.env.local`) |
@@ -200,6 +200,34 @@ No GitHub secrets are needed: CI runs only lint and unit tests, which make no ne
 **Done when:** every Must AC is Pass.
 **Prove it:** `npm run lint && npm test && npm run test:db && npm run build && npm run eval`, plus the table below with evidence.
 
+## Phase 8 — Type-to-add (A, Must) and WhatsApp share and nudge (B, Should) (SPEC v0.7)
+
+**Goal:** add an expense by typing or dictating a sentence in English or Hinglish, which fills the form for review, never saving on its own. Then share the settle-up summary and send polite reminders on WhatsApp, without storing phone numbers.
+
+### 8A — Type-to-add (Must)
+
+| # | Task | Mode | Satisfies |
+|---|---|---|---|
+| 8.1 | `lib/nlparse.ts` (pure): zod schema for the model output; name matching (first or full name, case-insensitive; no match or several matches → blank and flagged; never creates members); "me / I / maine / mujhe / mera" → current member; validation of amount, currency (otherwise base), date (not future, ≤ 1 year old) and category; the split checked with `lib/splits.ts` (invalid → values blank); output `{ prefill, flags }`. Unit tests. | AUTO | R62, R63 · AC-47, AC-48, AC-49 |
+| 8.2 | NL prompt and `responseJsonSchema` constants in `lib/nlparse.ts`; generalize `server/gemini.ts` to a text + JSON-schema call (15 s timeout). | AUTO | R61 |
+| 8.3 | `POST /api/g/[token]/expenses/parse`: zod input (text 1–300 chars, `me`); group from token; limits (per-group `nl:group:{id}` bucket, `NL_LIMIT_PER_GROUP` default 50, plus the shared `scan:app` daily AI bucket) → 429 before any Gemini call; Gemini → `lib/nlparse` → `{ prefill, flags }`. Handler takes injected deps so it can be tested with a mocked Gemini. | AUTO | R61, R64, R65 · AC-50 |
+| 8.4 | "Type it" box at the top of Add expense: textarea (300 chars, with a hint to use the keyboard's mic), "Fill form", loading and error states. Fills the existing `ExpenseForm` state, highlights blank or ambiguous fields, and never saves. | AUTO | R61, R64 |
+| 8.5 | `eval/nl/`: draft 20 sentence + ground-truth pairs in English and Hinglish, about 5 deliberately ambiguous with blank expected fields. Fixed member list, `me`, and "today" per file. | AUTO | R66 |
+| 8.6 | Write about 10 more sentences in your own words, and review all of them. | HUMAN | R66 |
+| 8.7 | `npm run eval:nl` (`eval/nl/run.ts`): same prompt, schema, model and post-processing; metrics are pure, unit-tested functions (field accuracy, exact match, abstention); writes `eval/nl/results.json` and `REPORT.md`. Add the NL results to `/about` next to the receipt eval, showing "not run yet" until the real run. | AUTO | R66 · AC-51 |
+
+### 8B — WhatsApp share and nudge (Should)
+
+| # | Task | Mode | Satisfies |
+|---|---|---|---|
+| 8.8 | `lib/share.ts` (pure): summary and reminder text per SPEC §4.3 (`Rs` with en-IN grouping, whole rupees without decimals); `waLink(text)`. Exact-string unit tests. | AUTO | R70 · AC-54 |
+| 8.9 | Settle screen: "Share summary" (Web Share API, otherwise `wa.me`; "Copy" on desktop) and "Remind" on each suggested payment (`wa.me/?text=`). No phone numbers are stored. | AUTO | R68, R69 |
+| 8.10 | Commit `feat(nl,share): ...`. | AUTO | — |
+| 8.11 | Push, then: AC-53 on the phone (type or dictate, form fills, nothing saved); AC-55 (Remind opens WhatsApp prefilled; Share summary; Copy on desktop); run `npm run eval:nl` on all ~30 sentences, or ask Claude to, then check AC-51 and AC-52 on `/about`. | HUMAN | AC-51–AC-53, AC-55 |
+
+**Done when:** AC-47–AC-51 and AC-53 Pass (plus AC-52, AC-54 and AC-55 if their Shoulds are built).
+**Prove it:** `npm run lint && npm run typecheck && npm test && npm run test:db && npm run build && npm run eval:nl`, plus the human checks.
+
 ---
 
 ## SPEC change proposals
@@ -312,3 +340,12 @@ Rows P1-1 to P1-10 are the Phase 1 checks; each one de-risks the spec ACs shown 
 | AC-44 | Script | 1 / 7 | Partial | P1-5 Pass (keep-alive run #1 green, {"ok":true}); local `next start` with SUPABASE_URL set to an invalid host in the shell → /api/health 503 {"ok":false}. Preview-deployment check pending (7.10) |
 | AC-45 | Script | 7 | Pass | local on the Phase 7 commit: `npm run lint` clean, `npm run typecheck` clean, `npm test` 83/83, `npm run test:db` 24/24, `npm run build` exit 0. CI re-checks lint/typecheck/unit tests on push |
 | AC-46 (Should) | Unit + Phone | 4 | Partial | unit Pass (tests/unit/misc.test.ts › AC-46 parseUpiUri); local flow: uploading a UPI QR screenshot fills priya.sharma@okaxis + "Priya Sharma"; only network request was one 176-byte POST (no image); "Pay via UPI app" labelled "May be blocked by some UPI apps". Phone check pending (4.12) |
+| AC-47 | Unit | 8 | Not run | |
+| AC-48 | Unit | 8 | Not run | |
+| AC-49 | Unit | 8 | Not run | |
+| AC-50 | Unit | 8 | Not run | |
+| AC-51 | Script + Deploy | 8 | Not run | |
+| AC-52 (Should) | Script | 8 | Not run | |
+| AC-53 | Phone | 8 | Not run | |
+| AC-54 (Should) | Unit | 8 | Not run | |
+| AC-55 (Should) | Phone + Desktop | 8 | Not run | |
