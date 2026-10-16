@@ -223,6 +223,10 @@ No GitHub secrets are needed: CI runs only lint and unit tests, which make no ne
   - Two fix-up migrations were added rather than editing applied ones:
     - `…000300`/`…000400`: member FKs are now `DEFERRABLE INITIALLY DEFERRED`, so deleting a whole group (demo reset, test cleanup) can cascade.
     - The UPI-ID check no longer uses a regex `{2,256}`, which Postgres rejects (bound max 255).
+- **2026-10-16, Phase 1 complete:**
+  - All checks P1-1 to P1-10 pass, at production https://quits-go.vercel.app.
+  - Task 1.21 was done in `8460e83`; the compression helper stays in `app/_lib/compress.ts` for Phase 5.
+  - P1-8 led to SPEC v0.5: QR-first settle-up (D-18).
 
 ---
 
@@ -240,7 +244,7 @@ Rows P1-1 to P1-10 are the Phase 1 checks; each one de-risks the spec ACs shown 
 | P1-6 Phone photo < 1 MB → Gemini JSON [AC-20] | Phone | 1 | Pass | human 2026-10-16 (Samsung, Chrome, prod): real bill 3,986,619 → 415,486 bytes uploaded (≤ 1 MB); HTTP 200 in 9.0 s (Gemini 6.7 s); items, tax and total match the bill. Lab route deleted in 1.21 |
 | P1-7 Frankfurter v2 historical + weekend USD→INR [AC-8] | Script | 1 | Pass | `GET /v2/rate/USD/INR?date=2026-10-01` → `{"date":"2026-10-01","base":"USD","quote":"INR","rate":95.98}`; Sunday 2026-10-04 → 96.19 (same date); future date → 404. Recorded in SPEC v0.4 §4.3 (SC-1) |
 | P1-8 UPI link in GPay/PhonePe/Paytm + QR [AC-14, AC-15] | Phone | 1 | Pass (via QR) | human 2026-10-16 (Samsung, prod `/lab/upi`): the `upi://` "Pay via UPI" deep link is **blocked** in GPay, PhonePe and Paytm (P2P intent links from websites restricted; GPay shows a misleading "exceeded bank limit" at ₹1). QR shown on the laptop, scanned by the phone: works, payee and ₹1.00 prefilled. QR screenshot scanned from the gallery in GPay: works. Led to SPEC v0.5: QR-first settle-up (D-18) |
-| P1-9 PWA installs on Android [AC-40] | Phone | 1 | Pending (human) | manifest + 4 icons served (200 locally); install test is 1.19 |
+| P1-9 PWA installs on Android [AC-40] | Phone | 1 | Pass | human 2026-10-16 (Samsung, Chrome, prod): installed via "Install app and create shortcut"; opens standalone with no address bar, teal status bar, Q icon on the home screen |
 | P1-10 No secrets in `.next/static` [AC-42] | Script | 1 | Pass | `grep -rE "sb_secret_\|AIza" .next/static` → no matches |
 | AC-1 | Unit | 2 | Pass | tests/unit/splits.test.ts › AC-1 (equal ₹100/3, 100 paise/7); tests/unit/money.test.ts › AC-1 |
 | AC-2 | Unit | 2 | Pass | tests/unit/splits.test.ts › AC-2 (percent 999 → [499,250,250]; shares 1001 → [501,250,250]) |
