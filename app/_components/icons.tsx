@@ -19,6 +19,14 @@ export const GroupIcon = ({ className }: P) =>
     className,
   );
 export const PlusIcon = ({ className }: P) => base(<path d="M12 5v14M5 12h14" />, className);
+export const SearchIcon = ({ className }: P) =>
+  base(
+    <>
+      <circle cx="11" cy="11" r="7" />
+      <path d="M20 20l-4-4" />
+    </>,
+    className,
+  );
 export const BackIcon = ({ className }: P) => base(<path d="M15 18l-6-6 6-6" />, className);
 export const ChevronIcon = ({ className }: P) => base(<path d="M9 18l6-6-6-6" />, className);
 export const CloseIcon = ({ className }: P) => base(<path d="M18 6L6 18M6 6l12 12" />, className);

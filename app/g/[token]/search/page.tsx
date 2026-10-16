@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Card, Empty, inputClass, PageHeader, buttonClass } from "@/app/_components/ui";
 import { formatDate, money } from "@/app/_lib/format";
 import { CATEGORIES } from "@/lib/splits";
+import { formatPercent, percentShares } from "@/lib/stats";
 import { loadMembers, requireGroup } from "@/server/context";
 import { searchExpenses } from "@/server/search";
 
@@ -19,6 +20,7 @@ export default async function SearchPage({ params, searchParams }: PageProps<"/g
   const name = new Map(members.map((m) => [m.id, m.name]));
   const people = members.map((m) => ({ id: m.id, name: m.name, v: result.perPerson[m.id] ?? 0 })).filter((p) => p.v > 0).sort((a, b) => b.v - a.v);
   const categories = Object.entries(result.perCategory).sort((a, b) => b[1] - a[1]);
+  const categoryShares = percentShares(categories.map(([, v]) => v));
   const maxPerson = Math.max(1, ...people.map((p) => p.v));
   const maxCat = Math.max(1, ...categories.map(([, v]) => v));
   const active = !!(filters.q || cats.length || filters.person || filters.from || filters.to);
@@ -106,11 +108,16 @@ export default async function SearchPage({ params, searchParams }: PageProps<"/g
             Spending per category
           </h2>
           <ul className="flex flex-col gap-2 rounded-2xl border border-border bg-card p-4">
-            {categories.map(([c, v]) => (
-              <li key={c} className="flex flex-col gap-1">
+            {categories.map(([c, v], i) => (
+              <li key={c} className="flex flex-col gap-1" data-testid="category-row">
                 <div className="flex justify-between gap-2 text-sm">
                   <span className="font-medium">{c}</span>
-                  <span className="font-semibold">{money(v, base)}</span>
+                  <span className="whitespace-nowrap">
+                    <span className="font-semibold">{money(v, base)}</span>{" "}
+                    <span className="text-muted" data-testid="category-percent">
+                      · {formatPercent(categoryShares[i])} of total
+                    </span>
+                  </span>
                 </div>
                 <div className="h-3 rounded-full bg-slate-100" aria-hidden="true">
                   <div className="h-3 rounded-full bg-amber-500" style={{ width: `${Math.max(2, (v / maxCat) * 100)}%` }} />

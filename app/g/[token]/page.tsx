@@ -5,6 +5,7 @@ import { readGroup } from "@/server/groups";
 import { listExpenses } from "@/server/expenses";
 import { listDraftReceipts } from "@/server/receipts";
 import { BalanceSummary, ExpenseList } from "./expense-list";
+import { ExpensesHeader } from "./expenses-header";
 
 // Expenses tab (R8): your balance, receipts in progress (R36), the newest 50 expenses, and "+".
 export default async function ExpensesPage({ params }: PageProps<"/g/[token]">) {
@@ -35,7 +36,7 @@ export default async function ExpensesPage({ params }: PageProps<"/g/[token]">) 
           </ul>
         </section>
       )}
-      <h2 className="text-lg font-bold">Expenses</h2>
+      <ExpensesHeader token={token} />
       <ExpenseList initial={page.items} hasMore={page.hasMore} baseCurrency={base} />
       <Link
         href={`/g/${token}/add`}
