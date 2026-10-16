@@ -3,6 +3,7 @@
 | | |
 |---|---|
 | Spec | [SPEC.md](SPEC.md) **v0.4**. If SPEC.md and this plan disagree, SPEC.md wins. |
+| Production | https://quits-go.vercel.app (Vercel, deploys from `main`) |
 | Stack | Next.js (App Router, TS) · Tailwind · Vitest · Supabase Postgres (server-only, RLS on, no policies) · Gemini `gemini-3.5-flash-lite` · Frankfurter v2 · Vercel Hobby · GitHub Actions (ubuntu-24.04) · Node 24 |
 | Tests | `npm test` (unit, `lib/` + `server/token.ts`) · `npm run test:db` (DB integration; loads `.env.local`; skips when `SUPABASE_DB_URL` is absent) · `npm run test:db:clean` (removes leftover `__test__` groups) · `npm run lint` · `npm run build` · `npm run eval` (receipt eval; loads `.env.local`) |
 | Migrations | `npm run db:push`: applies `supabase/migrations/*.sql` using `SUPABASE_DB_URL` |
@@ -230,10 +231,10 @@ Rows P1-1 to P1-10 are the Phase 1 checks; each one de-risks the spec ACs shown 
 | AC | Type | Phase | Status | Evidence |
 |---|---|---|---|---|
 | P1-1 Scaffold lint/test/build local [AC-45] | Script | 1 | Pass | `npm run lint` clean; `npm run typecheck` clean; `npm test` 1/1; `npm run build` OK (Next 16.4.2, React 19.3) |
-| P1-2 CI green on ubuntu-24.04 [AC-45] | Deploy | 1 | Pending (human) | `ci.yml` written (lint, typecheck, unit tests); needs push (1.4) |
-| P1-3 Vercel prod deploy from GitHub | Deploy | 1 | Pending (human) | needs Vercel import (1.5) |
-| P1-4 `/api/health` via Supabase, RLS on [AC-41, AC-44] | Deploy | 1 | Pending (human) | local pass: `db:push` applied `_health` (RLS on); `next start` → `GET /api/health` = `{"ok":true}` 200; prod check after 1.5 |
-| P1-5 Keep-alive `workflow_dispatch` green [AC-44] | Script | 1 | Pending (human) | `keepalive.yml` written; needs repo variable `APP_URL` + manual run (1.10) |
+| P1-2 CI green on ubuntu-24.04 [AC-45] | Deploy | 1 | Pass | human 2026-10-16: CI green on f455567 (ubuntu-24.04: lint, typecheck, unit tests) |
+| P1-3 Vercel prod deploy from GitHub | Deploy | 1 | Pass | human 2026-10-16: Vercel production https://quits-go.vercel.app from `main`; 4 env vars set for Production + Preview (no SUPABASE_DB_URL) |
+| P1-4 `/api/health` via Supabase, RLS on [AC-41, AC-44] | Deploy | 1 | Pass | human 2026-10-16: `GET https://quits-go.vercel.app/api/health` → `{"ok":true}`; earlier local pass with `_health` (RLS on) |
+| P1-5 Keep-alive `workflow_dispatch` green [AC-44] | Script | 1 | Pass | human 2026-10-16: repo variable `APP_URL` set; Keep-alive run #1 green, logged `{"ok":true}` |
 | P1-6 Phone photo < 1 MB → Gemini JSON [AC-20] | Phone | 1 | Pending (human) | server part local pass: synthetic bill → `gemini-3.5-flash-lite` JSON in 4.3 s, items/tax/service/total exact; fake JPEG → 415; phone test is 1.13 |
 | P1-7 Frankfurter v2 historical + weekend USD→INR [AC-8] | Script | 1 | Pass | `GET /v2/rate/USD/INR?date=2026-10-01` → `{"date":"2026-10-01","base":"USD","quote":"INR","rate":95.98}`; Sunday 2026-10-04 → 96.19 (same date); future date → 404. Recorded in SPEC v0.4 §4.3 (SC-1) |
 | P1-8 UPI link in GPay/PhonePe/Paytm + QR [AC-14, AC-15] | Phone | 1 | Pending (human) | `/lab/upi` ready (link, QR, copy UPI ID); phone test is 1.17 |
