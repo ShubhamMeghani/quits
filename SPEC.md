@@ -4,7 +4,7 @@
 
 | | |
 |---|---|
-| Version | v1.5 |
+| Version | v1.6 |
 | Date | 2026-10-16 |
 | Status | Ready for build. All open questions are decided (§10.1). Build order is in `PLAN.md`. |
 | Course | Applied Data Science & AI, IISc |
@@ -251,6 +251,10 @@ Requirement IDs are stable. R59 and R60 were added in v0.5 and sit in their topi
   - IF storage is blocked or its contents are unreadable, THEN the list SHALL simply be empty, and nothing else SHALL fail.
   - **Limits**, also stated in the home page's small print: the list is per device and not synced; clearing browser data clears it; the groups themselves are not affected by removing an entry or losing the list.
   - The list logic SHALL live in the pure module `lib/recent-groups.ts` (add or update, order, remove, mark unavailable, the cap of 20, tolerant parsing).
+- **R72 [Should]** WHEN any group screen is shown (including the member picker), THE SYSTEM SHALL show a way back to the home page ("Your groups") at the left of the group header, before the group name (D-40):
+  - a back chevron with a small Quits mark, as one link to `/` with the accessible name "All groups";
+  - a tap target of at least 44 × 44 px;
+  - it SHALL work in the installed PWA, which has no browser back button.
 
 ### 5.2 Members
 - **R6 [Must]** WHEN a user adds or renames a member, or sets a member's optional UPI ID, THE SYSTEM SHALL save it.
@@ -765,6 +769,11 @@ Unless marked *Should*, every AC is Must. Amounts are in ₹; the tests use pais
   - Headless at 360 px and 1440 px, both themes, every screen: no horizontal scroll, no wrapped button labels, tap targets ≥ 44 px.
   - Phone: switch Dark → Light → System on the Group screen; the app recolours at once and keeps the choice after a reload; a UPI QR shown in the dark theme scans in a UPI app with the payee and amount filled in.
 
+**Navigation (v1.6)**
+- **AC-59 [Desktop + Phone, *Should*] (R72):**
+  - Headless, every group screen at 360 px and 1440 px in both themes: exactly one link named "All groups" to `/`, at least 44 × 44 px, before the group name (left of it in the header, above it on the member picker). Tapping it on Settle opens the home page, and "Your groups" lists the group.
+  - Phone: in the installed PWA, from Settle tap the chevron + Quits mark; the home page opens with "Your groups"; tapping the group opens it again.
+
 ## 7. Deliverables
 
 | Deliverable | Location |
@@ -866,6 +875,7 @@ Unless marked *Should*, every AC is Must. Amounts are in ₹; the tests use pais
 | D-37 | Live checks (2026-10-18) | **AC-44's failure check runs locally, not on a Vercel preview.** A broken `SUPABASE_URL` set as a Preview environment variable would sit next to the real one in the Vercel project and could be applied by mistake. The same production build is started locally with the wrong URL set for that one process only (`.env.local` is never touched), and `/api/health` must return 503 `{"ok":false}`. The success half stays on production (keep-alive runs, `{"ok":true}`). |
 | D-38 | UI review (2026-10-18) | The Settle screen leads with the outcome in plain words ("3 payments instead of 10", "Simplified") instead of three algorithm tags; the naive / greedy / optimal comparison stays one tap away under "How?" for evaluators (R22, AC-37, AC-57). |
 | D-39 | UI review (2026-10-18) | **Fintech look, dark by default.** Design tokens (CSS variables) for a dark and a light theme, a Dark / Light / System control remembered per device, AA contrast checked by a unit test, self-hosted Inter, coloured member avatars. The UPI QR is a fixed light island (black on white, 4-module quiet zone) so theming can never break scanning (R71, AC-58). |
+| D-40 | UI review (2026-10-18) | **A way home from every group screen.** The installed PWA has no browser back button, and "Your groups" (R5) lives on the home page, so the group header starts with a back chevron + Quits mark linking to `/` ("All groups", ≥ 44 px). Also on the member picker (R72, AC-59). |
 | D-22 | OQ-19 (2026-10-17) | Share and reminder messages use **"₹"** (e.g. `₹1,20,000`), not "Rs", to match the rest of the app. The exact strings in §4.3 are updated. |
 | D-17 | OQ-17 | When Frankfurter v2 has no rate for the exact date, use the most recent rate on or before `expense_date`, and store and show its `fx_rate_date` (R16). |
 
@@ -892,3 +902,4 @@ None open. New questions found during the build are added here with a proposed d
 | v1.3 | 2026-10-18 | **"Your groups" on the home page, without accounts (Should).**<br>**R5** rewritten: per-device list (token, name refreshed on each visit, picked member, last opened, demo flag; at most 20), newest first, with "You: {member}", last opened, a "Demo" label and ✕ remove; "No longer available" after a 404; nothing sent to the server; empty list if storage is blocked; limits stated in the spec and on the home page; pure module `lib/recent-groups.ts`.<br>**AC-56** added (Unit + Phone, Should). **D-36** added. Non-goal added: syncing the list across devices.<br>Counts: 70 requirements (49 Must, 21 Should), **56 ACs**. |
 | v1.4 | 2026-10-18 | **AC-44 method.** The 503 check now uses the production build started locally with `SUPABASE_URL=https://invalid.example` for that process only, instead of a broken Preview environment variable on Vercel (**D-37**). Wording only; R57 unchanged. Counts: 70 requirements (49 Must, 21 Should), 56 ACs. |
 | v1.5 | 2026-10-18 | **Settle wording and visual redesign.**<br>**R22** rewritten: the main view says "{listed} payments instead of {naive}" with a "Simplified" badge, no algorithm tags; naive / greedy / optimal and a one-sentence explanation under "How?" (**D-38**). Goal and S7 wording and **AC-37** updated; **AC-57** (Unit) added.<br>**R71** added (Should): dark default + light, Dark / Light / System on the Group screen (remembered per device), design tokens, money colours, avatars, active nav tab, empty states, skeletons, reduced-motion-safe transitions, self-hosted font, AA contrast, dark `theme_color`, and a UPI QR that is always black on white with a quiet zone (**D-39**); **AC-58** (Unit + Phone, Should) added.<br>Counts: **71 requirements (49 Must, 22 Should), 58 ACs**. |
+| v1.6 | 2026-10-18 | **Navigation home and visual polish.**<br>**R72** added (Should): an "All groups" link (back chevron + Quits mark, ≥ 44 px) at the left of every group header and on the member picker, for the installed PWA (**D-40**); **AC-59** added (Desktop + Phone, Should).<br>**Visual only, no requirement change:** compact last-opened times in "Your groups" ("Today · 12:36", "Yesterday", "12 Oct"); shorter Group-screen subtitles; a category icon in a soft coloured circle on expense rows, with the date as secondary text; body and subtitle text about 10% smaller (inputs stay 16 px) and slightly tighter spacing; secondary lines wrap instead of truncating (only the user's own text, such as descriptions and names, may be cut).<br>Counts: **72 requirements (49 Must, 23 Should), 59 ACs**. |

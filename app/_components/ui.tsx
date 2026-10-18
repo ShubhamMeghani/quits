@@ -15,7 +15,7 @@ const variants: Record<Variant, string> = {
 };
 
 export function buttonClass(variant: Variant = "primary", extra = "") {
-  return `inline-flex min-h-11 items-center justify-center gap-2 rounded-xl px-4 text-base font-semibold transition-[background-color,filter,transform] duration-150 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand ${variants[variant]} ${extra}`;
+  return `inline-flex min-h-11 min-w-11 items-center justify-center gap-2 rounded-xl px-4 text-base font-semibold transition-[background-color,filter,transform] duration-150 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand ${variants[variant]} ${extra}`;
 }
 
 export function Button({ variant = "primary", className = "", ...props }: ComponentProps<"button"> & { variant?: Variant }) {
@@ -30,7 +30,7 @@ export function LinkButton({ variant = "primary", className = "", ...props }: Co
 export const cardClass = "rounded-2xl border border-border bg-card shadow-card";
 
 export function Card({ className = "", ...props }: ComponentProps<"div">) {
-  return <div className={`${cardClass} p-4 ${className}`} {...props} />;
+  return <div className={`${cardClass} p-3.5 ${className}`} {...props} />;
 }
 
 /**
@@ -38,8 +38,9 @@ export function Card({ className = "", ...props }: ComponentProps<"div">) {
  * not by class order, so combining `w-full` with `w-28` (or `px-3` with `px-2`) is unreliable:
  * pick exactly one width via `inputClass` (full width) or `inputFixed(...)`.
  */
+/* Inputs stay at 16 px: iOS Safari zooms into any smaller form field on focus. */
 export const inputBase =
-  "min-h-11 rounded-xl border border-border bg-card text-base text-foreground placeholder:text-muted focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/40 disabled:bg-track aria-[invalid=true]:border-danger aria-[invalid=true]:bg-danger-soft";
+  "min-h-11 rounded-xl border border-border bg-card text-[16px] text-foreground placeholder:text-muted focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/40 disabled:bg-track aria-[invalid=true]:border-danger aria-[invalid=true]:bg-danger-soft";
 
 export const inputClass = `${inputBase} w-full px-3`;
 

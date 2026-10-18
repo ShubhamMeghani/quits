@@ -5,7 +5,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { addMemberAction } from "@/app/actions";
-import { ActivityIcon, GroupIcon, ListIcon, SettleIcon } from "./icons";
+import { ActivityIcon, BackIcon, GroupIcon, ListIcon, SettleIcon } from "./icons";
 import { IdentityProvider, useIdentity, type ShellGroup, type ShellMember } from "./identity";
 import { Avatar, Button, Field, inputClass, Notice, Skeleton } from "./ui";
 
@@ -38,12 +38,34 @@ function Gate({ children }: { children: React.ReactNode }) {
   );
 }
 
+/**
+ * R72 (Should, SPEC v1.6): the way back to the home page ("Your groups") from every group screen,
+ * also in the installed PWA, which has no browser back button. ≥ 44 × 44 px, named "All groups".
+ */
+function AllGroupsLink() {
+  return (
+    <Link
+      href="/"
+      aria-label="All groups"
+      title="All groups"
+      data-testid="all-groups"
+      className="-ml-2 inline-flex h-11 min-w-11 shrink-0 items-center justify-center gap-0.5 rounded-full px-1.5 text-muted transition-colors hover:bg-card-hover hover:text-foreground"
+    >
+      <BackIcon className="h-5 w-5" />
+      <span aria-hidden="true" className="inline-flex h-6 w-6 items-center justify-center rounded-lg bg-linear-to-br from-brand-from to-brand-to text-xs font-black text-brand-fg">
+        Q
+      </span>
+    </Link>
+  );
+}
+
 function Header() {
   const { group, meMember } = useIdentity();
   return (
     <header className="sticky top-0 z-20 border-b border-border bg-background/85 backdrop-blur-md">
-      <div className="mx-auto flex min-h-14 w-full max-w-[640px] items-center gap-3 px-4">
-        <Link href={`/g/${group.token}`} className="flex min-h-11 min-w-0 flex-1 items-center text-lg font-bold tracking-tight">
+      <div className="mx-auto flex min-h-14 w-full max-w-[640px] items-center gap-2 px-4">
+        <AllGroupsLink />
+        <Link href={`/g/${group.token}`} className="flex min-h-11 min-w-0 flex-1 items-center text-lg font-bold tracking-tight" data-user-text>
           <span className="truncate">{group.name}</span>
         </Link>
         <Link
@@ -122,9 +144,14 @@ function MemberPicker() {
     });
 
   return (
-    <main className="mx-auto flex w-full max-w-[480px] flex-1 flex-col gap-4 px-4 py-8">
+    <main className="mx-auto flex w-full max-w-[480px] flex-1 flex-col gap-4 px-4 py-6">
+      <div className="flex items-center">
+        <AllGroupsLink />
+      </div>
       <div>
-        <p className="text-sm font-medium text-muted">{group.name}</p>
+        <p className="text-sm font-medium text-muted" data-user-text>
+          {group.name}
+        </p>
         <h1 className="text-2xl font-bold">Who are you?</h1>
         <p className="mt-1 text-muted">Pick your name. This device will remember it for this group.</p>
       </div>

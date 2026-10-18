@@ -124,16 +124,16 @@ export function tokenFromPath(pathname: string): string | null {
   return m && TOKEN_RE.test(m[1]) ? m[1] : null;
 }
 
-/** "Opened today, 14:05" · "Opened yesterday" · "Opened 3 Oct" · "Opened 3 Oct 2025" (device time zone by default). */
+/** Compact, so it never truncates: "Today · 14:05" · "Yesterday" · "3 Oct" · "3 Oct 2025" (device time zone by default). */
 export function formatLastOpened(ts: number, now: number, timeZone?: string): string {
   const day = (t: number) => new Intl.DateTimeFormat("en-CA", { timeZone, year: "numeric", month: "2-digit", day: "2-digit" }).format(t);
   const today = day(now);
   if (day(ts) === today) {
     const time = new Intl.DateTimeFormat("en-GB", { timeZone, hour: "2-digit", minute: "2-digit", hour12: false }).format(ts);
-    return `Opened today, ${time}`;
+    return `Today · ${time}`;
   }
-  if (day(ts) === day(now - 86_400_000)) return "Opened yesterday";
+  if (day(ts) === day(now - 86_400_000)) return "Yesterday";
   const sameYear = day(ts).slice(0, 4) === today.slice(0, 4);
   const date = new Intl.DateTimeFormat("en-GB", { timeZone, day: "numeric", month: "short", ...(sameYear ? {} : { year: "numeric" }) }).format(ts);
-  return `Opened ${date}`;
+  return date;
 }

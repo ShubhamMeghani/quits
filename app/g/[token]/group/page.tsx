@@ -6,19 +6,19 @@ import { requireGroup } from "@/server/context";
 import { ResetDemoButton } from "@/app/_components/demo-buttons";
 import { YouCard } from "./you-card";
 
-const row = "flex min-h-14 items-center gap-3 px-4 transition-colors hover:bg-card-hover";
+const row = "flex min-h-13 items-center gap-3 px-4 py-1.5 transition-colors hover:bg-card-hover";
 
 // Group tab (R50): members, share, settings, stats, export and about.
 export default async function GroupHubPage({ params }: PageProps<"/g/[token]/group">) {
   const { token } = await params;
   const group = await requireGroup(token);
   const links: { href: string; label: string; hint: string }[] = [
-    { href: `/g/${token}/share`, label: "Share invite link", hint: "Anyone with the link can view and edit" },
+    { href: `/g/${token}/share`, label: "Share invite link", hint: "Anyone with the link can edit" },
     { href: `/g/${token}/members`, label: "Members", hint: "Names and UPI IDs" },
-    { href: `/g/${token}/settings`, label: "Group settings", hint: "Name, base currency, default split" },
-    { href: `/g/${token}/search`, label: "Search & stats", hint: "Find expenses; spending per person and category" },
+    { href: `/g/${token}/settings`, label: "Group settings", hint: "Name, currency, default split" },
+    { href: `/g/${token}/search`, label: "Search & stats", hint: "Find expenses and see charts" },
     { href: `/g/${token}/recurring`, label: "Recurring expenses", hint: "Rent, Wi-Fi and other repeats" },
-    { href: "/about", label: "About Quits", hint: "How it works and receipt accuracy" },
+    { href: "/about", label: "About Quits", hint: "How it works and accuracy" },
   ];
   return (
     <div className="flex flex-col gap-4">
@@ -31,7 +31,7 @@ export default async function GroupHubPage({ params }: PageProps<"/g/[token]/gro
               <Link href={l.href} className={row}>
                 <span className="min-w-0 flex-1">
                   <span className="block font-semibold">{l.label}</span>
-                  <span className="block truncate text-sm text-muted">{l.hint}</span>
+                  <span className="block text-sm text-muted">{l.hint}</span>
                 </span>
                 <ChevronIcon className="h-5 w-5 text-muted" />
               </Link>

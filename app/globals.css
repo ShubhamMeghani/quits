@@ -141,6 +141,13 @@
   --shadow-card: var(--elev-card);
   --shadow-brand: var(--elev-brand);
   --font-sans: var(--font-inter), system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans", sans-serif;
+  /* About 10% smaller body and subtitle text (v1.6 polish); large sizes (amounts, headings) unchanged. */
+  --text-base: 0.9rem;
+  --text-base--line-height: 1.45;
+  --text-sm: 0.8125rem;
+  --text-sm--line-height: 1.35;
+  --text-xs: 0.6875rem;
+  --text-xs--line-height: 1.3;
   --animate-rise: rise 220ms ease-out both;
   --animate-shimmer: shimmer 1.4s ease-in-out infinite;
 }
@@ -171,6 +178,8 @@ body {
   font-family: var(--font-sans);
   /* Fintech-style aligned figures: amounts line up in lists. */
   font-variant-numeric: tabular-nums;
+  font-size: var(--text-base);
+  line-height: var(--text-base--line-height);
   -webkit-tap-highlight-color: transparent;
   transition: background-color 200ms ease, color 200ms ease;
 }
@@ -190,4 +199,20 @@ body {
 /* A light island keeps its own text colour even inside a dark page. */
 [data-theme="light"]:not(:root) {
   color: var(--foreground);
+}
+
+/* Expense category icons: the colour per theme comes from lib/category-style.ts (inline variables). */
+.cat-icon {
+  color: var(--cat-dark);
+  background-color: color-mix(in srgb, var(--cat-dark) 16%, var(--card));
+}
+[data-theme="light"] .cat-icon {
+  color: var(--cat-light);
+  background-color: color-mix(in srgb, var(--cat-light) 12%, var(--card));
+}
+@media (prefers-color-scheme: light) {
+  [data-theme="system"] .cat-icon {
+    color: var(--cat-light);
+    background-color: color-mix(in srgb, var(--cat-light) 12%, var(--card));
+  }
 }

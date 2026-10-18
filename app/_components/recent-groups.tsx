@@ -25,21 +25,33 @@ export function RecentGroups() {
         {groups.map((g) => (
           <li key={g.token} className="flex items-center" data-testid="your-group">
             {g.unavailable ? (
-              <div className="flex min-h-16 min-w-0 flex-1 flex-col justify-center px-4 py-2">
-                <span className="truncate font-semibold text-muted">{g.name}</span>
+              <div className="flex min-h-14 min-w-0 flex-1 flex-col justify-center px-4 py-1.5">
+                <span className="truncate font-semibold text-muted" data-user-text>
+                  {g.name}
+                </span>
                 <span className="text-sm font-medium text-danger">No longer available</span>
               </div>
             ) : (
               // prefetch={false}: no request for a listed group until it is opened (D-36; App Router: never on viewport or hover).
-              <Link href={`/g/${g.token}`} prefetch={false} className="flex min-h-16 min-w-0 flex-1 items-center gap-3 rounded-l-2xl px-4 py-2 hover:bg-card-hover">
+              <Link href={`/g/${g.token}`} prefetch={false} className="flex min-h-14 min-w-0 flex-1 items-center gap-3 rounded-l-2xl px-4 py-1.5 hover:bg-card-hover">
                 <span className="min-w-0 flex-1">
                   <span className="flex items-center gap-2">
-                    <span className="truncate font-semibold">{g.name}</span>
+                    <span className="truncate font-semibold" data-user-text>
+                      {g.name}
+                    </span>
                     {g.demo && <span className="shrink-0 rounded-full bg-warn-soft px-2 py-0.5 text-xs font-semibold text-warn-soft-fg">Demo</span>}
                   </span>
-                  <span className="block truncate text-sm text-muted">
-                    {g.memberName ? `You: ${g.memberName} · ` : ""}
-                    {formatLastOpened(g.lastOpened, now)}
+                  {/* Only a long member name is cut; the compact time always shows in full. */}
+                  <span className="flex min-w-0 text-sm text-muted">
+                    {g.memberName && (
+                      <span className="truncate" data-user-text>
+                        You: {g.memberName}
+                      </span>
+                    )}
+                    <span className="shrink-0 whitespace-nowrap">
+                      {g.memberName ? " · " : ""}
+                      {formatLastOpened(g.lastOpened, now)}
+                    </span>
                   </span>
                 </span>
                 <ChevronIcon className="h-5 w-5 shrink-0 text-muted" />

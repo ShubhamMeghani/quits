@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| Spec | [SPEC.md](SPEC.md) **v1.5**. If SPEC.md and this plan disagree, SPEC.md wins. |
+| Spec | [SPEC.md](SPEC.md) **v1.6**. If SPEC.md and this plan disagree, SPEC.md wins. |
 | Production | https://quits-go.vercel.app (Vercel, deploys from `main`) |
 | Stack | Next.js (App Router, TS) · Tailwind · Vitest · Supabase Postgres (server-only, RLS on, no policies) · Gemini `gemini-3.5-flash-lite` · Frankfurter v2 · Vercel Hobby · GitHub Actions (ubuntu-24.04) · Node 24 |
 | Tests | `npm test` (unit, `lib/` + `server/token.ts`) · `npm run test:db` (DB integration; loads `.env.local`; skips when `SUPABASE_DB_URL` is absent) · `npm run test:db:clean` (removes leftover `__test__` groups) · `npm run lint` · `npm run build` · `npm run eval` (receipt eval; loads `.env.local`) |
@@ -264,6 +264,23 @@ No GitHub secrets are needed: CI runs only lint and unit tests, which make no ne
 
 ---
 
+## Phase 11 — Navigation home and visual polish (SPEC v1.6)
+
+**Goal:** a way back to "Your groups" from every group screen (the installed PWA has no back button), plus visual-only polish: compact times, category icons, slightly smaller text, no truncated labels.
+
+| # | Task | Mode | Satisfies |
+|---|---|---|---|
+| 11.1 | "All groups" link (back chevron + Quits mark, ≥ 44 px, to `/`) at the left of the group header and on the member picker. | AUTO | R72 · AC-59 |
+| 11.2 | Compact last-opened time ("Today · 12:36", "Yesterday", "12 Oct"); only a long member name may be cut, never the time. Shorter Group-screen subtitles. | AUTO | R5 (visual) |
+| 11.3 | `lib/category-style.ts` + `CategoryIcon`: a stable icon and colour per category in a soft circle, theme-aware; the date moves to small text above your share. Unit tests (all categories, distinct icons, fallback, ≥ 3:1 icon contrast in both themes). | AUTO | visual |
+| 11.4 | Body/subtitle text about 10% smaller (inputs stay 16 px for iOS), slightly tighter cards and rows (≥ 52 px), buttons at least 44 px wide; secondary lines wrap between parts instead of truncating. | AUTO | R50, R51 (visual) |
+| 11.5 | Audit extended: no truncation except the user's own text (`data-user-text`), the All-groups link on every group screen, and the navigation from Settle to "Your groups". | AUTO | AC-59 |
+| 11.6 | **Pending (human).** Push, then AC-59 in the installed PWA; reinstall the PWA to refresh its colours. | HUMAN | AC-59 |
+
+**Done when:** AC-59 Pass.
+
+---
+
 ## SPEC change proposals
 
 **Status: approved 2026-10-16 and applied in SPEC v0.4.** These were wording changes only; the code already followed them.
@@ -341,6 +358,11 @@ No GitHub secrets are needed: CI runs only lint and unit tests, which make no ne
   - **Headless audit** (local `next start`): 24 screens (home, about, offline, 404, member picker, expenses, add, new/detail/edit/itemized expense, settle, settle + "How?", full-screen QR, activity, group, members, member, settings, search, recurring, share, scan, receipt review) × dark/light × 360/1440 px = 96 runs, all clean: no horizontal scroll, no wrapped button labels, tap targets ≥ 44 px, 4,060 text elements at AA against their computed background, no text overflow, QR on white on every settle view, theme applied on every page, Inter loaded, requests only to the app origin and `data:` images. System theme follows the OS; reduced motion stops animations.
   - **Found and fixed during the audit:** "Stop repeating" wrapped at 360 px (Pause/Resume now takes only its width); the large QR amount was clipped by "Copy UPI ID" at 360 px (stacked on phones; a text-overflow check was added to the audit); the "you" card squeezed its label (now wraps); the group 404 ignored the light theme and the font because Next renders it client-side in its own error document (now applies both itself).
   - Labels and behaviour unchanged (all spec labels kept; no server or data change).
+- **2026-10-18, SPEC v1.6: navigation home and polish (Phase 11):**
+  - **R72 / D-40 (Should):** "All groups" (chevron + Quits mark, ≥ 44 px, link to `/`) at the left of every group header and on the member picker. AC-59 added.
+  - **Visual only:** compact last-opened times; shorter Group-screen subtitles ("Find expenses and see charts" etc.); category icons on expense rows with the date as small secondary text; text about 10% smaller (inputs 16 px), slightly tighter spacing; search result details wrap between parts instead of truncating; buttons at least 44 px wide (fixed the 43 px "Remove person" ✕).
+  - **Audit** (local `next start`, 25 checks × dark/light × 360/1440 px = 100 runs): all clean, including the new checks: no truncated text except the user's own (descriptions, names: 56 allowed cuts), "All groups" correct on all 76 group-screen runs, and Settle → All groups → "Your groups" in all four combinations; 4,276 text elements at AA; requests only to the app origin.
+  - **Android navigation bar (PWA):** there is no web API to colour it directly; Chrome takes it from the manifest, and both `theme_color` and `background_color` are already the dark background (`#0b1211`, since v1.5). Reinstall the PWA so Chrome rebuilds it with the new colours.
 
 ---
 
@@ -418,3 +440,4 @@ Rows P1-1 to P1-10 are the Phase 1 checks; each one de-risks the spec ACs shown 
 | AC-56 (Should) | Unit + Phone | 9 | Partial | unit Pass: tests/unit/recent-groups.test.ts › AC-56 (14 tests: add/update/order/remove/cap 20/corrupt and blocked storage). Local headless Chrome 360 px: two groups listed newest first with "You: …", Demo label and last opened; ✕ removes, still gone after reload; 404 → "No longer available"; no listed token sent on home load. Phone check pending (9.5) |
 | AC-57 | Unit | 10 | Pass | tests/unit/simplify.test.ts › AC-57 ("3 payments instead of 6", "1 payment instead of 2" + Simplified; "2 payments" without badge; none when settled; demo balances → "3 payments instead of 10") |
 | AC-58 (Should) | Unit + Phone | 10 | Partial | unit Pass: tests/unit/theme.test.ts (tokens, AA in both themes, theme colour, preference + pre-paint script, avatars, QR #000/#fff + 4-module margin). Headless audit Pass: 96 runs (24 screens × dark/light × 360/1440 px) clean. Phone check pending (10.6) |
+| AC-59 (Should) | Desktop + Phone | 11 | Partial | local headless (dark/light, 360/1440 px): "All groups" present once, `href="/"`, 58×44 px, before the group name on all 76 group-screen runs (header and member picker); tapping it on Settle opens `/` with "Your groups" listing the group. Phone (installed PWA) pending (11.6) |

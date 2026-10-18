@@ -5,6 +5,7 @@ import { useState, useTransition } from "react";
 import { loadMoreExpensesAction } from "@/app/actions";
 import { useIdentity } from "@/app/_components/identity";
 import { Button, buttonClass, Card, Empty, Notice } from "@/app/_components/ui";
+import { CategoryIcon } from "@/app/_components/category-icon";
 import { formatDate, money } from "@/app/_lib/format";
 import type { ExpenseRow } from "@/server/context";
 
@@ -93,26 +94,23 @@ export function ExpenseList({ initial, hasMore: initialHasMore, baseCurrency }: 
           const payer = e.payers.length === 1 ? nameOf(e.payers[0].memberId) : `${e.payers.length} people`;
           return (
             <li key={e.id}>
-              <Link href={`/g/${group.token}/expenses/${e.id}`} className="flex min-h-16 items-center gap-3 rounded-2xl border border-border bg-card px-4 py-3 shadow-card transition-colors hover:border-brand">
-                <div className="flex w-10 shrink-0 flex-col items-center text-xs font-semibold uppercase leading-tight text-muted">
-                  {formatDate(e.expenseDate)
-                    .replace(/ \d{4}$/, "")
-                    .split(" ")
-                    .map((part) => (
-                      <span key={part} className="whitespace-nowrap">
-                        {part}
-                      </span>
-                    ))}
-                </div>
+              <Link href={`/g/${group.token}/expenses/${e.id}`} className="flex min-h-16 items-center gap-3 rounded-2xl border border-border bg-card px-3.5 py-2.5 shadow-card transition-colors hover:border-brand">
+                <CategoryIcon category={e.category} />
                 <div className="min-w-0 flex-1">
-                  <p className="truncate font-semibold">{e.description}</p>
-                  <p className="truncate text-sm text-muted">
-                    {payer} paid {money(e.amountMinor, e.currency)}
-                    {e.currency !== baseCurrency && ` (${money(e.baseAmountMinor, baseCurrency)})`}
+                  {/* The description is the user's text: a long one is cut with an ellipsis. */}
+                  <p className="truncate font-semibold" data-user-text>
+                    {e.description}
+                  </p>
+                  {/* Who paid what; wraps (never truncates) if a name or a foreign amount is long. */}
+                  <p className="text-sm text-muted">
+                    {payer} paid <span className="whitespace-nowrap">{money(e.amountMinor, e.currency)}</span>
+                    {e.currency !== baseCurrency && <span className="whitespace-nowrap">{` (${money(e.baseAmountMinor, baseCurrency)})`}</span>}
                   </p>
                 </div>
                 <p className={`flex shrink-0 flex-col items-end text-xs font-semibold leading-tight ${line.tone}`}>
-                  <span className="whitespace-nowrap">{line.label}</span>
+                  {/* The date as small secondary text, above your share. */}
+                  <span className="mb-0.5 whitespace-nowrap font-medium text-muted">{formatDate(e.expenseDate).replace(/ \d{4}$/, "")}</span>
+                  {line.label && <span className="whitespace-nowrap">{line.label}</span>}
                   {line.amount && <span className="whitespace-nowrap text-base font-bold">{line.amount}</span>}
                 </p>
               </Link>

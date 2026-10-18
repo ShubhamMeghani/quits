@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Fragment } from "react";
 import { Card, Empty, inputClass, PageHeader, buttonClass } from "@/app/_components/ui";
 import { formatDate, money } from "@/app/_lib/format";
 import { CATEGORIES } from "@/lib/splits";
@@ -140,12 +141,22 @@ export default async function SearchPage({ params, searchParams }: PageProps<"/g
               <li key={e.id}>
                 <Link href={`/g/${token}/expenses/${e.id}`} className="flex min-h-14 items-center gap-3 rounded-2xl border border-border bg-card px-4 py-2 hover:border-brand">
                   <span className="min-w-0 flex-1">
-                    <span className="block truncate font-semibold">{e.description}</span>
-                    <span className="block truncate text-sm text-muted">
-                      {formatDate(e.expenseDate)} · {e.category} · {e.payers.map((p) => name.get(p.memberId)).join(", ")}
+                    <span className="block truncate font-semibold" data-user-text>
+                      {e.description}
+                    </span>
+                    {/* Wraps instead of truncating, and only between parts (date, category, each payer). */}
+                    <span className="block text-sm text-muted">
+                      {[formatDate(e.expenseDate), e.category, ...e.payers.map((p) => name.get(p.memberId) ?? "")].map((part, i, all) => (
+                        <Fragment key={i}>
+                          <span className="whitespace-nowrap">
+                            {part}
+                            {i < all.length - 1 ? (i < 2 ? " ·" : ",") : ""}
+                          </span>{" "}
+                        </Fragment>
+                      ))}
                     </span>
                   </span>
-                  <span className="font-semibold">{money(e.baseAmountMinor, base)}</span>
+                  <span className="shrink-0 whitespace-nowrap font-semibold">{money(e.baseAmountMinor, base)}</span>
                 </Link>
               </li>
             ))}

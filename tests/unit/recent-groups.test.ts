@@ -159,11 +159,11 @@ describe("AC-56: Your groups list (lib/recent-groups.ts)", () => {
     expect(tokenFromPath("/about")).toBeNull();
   });
 
-  it("formats the last-opened time (IST)", () => {
+  it("formats the last-opened time compactly (IST)", () => {
     const tz = "Asia/Kolkata";
-    expect(formatLastOpened(T0 - 2 * 3_600_000, T0, tz)).toBe("Opened today, 09:30");
-    expect(formatLastOpened(T0 - 24 * 3_600_000, T0, tz)).toBe("Opened yesterday");
-    expect(formatLastOpened(Date.UTC(2026, 9, 3, 6), T0, tz)).toBe("Opened 3 Oct");
-    expect(formatLastOpened(Date.UTC(2025, 11, 31, 6), T0, tz)).toBe("Opened 31 Dec 2025");
+    expect(formatLastOpened(T0 - 2 * 3_600_000, T0, tz)).toBe("Today · 09:30");
+    expect(formatLastOpened(T0 - 24 * 3_600_000, T0, tz)).toBe("Yesterday");
+    expect(formatLastOpened(Date.UTC(2026, 9, 3, 6), T0, tz)).toBe("3 Oct");
+    expect(formatLastOpened(Date.UTC(2025, 11, 31, 6), T0, tz)).toBe("31 Dec 2025");
   });
 });
