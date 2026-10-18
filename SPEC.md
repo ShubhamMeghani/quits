@@ -4,7 +4,7 @@
 
 | | |
 |---|---|
-| Version | v1.3 |
+| Version | v1.4 |
 | Date | 2026-10-16 |
 | Status | Ready for build. All open questions are decided (§10.1). Build order is in `PLAN.md`. |
 | Course | Applied Data Science & AI, IISc |
@@ -700,7 +700,7 @@ Unless marked *Should*, every AC is Must. Amounts are in ₹; the tests use pais
   - Creating an expense in group X with a member ID from group Y returns 404, and no row is created.
   - Deleting group Y's expense through group X's token returns 404, and nothing changes.
   - `curl -I {url}/g/{token}` shows `Referrer-Policy: no-referrer` and `X-Robots-Tag: noindex, nofollow`.
-- **AC-44 [Script] (R57):** a manual `workflow_dispatch` run succeeds, and `GET /api/health` returns `{"ok":true}`. With a wrong DB URL on a preview deployment, the endpoint returns 503.
+- **AC-44 [Script] (R57):** a manual `workflow_dispatch` run succeeds, and `GET /api/health` returns `{"ok":true}`. The production build, started locally (`next start`) with `SUPABASE_URL=https://invalid.example` set for that process only (`.env.local` untouched), returns 503 `{"ok":false}` (D-37).
 - **AC-45 [Script] (R58):** `npm test` and `npm run build` both exit 0 on the delivered commit.
 
 **Type-to-add and sharing (v0.7)**
@@ -841,6 +841,7 @@ Unless marked *Should*, every AC is Must. Amounts are in ₹; the tests use pais
 | D-34 | Receipt eval run 2 (2026-10-17) | Two receipt-prompt gaps change real users' splits, so they are product bug fixes: an add-on line printed under an item was read as a separate item and counted twice (r01, ₹150), and a delivery app's platform fee was dropped (r04, ₹14.99). The prompt now says add-on lines are part of the item's amount, and platform, packaging, convenience and delivery fees go in `service_charge` (§4.3). Run 3 is not blind for r01/r04. |
 | D-35 | Receipt eval run 2 (2026-10-17) | As for type-to-add (D-31), every receipt run is also reported as **answer rate** + **accuracy when answered**, from the saved results; a 25 s timeout is no answer, not a misread (R37). No receipt re-runs after run 3. |
 | D-36 | Feature request (2026-10-18) | **"Your groups" without accounts.** Each device keeps its own list in `localStorage` (token, name, picked member, last opened, demo flag; at most 20). Nothing about the list goes to the server, so it costs no privacy and needs no login. A 404 is only learned when the link is opened, and the entry is then shown as "No longer available". The limits (per device, not synced, cleared with browser data, groups unaffected) are stated in R5 and on the home page (AC-56). Replaces the earlier minimal list (name only, 10 groups). |
+| D-37 | Live checks (2026-10-18) | **AC-44's failure check runs locally, not on a Vercel preview.** A broken `SUPABASE_URL` set as a Preview environment variable would sit next to the real one in the Vercel project and could be applied by mistake. The same production build is started locally with the wrong URL set for that one process only (`.env.local` is never touched), and `/api/health` must return 503 `{"ok":false}`. The success half stays on production (keep-alive runs, `{"ok":true}`). |
 | D-22 | OQ-19 (2026-10-17) | Share and reminder messages use **"₹"** (e.g. `₹1,20,000`), not "Rs", to match the rest of the app. The exact strings in §4.3 are updated. |
 | D-17 | OQ-17 | When Frankfurter v2 has no rate for the exact date, use the most recent rate on or before `expense_date`, and store and show its `fx_rate_date` (R16). |
 
@@ -865,3 +866,4 @@ None open. New questions found during the build are added here with a proposed d
 | v1.1 | 2026-10-17 | **Eval reporting.**<br>**D-31:** every NL run (1–3) is also reported as answer rate + accuracy when answered, in REPORT.md and on `/about`; run 3 stays the main result, no more NL re-runs (R66).<br>**D-32:** the receipt eval saves each receipt's predicted values; run 1 kept, run 2 added (R37).<br>**D-33:** R37 asks for at least 5 real receipts (was 10–15), and results state "n = 5, small sample"; AC-24 and the `/about` method note updated.<br>Counts unchanged: 70 requirements (49 Must, 21 Should), 55 ACs. |
 | v1.2 | 2026-10-17 | **Receipt prompt fixes and receipt answer rate.**<br>**D-34:** §4.3 adds two field rules: add-on lines are part of their item's amount; platform, packaging, convenience and delivery fees go in `service_charge`. Product bug fixes found by receipt eval run 2 (r01, r04); run 3 is not blind for r01/r04.<br>**D-35:** every receipt run also reports answer rate + accuracy when answered (R37), in REPORT.md and on `/about`.<br>Counts unchanged: 70 requirements (49 Must, 21 Should), 55 ACs. |
 | v1.3 | 2026-10-18 | **"Your groups" on the home page, without accounts (Should).**<br>**R5** rewritten: per-device list (token, name refreshed on each visit, picked member, last opened, demo flag; at most 20), newest first, with "You: {member}", last opened, a "Demo" label and ✕ remove; "No longer available" after a 404; nothing sent to the server; empty list if storage is blocked; limits stated in the spec and on the home page; pure module `lib/recent-groups.ts`.<br>**AC-56** added (Unit + Phone, Should). **D-36** added. Non-goal added: syncing the list across devices.<br>Counts: 70 requirements (49 Must, 21 Should), **56 ACs**. |
+| v1.4 | 2026-10-18 | **AC-44 method.** The 503 check now uses the production build started locally with `SUPABASE_URL=https://invalid.example` for that process only, instead of a broken Preview environment variable on Vercel (**D-37**). Wording only; R57 unchanged. Counts: 70 requirements (49 Must, 21 Should), 56 ACs. |
