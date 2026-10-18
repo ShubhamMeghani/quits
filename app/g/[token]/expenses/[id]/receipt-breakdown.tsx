@@ -29,7 +29,7 @@ export function ReceiptBreakdown({ receipt, names, order }: { receipt: ReceiptVi
           Receipt{receipt.merchant ? ` · ${receipt.merchant}` : ""}
         </h2>
         {mismatch && (
-          <span className="rounded-full bg-amber-100 px-3 py-1 text-xs font-bold text-amber-900">
+          <span className="rounded-full bg-warn-soft px-3 py-1 text-xs font-bold text-warn-soft-fg">
             Total mismatch {money(Math.abs(receipt.diffMinor), cur)}
           </span>
         )}

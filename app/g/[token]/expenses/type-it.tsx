@@ -79,7 +79,7 @@ export function TypeIt({ token, me, onFill }: { token: string; me: string | null
   };
 
   return (
-    <section aria-labelledby="typeit-h" className="flex flex-col gap-2 rounded-2xl border border-teal-200 bg-teal-50 p-3">
+    <section aria-labelledby="typeit-h" className="flex flex-col gap-2 rounded-2xl border border-brand-border bg-brand-soft p-3">
       <label id="typeit-h" htmlFor="typeit" className="font-semibold">
         Type it
       </label>

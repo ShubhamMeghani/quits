@@ -48,7 +48,7 @@ export function SharePanel({ created }: { created: boolean }) {
       {created && <Notice tone="ok">Group created. Share the link with everyone in the group.</Notice>}
       <Notice tone="warn">Anyone with this link can view and edit this group.</Notice>
       <Card className="flex flex-col gap-3">
-        <p className="break-all rounded-xl bg-slate-100 px-3 py-2 font-mono text-sm">{url || "…"}</p>
+        <p className="break-all rounded-xl bg-track px-3 py-2 font-mono text-sm">{url || "…"}</p>
         <div className={`grid gap-2 ${canShare ? "grid-cols-2" : "grid-cols-1"}`}>
           <Button onClick={copy} disabled={!url}>
             <CopyIcon className="h-5 w-5" />
@@ -68,7 +68,7 @@ export function SharePanel({ created }: { created: boolean }) {
           // eslint-disable-next-line @next/next/no-img-element
           <img src={qr} alt="QR code of the group link" width={220} height={220} className="h-[220px] w-[220px]" />
         ) : (
-          <div className="h-[220px] w-[220px] animate-pulse rounded-xl bg-slate-200" />
+          <div className="h-[220px] w-[220px] animate-pulse rounded-xl bg-track" />
         )}
       </Card>
     </div>

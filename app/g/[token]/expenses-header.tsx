@@ -11,7 +11,7 @@ export function ExpensesHeader({ token }: { token: string }) {
         href={`/g/${token}/search`}
         aria-label="Search expenses"
         data-testid="search-link"
-        className="inline-flex min-h-11 min-w-11 items-center justify-center gap-2 rounded-full border border-border bg-card px-4 font-semibold text-brand hover:bg-teal-50"
+        className="inline-flex min-h-11 min-w-11 items-center justify-center gap-2 rounded-full border border-border bg-card px-4 font-semibold text-brand hover:bg-brand-soft"
       >
         <SearchIcon className="h-5 w-5" />
         <span>Search</span>

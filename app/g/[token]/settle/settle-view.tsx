@@ -1,19 +1,19 @@
 "use client";
 
-// Settle screen (R22–R26, R59): balances in words, naive/greedy/optimal counts, suggested payments
+// Settle screen (R22–R26, R59): balances in words, the payment reduction in plain words (counts under "How?"), suggested payments
 // with a QR-first UPI flow, "Mark as paid", manual payments, and recent payments.
 import Link from "next/link";
 import { useState, useSyncExternalStore, useTransition } from "react";
 import { createSettlementAction, deleteSettlementAction } from "@/app/actions";
 import { useIdentity } from "@/app/_components/identity";
 import { UpiQr } from "@/app/_components/upi-qr";
-import { CopyIcon, ShareIcon } from "@/app/_components/icons";
+import { ChevronIcon, CopyIcon, ShareIcon, SparkIcon } from "@/app/_components/icons";
 import { reminderMessage, summaryMessage, waLink } from "@/lib/share";
-import { Button, Card, Empty, Field, inputClass, Notice } from "@/app/_components/ui";
+import { Avatar, Badge, Button, Card, cardClass, Empty, Field, inputClass, Notice } from "@/app/_components/ui";
 import { balanceWords, formatDate, money } from "@/app/_lib/format";
 import { exponent } from "@/lib/currency";
 import { minorToMajorString, parseMajorInput } from "@/lib/money";
-import type { SettlePlan } from "@/lib/simplify";
+import { paymentHeadline, type SettlePlan } from "@/lib/simplify";
 import type { SettlementRow } from "@/server/context";
 
 type Method = "upi" | "cash" | "other";
@@ -36,12 +36,15 @@ export function SettleView(props: {
         <h2 id="balances" className="mb-2 text-lg font-bold">
           Balances
         </h2>
-        <ul className="divide-y divide-border rounded-2xl border border-border bg-card">
+        <ul className={`divide-y divide-border ${cardClass}`}>
           {sorted.map((m) => {
             const b = balances[m.id] ?? 0;
             return (
-              <li key={m.id} className="flex min-h-12 items-center justify-between gap-3 px-4">
-                <span className="min-w-0 truncate font-medium">{m.id === me ? `${m.name} (you)` : m.name}</span>
+              <li key={m.id} className="flex min-h-14 items-center justify-between gap-3 px-4 py-2">
+                <span className="flex min-w-0 items-center gap-3">
+                  <Avatar id={m.id} name={m.name} />
+                  <span className="min-w-0 truncate font-medium">{m.id === me ? `${m.name} (you)` : m.name}</span>
+                </span>
                 <span className={`text-right text-sm font-semibold ${b > 0 ? "text-ok" : b < 0 ? "text-danger" : "text-muted"}`}>{balanceWords(b, baseCurrency)}</span>
               </li>
             );
@@ -53,32 +56,12 @@ export function SettleView(props: {
         <h2 id="plan" className="mb-2 text-lg font-bold">
           Suggested payments
         </h2>
-        <Card className="mb-3">
-          <p className="text-sm font-medium text-muted">Payments needed to settle everyone</p>
-          <dl className="mt-2 grid grid-cols-3 gap-2 text-center">
-            <div className="rounded-xl bg-teal-50 p-2">
-              <dt className="text-xs font-semibold uppercase text-teal-900">Optimal</dt>
-              <dd className="text-2xl font-bold text-teal-900">{plan.optimalCount ?? "—"}</dd>
-            </div>
-            <div className="rounded-xl bg-slate-100 p-2">
-              <dt className="text-xs font-semibold uppercase text-muted">Greedy</dt>
-              <dd className="text-2xl font-bold">{plan.greedyCount}</dd>
-            </div>
-            <div className="rounded-xl bg-slate-100 p-2">
-              <dt className="text-xs font-semibold uppercase text-muted">Naive</dt>
-              <dd className="text-2xl font-bold">{naiveCount}</dd>
-            </div>
-          </dl>
-          <p className="mt-2 text-sm text-muted">
-            {plan.algorithm === "optimal"
-              ? "Showing the optimal plan: the exact minimum number of payments."
-              : "Showing a greedy plan (approximate). Optimal: not computed (> 18 people)."}
-            {plan.optimalCount !== null && plan.optimalCount < plan.greedyCount && ` That saves ${plan.greedyCount - plan.optimalCount} payment${plan.greedyCount - plan.optimalCount === 1 ? "" : "s"} over greedy.`}
-          </p>
-        </Card>
+        <PlanSummary plan={plan} naiveCount={naiveCount} />
         <ShareSummary payments={plan.payments} baseCurrency={baseCurrency} />
         {plan.payments.length === 0 ? (
-          <Empty title="Everyone is settled up">No payments needed.</Empty>
+          <Empty title="Everyone is settled up" icon={<SparkIcon className="h-6 w-6" />}>
+            No payments needed.
+          </Empty>
         ) : (
           <ul className="flex flex-col gap-3">
             {plan.payments.map((p) => (
@@ -99,7 +82,7 @@ export function SettleView(props: {
         {settlements.length === 0 ? (
           <p className="text-sm text-muted">No payments recorded yet.</p>
         ) : (
-          <ul className="divide-y divide-border rounded-2xl border border-border bg-card">
+          <ul className={`divide-y divide-border ${cardClass}`}>
             {settlements.map((s) => (
               <SettlementItem key={s.id} s={s} label={`${nameOf(s.fromMemberId)} paid ${s.toMemberId === me ? "you" : nameOf(s.toMemberId)}`} baseCurrency={baseCurrency} />
             ))}
@@ -110,19 +93,72 @@ export function SettleView(props: {
   );
 }
 
+/**
+ * R22 (SPEC v1.5): the main view says the reduction in plain words ("3 payments instead of 6")
+ * with a "Simplified" badge; the naive / greedy / optimal counts live under a small "How?".
+ */
+function PlanSummary({ plan, naiveCount }: { plan: SettlePlan; naiveCount: number }) {
+  const headline = paymentHeadline(plan.payments.length, naiveCount);
+  if (!headline) return null;
+  return (
+    <Card className="mb-3" data-testid="plan-summary">
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+        <p className="text-xl font-bold tracking-tight" data-testid="plan-headline">
+          {headline.text}
+        </p>
+        {headline.simplified && <Badge>Simplified</Badge>}
+      </div>
+      <details className="group mt-1">
+        <summary className="inline-flex min-h-11 cursor-pointer list-none items-center gap-1 text-sm font-semibold text-brand [&::-webkit-details-marker]:hidden">
+          How?
+          <ChevronIcon className="h-4 w-4 transition-transform group-open:rotate-90" />
+        </summary>
+        <div className="flex flex-col gap-2 pb-1">
+          <dl className="grid grid-cols-3 gap-2 text-center" data-testid="plan-counts">
+            <div className="rounded-xl bg-track p-2">
+              <dt className="text-xs font-semibold uppercase text-muted">Naive</dt>
+              <dd className="text-xl font-bold">{naiveCount}</dd>
+            </div>
+            <div className="rounded-xl bg-track p-2">
+              <dt className="text-xs font-semibold uppercase text-muted">Greedy</dt>
+              <dd className="text-xl font-bold">{plan.greedyCount}</dd>
+            </div>
+            <div className="rounded-xl bg-brand-soft p-2">
+              <dt className="text-xs font-semibold uppercase text-brand-soft-fg">Optimal</dt>
+              <dd className="text-xl font-bold text-brand-soft-fg">{plan.optimalCount ?? "—"}</dd>
+            </div>
+          </dl>
+          <p className="text-sm text-muted">
+            Quits first nets everyone&apos;s balance, then finds the smallest set of payments that clears every balance, by grouping people whose debts cancel out
+            exactly.{" "}
+            {plan.algorithm === "optimal"
+              ? "Showing the optimal plan: the exact minimum number of payments."
+              : "Showing a greedy plan (approximate). Optimal: not computed (> 18 people)."}
+          </p>
+        </div>
+      </details>
+    </Card>
+  );
+}
+
 function SuggestionCard({ from, to, amountMinor, baseCurrency, today }: { from: string; to: string; amountMinor: number; baseCurrency: string; today: string }) {
   const { group, members, nameOf, me } = useIdentity();
   const payee = members.find((m) => m.id === to)!;
+  const payer = members.find((m) => m.id === from);
   const [marking, setMarking] = useState(false);
   const upiReady = baseCurrency === "INR" && !!payee.upiId;
 
   return (
     <Card className="flex flex-col gap-3">
       <div className="flex items-center gap-3">
+        <span className="flex shrink-0 -space-x-2">
+          {payer && <Avatar id={payer.id} name={payer.name} />}
+          <Avatar id={payee.id} name={payee.name} />
+        </span>
         <p className="min-w-0 flex-1 font-semibold">
           {nameOf(from)} {from === me ? "pay" : "pays"} {to === me ? "you" : nameOf(to)}
         </p>
-        <p className="text-lg font-bold">{money(amountMinor, baseCurrency)}</p>
+        <p className="text-xl font-bold">{money(amountMinor, baseCurrency)}</p>
       </div>
       {baseCurrency === "INR" &&
         (upiReady ? (
@@ -203,7 +239,7 @@ function RemindLink({ from, to, amountMinor, baseCurrency }: { from: string; to:
   const realName = (id: string) => members.find((m) => m.id === id)?.name ?? "Someone";
   const href = waLink(reminderMessage({ from: realName(from), to: realName(to), amountMinor, groupName: group.name, link, currency: baseCurrency }));
   return (
-    <a href={href} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-11 items-center justify-center rounded-xl px-3 text-sm font-semibold text-brand hover:bg-teal-50">
+    <a href={href} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-11 items-center justify-center rounded-xl px-3 text-sm font-semibold text-brand hover:bg-brand-soft">
       Remind {realName(from)} on WhatsApp
     </a>
   );
@@ -228,7 +264,7 @@ function MarkPaidForm(props: { from: string; to: string; amountMinor: number; ba
 
   return (
     <form
-      className="flex flex-col gap-3 rounded-2xl border border-teal-200 bg-teal-50 p-3"
+      className="flex flex-col gap-3 rounded-2xl border border-brand-border bg-brand-soft p-3"
       onSubmit={(e) => {
         e.preventDefault();
         confirm();
@@ -297,7 +333,7 @@ function ManualPayment({ baseCurrency, today }: { baseCurrency: string; today: s
     });
 
   return (
-    <section aria-labelledby="manual" className="rounded-2xl border border-border bg-card p-4">
+    <section aria-labelledby="manual" className={`${cardClass} p-4`}>
       <h2 id="manual" className="mb-3 text-lg font-bold">
         Record a payment
       </h2>

@@ -35,7 +35,8 @@ export function RulesList({ rules }: { rules: RuleView[] }) {
               Every {r.frequency === "weekly" ? "week" : "month"} from {formatDate(r.anchorDate)}
               {r.endDate ? ` until ${formatDate(r.endDate)}` : ""} · {r.active ? `next on ${formatDate(r.nextDue)}` : "paused"}
             </p>
-            <div className="grid grid-cols-2 gap-2">
+            {/* Pause/Resume takes only its width so "Stop repeating" stays on one line at 360 px. */}
+            <div className="grid grid-cols-[auto_minmax(0,1fr)] gap-2">
               <Button variant="secondary" onClick={() => act(r.id, r.active ? "pause" : "resume")} disabled={pending}>
                 {r.active ? "Pause" : "Resume"}
               </Button>

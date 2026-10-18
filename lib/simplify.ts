@@ -159,3 +159,18 @@ export function applyPayments(balances: readonly MemberBalance[], payments: read
   }
   return balances.map((x) => ({ memberId: x.memberId, balance: b.get(x.memberId)! }));
 }
+
+const paymentsWord = (n: number) => `${n} payment${n === 1 ? "" : "s"}`;
+
+/**
+ * R22 (SPEC v1.5): the Settle screen's headline, in plain words, from the naive count to the
+ * number of payments listed (the optimal count, or greedy above 18 people).
+ * - fewer than naive → "3 payments instead of 6" with the "Simplified" badge;
+ * - as many as naive → "2 payments", no badge;
+ * - nothing to pay   → null (the "Everyone is settled up" state is shown instead).
+ */
+export function paymentHeadline(listed: number, naive: number): { text: string; simplified: boolean } | null {
+  if (listed <= 0) return null;
+  if (listed < naive) return { text: `${paymentsWord(listed)} instead of ${naive}`, simplified: true };
+  return { text: paymentsWord(listed), simplified: false };
+}

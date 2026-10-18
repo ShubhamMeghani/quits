@@ -82,7 +82,7 @@ export function SettingsForm({ defaultSplit, hasExpenses }: { defaultSplit: Defa
 
       <fieldset className="flex flex-col gap-2">
         <legend className="mb-1 text-sm font-medium">Default split for new expenses</legend>
-        <div role="radiogroup" aria-label="Default split type" className="grid grid-cols-3 gap-1 rounded-xl bg-slate-100 p-1">
+        <div role="radiogroup" aria-label="Default split type" className="grid grid-cols-3 gap-1 rounded-xl bg-track p-1">
           {(["equal", "percent", "shares"] as Type[]).map((t) => (
             <button
               key={t}
@@ -102,7 +102,7 @@ export function SettingsForm({ defaultSplit, hasExpenses }: { defaultSplit: Defa
               <label className="flex min-h-11 flex-1 items-center gap-3">
                 <input
                   type="checkbox"
-                  className="h-5 w-5 accent-teal-700"
+                  className="h-5 w-5 accent-brand"
                   checked={included.has(m.id)}
                   onChange={(e) =>
                     setIncluded((s) => {

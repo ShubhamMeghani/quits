@@ -284,7 +284,7 @@ export function ExpenseForm({ baseCurrency, defaultSplit, today, initial }: Prop
 
       <fieldset className="flex flex-col gap-2">
         <legend className="mb-1 text-sm font-medium">Split</legend>
-        <div role="radiogroup" aria-label="Split type" className="grid grid-cols-4 gap-1 rounded-xl bg-slate-100 p-1">
+        <div role="radiogroup" aria-label="Split type" className="grid grid-cols-4 gap-1 rounded-xl bg-track p-1">
           {(Object.keys(SPLIT_LABELS) as EditableSplit[]).map((t) => (
             <button
               key={t}

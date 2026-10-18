@@ -31,11 +31,11 @@ export function RecentGroups() {
               </div>
             ) : (
               // prefetch={false}: no request for a listed group until it is opened (D-36; App Router: never on viewport or hover).
-              <Link href={`/g/${g.token}`} prefetch={false} className="flex min-h-16 min-w-0 flex-1 items-center gap-3 rounded-l-2xl px-4 py-2 hover:bg-slate-50">
+              <Link href={`/g/${g.token}`} prefetch={false} className="flex min-h-16 min-w-0 flex-1 items-center gap-3 rounded-l-2xl px-4 py-2 hover:bg-card-hover">
                 <span className="min-w-0 flex-1">
                   <span className="flex items-center gap-2">
                     <span className="truncate font-semibold">{g.name}</span>
-                    {g.demo && <span className="shrink-0 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-900">Demo</span>}
+                    {g.demo && <span className="shrink-0 rounded-full bg-warn-soft px-2 py-0.5 text-xs font-semibold text-warn-soft-fg">Demo</span>}
                   </span>
                   <span className="block truncate text-sm text-muted">
                     {g.memberName ? `You: ${g.memberName} · ` : ""}
@@ -50,7 +50,7 @@ export function RecentGroups() {
               aria-label={`Remove ${g.name} from this device's list`}
               title="Remove from this device's list"
               onClick={() => updateRecent((list) => removeRecent(list, g.token))}
-              className="mr-2 inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-muted hover:bg-slate-100 hover:text-danger"
+              className="mr-2 inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-muted hover:bg-card-hover hover:text-danger"
             >
               <CloseIcon className="h-5 w-5" />
             </button>

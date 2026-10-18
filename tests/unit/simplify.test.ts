@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { rng } from "./helpers";
-import { applyPayments, greedy, maxZeroSumPartition, naiveCount, settle, type MemberBalance } from "@/lib/simplify";
+import { applyPayments, greedy, maxZeroSumPartition, naiveCount, paymentHeadline, settle, type MemberBalance } from "@/lib/simplify";
 import { buildExpenseAmounts } from "@/lib/splits";
 
 const R = 100; // paise per rupee
@@ -154,5 +154,26 @@ describe("exact algorithm (R19)", () => {
   it("AC-12: two runs on the same input are deep-equal", () => {
     const b = randomBalances(rng(9), 12, 5);
     expect(settle(b)).toEqual(settle(b.map((x) => ({ ...x }))));
+  });
+});
+
+describe("AC-57: the Settle headline in plain words (R22, SPEC v1.5)", () => {
+  it("fewer payments than naive → '3 payments instead of 6' with the Simplified badge", () => {
+    expect(paymentHeadline(3, 6)).toEqual({ text: "3 payments instead of 6", simplified: true });
+    expect(paymentHeadline(1, 2)).toEqual({ text: "1 payment instead of 2", simplified: true });
+  });
+  it("as many as naive → just the count, no badge", () => {
+    expect(paymentHeadline(2, 2)).toEqual({ text: "2 payments", simplified: false });
+    expect(paymentHeadline(1, 1)).toEqual({ text: "1 payment", simplified: false });
+  });
+  it("nothing to pay → no headline (the settled-up state is shown instead)", () => {
+    expect(paymentHeadline(0, 0)).toBeNull();
+  });
+  it("the demo balances give 3 payments; with the demo's naive count of 10 that reads '3 payments instead of 10'", () => {
+    const b = (memberId: string, balance: number): MemberBalance => ({ memberId, balance });
+    const balances = [b("aarav", 400000), b("priya", 300000), b("rohan", 300000), b("sneha", -600000), b("kabir", -400000)];
+    const plan = settle(balances);
+    expect(plan.payments).toHaveLength(3);
+    expect(paymentHeadline(plan.payments.length, 10)?.text).toBe("3 payments instead of 10");
   });
 });

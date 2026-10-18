@@ -29,12 +29,12 @@ export function SplitRows(props: {
         const owed = props.owed[p.id];
         const flagged = props.highlight?.has(p.id);
         return (
-          <li key={p.id} data-member={p.id} className={`flex min-h-14 items-center gap-3 px-3 py-2 ${flagged ? "bg-amber-50" : ""}`}>
+          <li key={p.id} data-member={p.id} className={`flex min-h-14 items-center gap-3 px-3 py-2 ${flagged ? "bg-warn-soft" : ""}`}>
             {mode === "equal" && (
               <input
                 id={`sp-${p.id}`}
                 type="checkbox"
-                className="h-5 w-5 shrink-0 accent-teal-700"
+                className="h-5 w-5 shrink-0 accent-brand"
                 checked={props.included.has(p.id)}
                 onChange={(e) => props.onToggle(p.id, e.target.checked)}
               />

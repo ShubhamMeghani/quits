@@ -5,7 +5,7 @@ import { useState, useTransition } from "react";
 import { addMemberAction } from "@/app/actions";
 import { ChevronIcon } from "@/app/_components/icons";
 import { useIdentity } from "@/app/_components/identity";
-import { Button, Field, inputClass } from "@/app/_components/ui";
+import { Avatar, Button, cardClass, Field, inputClass } from "@/app/_components/ui";
 
 export function MembersList() {
   const { group, members, me } = useIdentity();
@@ -25,10 +25,11 @@ export function MembersList() {
 
   return (
     <div className="flex flex-col gap-4">
-      <ul className="divide-y divide-border rounded-2xl border border-border bg-card">
+      <ul className={`divide-y divide-border overflow-hidden ${cardClass}`}>
         {active.map((m) => (
           <li key={m.id}>
-            <Link href={`/g/${group.token}/members/${m.id}`} className="flex min-h-14 items-center gap-3 px-4 hover:bg-slate-50">
+            <Link href={`/g/${group.token}/members/${m.id}`} className="flex min-h-14 items-center gap-3 px-4 py-2 transition-colors hover:bg-card-hover">
+              <Avatar id={m.id} name={m.name} />
               <span className="min-w-0 flex-1">
                 <span className="block truncate font-semibold">
                   {m.name}

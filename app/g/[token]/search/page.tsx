@@ -37,8 +37,8 @@ export default async function SearchPage({ params, searchParams }: PageProps<"/g
           <legend className="mb-1 text-sm font-medium">Categories</legend>
           <div className="flex flex-wrap gap-2">
             {CATEGORIES.map((c) => (
-              <label key={c} className="inline-flex min-h-11 cursor-pointer items-center gap-2 rounded-full border border-border px-3 text-sm has-[:checked]:border-brand has-[:checked]:bg-teal-50">
-                <input type="checkbox" name="cat" value={c} defaultChecked={cats.includes(c)} className="h-4 w-4 accent-teal-700" />
+              <label key={c} className="inline-flex min-h-11 cursor-pointer items-center gap-2 rounded-full border border-border px-3 text-sm has-[:checked]:border-brand has-[:checked]:bg-brand-soft">
+                <input type="checkbox" name="cat" value={c} defaultChecked={cats.includes(c)} className="h-4 w-4 accent-brand" />
                 {c}
               </label>
             ))}
@@ -94,7 +94,7 @@ export default async function SearchPage({ params, searchParams }: PageProps<"/g
                   <span className="font-medium">{p.name}</span>
                   <span className="font-semibold">{money(p.v, base)}</span>
                 </div>
-                <div className="h-3 rounded-full bg-slate-100" aria-hidden="true">
+                <div className="h-3 rounded-full bg-track" aria-hidden="true">
                   <div className="h-3 rounded-full bg-brand" style={{ width: `${Math.max(2, (p.v / maxPerson) * 100)}%` }} />
                 </div>
               </li>
@@ -119,8 +119,8 @@ export default async function SearchPage({ params, searchParams }: PageProps<"/g
                     </span>
                   </span>
                 </div>
-                <div className="h-3 rounded-full bg-slate-100" aria-hidden="true">
-                  <div className="h-3 rounded-full bg-amber-500" style={{ width: `${Math.max(2, (v / maxCat) * 100)}%` }} />
+                <div className="h-3 rounded-full bg-track" aria-hidden="true">
+                  <div className="h-3 rounded-full bg-chart-2" style={{ width: `${Math.max(2, (v / maxCat) * 100)}%` }} />
                 </div>
               </li>
             ))}

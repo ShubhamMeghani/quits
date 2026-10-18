@@ -51,8 +51,8 @@ export function ExpenseActions({ id, deleted, editable }: { id: string; deleted:
         </Button>
       </div>
       {confirming && (
-        <div className="flex flex-col gap-2 rounded-2xl border border-red-200 bg-red-50 p-3" role="alertdialog" aria-label="Confirm delete">
-          <p className="font-medium text-red-900">Delete this expense? Anyone in the group can restore it from Activity.</p>
+        <div className="flex flex-col gap-2 rounded-2xl border border-danger-border bg-danger-soft p-3" role="alertdialog" aria-label="Confirm delete">
+          <p className="font-medium text-danger-soft-fg">Delete this expense? Anyone in the group can restore it from Activity.</p>
           <div className="grid grid-cols-2 gap-2">
             <Button variant="secondary" onClick={() => setConfirming(false)}>
               Cancel

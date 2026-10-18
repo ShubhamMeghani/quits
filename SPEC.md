@@ -4,7 +4,7 @@
 
 | | |
 |---|---|
-| Version | v1.4 |
+| Version | v1.5 |
 | Date | 2026-10-16 |
 | Status | Ready for build. All open questions are decided (§10.1). Build order is in `PLAN.md`. |
 | Course | Applied Data Science & AI, IISc |
@@ -31,7 +31,7 @@ Quits is a free, mobile-first web app for Indian students to track shared expens
 **Quits' edge:** everything Splitwise Pro unlocks is free in Quits, with no caps. On top of that, Quits offers:
 - **UPI QR settle-up with the amount prefilled:** each suggested payment has a UPI QR code with the payee and amount filled in. You can scan it from a laptop screen, from a friend's phone in full screen, or as a saved image from the gallery in any UPI app. You then tap "Mark as paid".
 - **Itemized receipt splitting:** each person taps what they had; tax and tips are split in proportion.
-- **Provably optimal debt simplification:** the payment count is shown next to greedy and naive counts.
+- **Provably optimal debt simplification:** Settle says it in plain words ("3 payments instead of 10"), with the naive, greedy and optimal counts one tap away under "How?".
 - **Measured receipt accuracy:** precision, recall and reconciliation rate on a labelled test set, published in the app.
 - **Type-to-add in English or Hinglish (v0.7):** "maine 450 diye auto ke, sab mein" fills the expense form, which you review before saving. Its accuracy is measured too.
 - **WhatsApp nudges (v0.7, Should):** share the settle-up summary, or send a polite prefilled reminder, without Quits storing any phone numbers.
@@ -53,7 +53,7 @@ Quits is a free, mobile-first web app for Indian students to track shared expens
 - **S6 Recurring rent.** Monthly rent appears automatically the next time the group is opened after its due date.
 - **S8 Type-to-add.** On Add expense, a student types or dictates (through the keyboard mic) "Rahul paid 600 for pizza, split with Amit and me". The form fills in; they check it and tap Save.
 - **S9 Nudge.** On Settle, a student taps "Remind" next to "Rohan -> Aarav ₹1,200". WhatsApp opens with a polite message prefilled, and they pick Rohan as the contact.
-- **S7 Evaluator demo.** On desktop: "Try the demo" opens realistic data. Settle shows optimal fewer payments than greedy, a UPI QR code is visible, there is an itemized receipt, and the About page shows the eval metrics.
+- **S7 Evaluator demo.** On desktop: "Try the demo" opens realistic data. Settle says "3 payments instead of 10" ("How?" shows optimal fewer than greedy), a UPI QR code is visible, there is an itemized receipt, and the About page shows the eval metrics.
 
 ## 3. Constraints
 
@@ -333,7 +333,12 @@ Requirement IDs are stable. R59 and R60 were added in v0.5 and sit in their topi
   1. For each non-deleted expense, each participant owes each payer `j` the amount `owed × paid_j / total`, allocated with R13.
   2. Each settlement reduces the amount between its two members.
   3. Naive = the number of unordered member pairs whose net amount is nonzero.
-- **R22 [Must]** WHEN the Settle screen is shown, THE SYSTEM SHALL display the naive, greedy and optimal payment counts, plus the name of the algorithm that produced the listed payments. When `n > 18`, optimal is shown as "not computed (> 18 people)".
+- **R22 [Must]** WHEN the Settle screen is shown, THE SYSTEM SHALL state the payment reduction in plain words in its main view (D-38):
+  - "{listed} payments instead of {naive}" (singular "payment" for 1), from the naive count (R21) to the number of payments listed (optimal, or greedy above 18 people), with a small "Simplified" badge;
+  - IF the listed count equals the naive count, THEN only "{listed} payments" is shown, without the badge; IF no payment is needed, THEN no headline is shown and "Everyone is settled up" appears instead;
+  - the main view SHALL NOT show Optimal / Greedy / Naive tags;
+  - a small "How?" disclosure below it SHALL show the naive, greedy and optimal counts, the name of the algorithm that produced the listed payments, and one sentence explaining minimum-payment debt simplification. When `n > 18`, optimal is shown there as "not computed (> 18 people)".
+  - The wording SHALL come from a pure function (`paymentHeadline` in `lib/simplify.ts`).
 
 ### 5.7 Settlements and UPI
 - **R23 [Must]** THE SYSTEM SHALL record settlements in two ways, each updating balances and logging `settlement.created`:
@@ -473,6 +478,16 @@ Requirement IDs are stable. R59 and R60 were added in v0.5 and sit in their topi
   - icons at 192 px, 512 px and 512 px maskable;
   - a 180 px apple-touch-icon.
 - **R53 [Should]** THE SYSTEM SHALL show an offline fallback page through a service worker. No data is cached or synced.
+- **R71 [Should]** THE SYSTEM SHALL have a modern dark look with a light alternative (v1.5, D-39):
+  - **Themes:** dark by default, plus light. A **Dark / Light / System** control on the Group screen; the choice is remembered on this device (`localStorage` key `quits:theme`, wrapped in try/catch; blocked storage keeps the default) and applied before the first paint. Both themes are built from the same CSS design tokens.
+  - **Dark:** near-black background, slightly lighter elevated cards, teal accent, a subtle gradient on primary buttons. **Light:** the same accent.
+  - **Money:** green for "you're owed" / "gets back", red for "you owe"; large amounts with tabular figures.
+  - **Members:** coloured initial avatars, with a colour that is stable per member (`lib/avatar.ts`).
+  - **Polish:** the active bottom-nav tab is highlighted; empty states have an icon; loading skeletons; small transitions, all disabled under `prefers-reduced-motion`.
+  - **Font:** self-hosted through `next/font` (no request to a font service from the browser).
+  - **Contrast:** WCAG AA (≥ 4.5:1) for every text/background token pair in both themes. The PWA `theme_color` and the browser theme colour are the dark background.
+  - **UPI QR:** ALWAYS black modules on white with a 4-module quiet zone, in both themes and in the saved image, so UPI apps can scan it (R24).
+  - Charts and the receipt review screen SHALL be legible in both themes.
 
 ### 5.14 Security and operations
 - **R54 [Must]** THE SYSTEM SHALL enforce these data-access rules:
@@ -675,7 +690,7 @@ Unless marked *Should*, every AC is Must. Amounts are in ₹; the tests use pais
   - ≥ 15 expenses;
   - an itemized receipt expense with a per-item breakdown;
   - a USD expense with its rate;
-  - on Settle, naive *N*, greedy 4 and optimal 3, labelled with the algorithm used.
+  - on Settle, "3 payments instead of *N*" with a "Simplified" badge and no Optimal / Greedy / Naive tags in the main view; "How?" shows naive *N*, greedy 4 and optimal 3, labelled with the algorithm used.
 - **AC-38 [Deploy] (R47, R49):**
   1. Delete a demo expense, then tap Reset. The expense is back, the balances equal AC-36, and the URL is unchanged.
   2. A Reset request for a non-demo group is rejected.
@@ -742,6 +757,13 @@ Unless marked *Should*, every AC is Must. Amounts are in ₹; the tests use pais
 - **AC-56 [Unit + Phone, *Should*] (R5):**
   - Unit: `lib/recent-groups.ts` adds a new group at the top; a revisit updates the name, member, demo flag and time and moves it to the top; the list is newest first; remove drops only that token; the list is capped at 20 (oldest dropped); corrupt, non-JSON or wrongly shaped storage gives an empty list (or keeps only the valid entries) without throwing; storage that throws on read or write gives an empty list.
   - Phone: open two groups and pick a member in each. Both appear under "Your groups" on the home page, newest first, with "You: {member}". Tap ✕ on one: it disappears, and after a reload it is still gone. The other group still opens, and the removed group still opens from its link (opening it adds it back to the list, like any visit).
+
+**Settle wording and themes (v1.5)**
+- **AC-57 [Unit] (R22):** `paymentHeadline` returns "3 payments instead of 6" and "1 payment instead of 2" with `simplified: true`; "2 payments" (no badge) when the listed count equals naive; nothing when no payment is needed; and "3 payments instead of 10" for the demo balances (3 listed, naive 10).
+- **AC-58 [Unit + Phone, *Should*] (R71):**
+  - Unit: the dark and light token sets have the same names, System in light mode equals Light, and every text/background pair is ≥ 4.5:1 in both themes; `theme_color` equals the dark background; the stored-theme parser and the pre-paint script fall back to dark on missing, corrupt or blocked storage; avatar colours are stable per member and white initials are ≥ 4.5:1 on each; the QR uses `#000000` on `#ffffff` with a 4-module margin.
+  - Headless at 360 px and 1440 px, both themes, every screen: no horizontal scroll, no wrapped button labels, tap targets ≥ 44 px.
+  - Phone: switch Dark → Light → System on the Group screen; the app recolours at once and keeps the choice after a reload; a UPI QR shown in the dark theme scans in a UPI app with the payee and amount filled in.
 
 ## 7. Deliverables
 
@@ -842,6 +864,8 @@ Unless marked *Should*, every AC is Must. Amounts are in ₹; the tests use pais
 | D-35 | Receipt eval run 2 (2026-10-17) | As for type-to-add (D-31), every receipt run is also reported as **answer rate** + **accuracy when answered**, from the saved results; a 25 s timeout is no answer, not a misread (R37). No receipt re-runs after run 3. |
 | D-36 | Feature request (2026-10-18) | **"Your groups" without accounts.** Each device keeps its own list in `localStorage` (token, name, picked member, last opened, demo flag; at most 20). Nothing about the list goes to the server, so it costs no privacy and needs no login. A 404 is only learned when the link is opened, and the entry is then shown as "No longer available". The limits (per device, not synced, cleared with browser data, groups unaffected) are stated in R5 and on the home page (AC-56). Replaces the earlier minimal list (name only, 10 groups). |
 | D-37 | Live checks (2026-10-18) | **AC-44's failure check runs locally, not on a Vercel preview.** A broken `SUPABASE_URL` set as a Preview environment variable would sit next to the real one in the Vercel project and could be applied by mistake. The same production build is started locally with the wrong URL set for that one process only (`.env.local` is never touched), and `/api/health` must return 503 `{"ok":false}`. The success half stays on production (keep-alive runs, `{"ok":true}`). |
+| D-38 | UI review (2026-10-18) | The Settle screen leads with the outcome in plain words ("3 payments instead of 10", "Simplified") instead of three algorithm tags; the naive / greedy / optimal comparison stays one tap away under "How?" for evaluators (R22, AC-37, AC-57). |
+| D-39 | UI review (2026-10-18) | **Fintech look, dark by default.** Design tokens (CSS variables) for a dark and a light theme, a Dark / Light / System control remembered per device, AA contrast checked by a unit test, self-hosted Inter, coloured member avatars. The UPI QR is a fixed light island (black on white, 4-module quiet zone) so theming can never break scanning (R71, AC-58). |
 | D-22 | OQ-19 (2026-10-17) | Share and reminder messages use **"₹"** (e.g. `₹1,20,000`), not "Rs", to match the rest of the app. The exact strings in §4.3 are updated. |
 | D-17 | OQ-17 | When Frankfurter v2 has no rate for the exact date, use the most recent rate on or before `expense_date`, and store and show its `fx_rate_date` (R16). |
 
@@ -867,3 +891,4 @@ None open. New questions found during the build are added here with a proposed d
 | v1.2 | 2026-10-17 | **Receipt prompt fixes and receipt answer rate.**<br>**D-34:** §4.3 adds two field rules: add-on lines are part of their item's amount; platform, packaging, convenience and delivery fees go in `service_charge`. Product bug fixes found by receipt eval run 2 (r01, r04); run 3 is not blind for r01/r04.<br>**D-35:** every receipt run also reports answer rate + accuracy when answered (R37), in REPORT.md and on `/about`.<br>Counts unchanged: 70 requirements (49 Must, 21 Should), 55 ACs. |
 | v1.3 | 2026-10-18 | **"Your groups" on the home page, without accounts (Should).**<br>**R5** rewritten: per-device list (token, name refreshed on each visit, picked member, last opened, demo flag; at most 20), newest first, with "You: {member}", last opened, a "Demo" label and ✕ remove; "No longer available" after a 404; nothing sent to the server; empty list if storage is blocked; limits stated in the spec and on the home page; pure module `lib/recent-groups.ts`.<br>**AC-56** added (Unit + Phone, Should). **D-36** added. Non-goal added: syncing the list across devices.<br>Counts: 70 requirements (49 Must, 21 Should), **56 ACs**. |
 | v1.4 | 2026-10-18 | **AC-44 method.** The 503 check now uses the production build started locally with `SUPABASE_URL=https://invalid.example` for that process only, instead of a broken Preview environment variable on Vercel (**D-37**). Wording only; R57 unchanged. Counts: 70 requirements (49 Must, 21 Should), 56 ACs. |
+| v1.5 | 2026-10-18 | **Settle wording and visual redesign.**<br>**R22** rewritten: the main view says "{listed} payments instead of {naive}" with a "Simplified" badge, no algorithm tags; naive / greedy / optimal and a one-sentence explanation under "How?" (**D-38**). Goal and S7 wording and **AC-37** updated; **AC-57** (Unit) added.<br>**R71** added (Should): dark default + light, Dark / Light / System on the Group screen (remembered per device), design tokens, money colours, avatars, active nav tab, empty states, skeletons, reduced-motion-safe transitions, self-hosted font, AA contrast, dark `theme_color`, and a UPI QR that is always black on white with a quiet zone (**D-39**); **AC-58** (Unit + Phone, Should) added.<br>Counts: **71 requirements (49 Must, 22 Should), 58 ACs**. |

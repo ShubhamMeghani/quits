@@ -1,11 +1,12 @@
 import Link from "next/link";
 import { ChevronIcon } from "@/app/_components/icons";
-import { PageHeader } from "@/app/_components/ui";
+import { cardClass, PageHeader } from "@/app/_components/ui";
+import { ThemeToggle } from "@/app/_components/theme-toggle";
 import { requireGroup } from "@/server/context";
 import { ResetDemoButton } from "@/app/_components/demo-buttons";
 import { YouCard } from "./you-card";
 
-const row = "flex min-h-14 items-center gap-3 px-4 hover:bg-slate-50";
+const row = "flex min-h-14 items-center gap-3 px-4 transition-colors hover:bg-card-hover";
 
 // Group tab (R50): members, share, settings, stats, export and about.
 export default async function GroupHubPage({ params }: PageProps<"/g/[token]/group">) {
@@ -24,7 +25,7 @@ export default async function GroupHubPage({ params }: PageProps<"/g/[token]/gro
       <PageHeader title={group.name} />
       <YouCard />
       <nav aria-label="Group options">
-        <ul className="divide-y divide-border rounded-2xl border border-border bg-card">
+        <ul className={`divide-y divide-border overflow-hidden ${cardClass}`}>
           {links.map((l) => (
             <li key={l.href}>
               <Link href={l.href} className={row}>
@@ -38,7 +39,14 @@ export default async function GroupHubPage({ params }: PageProps<"/g/[token]/gro
           ))}
         </ul>
       </nav>
-      <a href={`/api/g/${token}/export.csv`} download className="flex min-h-14 items-center justify-center rounded-2xl border border-border bg-card px-4 font-semibold text-brand hover:bg-slate-50">
+      <section aria-labelledby="appearance" className={`${cardClass} flex flex-col gap-2 p-4`}>
+        <h2 id="appearance" className="font-semibold">
+          Appearance
+        </h2>
+        <ThemeToggle />
+        <p className="text-sm text-muted">Saved on this device. UPI QR codes always stay black on white so they scan.</p>
+      </section>
+      <a href={`/api/g/${token}/export.csv`} download className={`flex min-h-14 items-center justify-center px-4 font-semibold text-brand transition-colors hover:bg-card-hover ${cardClass}`}>
         Export expenses (CSV)
       </a>
       <ResetDemoButton />

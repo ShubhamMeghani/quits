@@ -1,35 +1,193 @@
 @import "tailwindcss";
 
-:root {
-  --background: #f8fafc;
-  --foreground: #0f172a;
-  --muted: #475569;
-  --brand: #0f766e;
-  --brand-dark: #115e59;
-  --brand-fg: #ffffff;
+/*
+ * Design tokens (R71, SPEC v1.5). Dark is the default; <html data-theme> is "dark", "light" or
+ * "system" (set before first paint by THEME_INIT_SCRIPT in lib/theme.ts). Any element with
+ * data-theme="light" becomes a light island (used for the UPI QR, which is always black on white).
+ * Colours are solid hex so tests/unit/theme.test.ts can check WCAG AA for every text/background
+ * pair in both themes. Keep the two light blocks identical (the test checks that too).
+ */
+:root,
+[data-theme="dark"] {
+  color-scheme: dark;
+  --background: #0b1211;
+  --card: #141d1c;
+  --card-hover: #1b2625;
+  --track: #243130;
+  --border: #2a3837;
+  --foreground: #e8f0ef;
+  --muted: #9db0ad;
+  --brand: #2dd4bf;
+  --brand-from: #2dd4bf;
+  --brand-to: #14b8a6;
+  --brand-fg: #042f2a;
+  --brand-soft: #0f2b28;
+  --brand-soft-fg: #99f6e4;
+  --brand-border: #1f4f49;
+  --ok: #34d399;
+  --ok-soft: #0f2a1f;
+  --ok-soft-fg: #a7f3d0;
+  --ok-border: #1d4d3a;
+  --warn: #fbbf24;
+  --warn-soft: #2b2210;
+  --warn-soft-fg: #fde68a;
+  --warn-border: #5c4515;
+  --danger: #f87171;
+  --danger-soft: #2e1515;
+  --danger-soft-fg: #fecaca;
+  --danger-border: #5a2525;
+  --chart-2: #fbbf24;
+  --elev-card: 0 1px 0 0 rgb(255 255 255 / 0.03) inset, 0 8px 24px -12px rgb(0 0 0 / 0.6);
+  --elev-brand: 0 8px 20px -10px rgb(45 212 191 / 0.55);
+}
+
+[data-theme="light"] {
+  color-scheme: light;
+  --background: #f4f7f6;
   --card: #ffffff;
-  --border: #e2e8f0;
-  --danger: #b91c1c;
+  --card-hover: #eef3f2;
+  --track: #e3eae9;
+  --border: #d8e1df;
+  --foreground: #0b1514;
+  --muted: #4a5d5a;
+  --brand: #0f766e;
+  --brand-from: #0f766e;
+  --brand-to: #115e59;
+  --brand-fg: #ffffff;
+  --brand-soft: #e3f4f1;
+  --brand-soft-fg: #134e4a;
+  --brand-border: #9fd6cd;
   --ok: #15803d;
+  --ok-soft: #e9f9ef;
+  --ok-soft-fg: #14532d;
+  --ok-border: #a7e3bf;
+  --warn: #b45309;
+  --warn-soft: #fff7e0;
+  --warn-soft-fg: #78350f;
+  --warn-border: #f2cf86;
+  --danger: #b91c1c;
+  --danger-soft: #fdeeee;
+  --danger-soft-fg: #7f1d1d;
+  --danger-border: #f3b4b4;
+  --chart-2: #d97706;
+  --elev-card: 0 1px 2px 0 rgb(15 23 42 / 0.06), 0 6px 18px -12px rgb(15 23 42 / 0.18);
+  --elev-brand: 0 8px 18px -10px rgb(15 118 110 / 0.5);
+}
+
+@media (prefers-color-scheme: light) {
+  [data-theme="system"] {
+    color-scheme: light;
+    --background: #f4f7f6;
+    --card: #ffffff;
+    --card-hover: #eef3f2;
+    --track: #e3eae9;
+    --border: #d8e1df;
+    --foreground: #0b1514;
+    --muted: #4a5d5a;
+    --brand: #0f766e;
+    --brand-from: #0f766e;
+    --brand-to: #115e59;
+    --brand-fg: #ffffff;
+    --brand-soft: #e3f4f1;
+    --brand-soft-fg: #134e4a;
+    --brand-border: #9fd6cd;
+    --ok: #15803d;
+    --ok-soft: #e9f9ef;
+    --ok-soft-fg: #14532d;
+    --ok-border: #a7e3bf;
+    --warn: #b45309;
+    --warn-soft: #fff7e0;
+    --warn-soft-fg: #78350f;
+    --warn-border: #f2cf86;
+    --danger: #b91c1c;
+    --danger-soft: #fdeeee;
+    --danger-soft-fg: #7f1d1d;
+    --danger-border: #f3b4b4;
+    --chart-2: #d97706;
+    --elev-card: 0 1px 2px 0 rgb(15 23 42 / 0.06), 0 6px 18px -12px rgb(15 23 42 / 0.18);
+    --elev-brand: 0 8px 18px -10px rgb(15 118 110 / 0.5);
+  }
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-muted: var(--muted);
-  --color-brand: var(--brand);
-  --color-brand-dark: var(--brand-dark);
-  --color-brand-fg: var(--brand-fg);
   --color-card: var(--card);
+  --color-card-hover: var(--card-hover);
+  --color-track: var(--track);
   --color-border: var(--border);
-  --color-danger: var(--danger);
+  --color-brand: var(--brand);
+  --color-brand-dark: var(--brand-to);
+  --color-brand-from: var(--brand-from);
+  --color-brand-to: var(--brand-to);
+  --color-brand-fg: var(--brand-fg);
+  --color-brand-soft: var(--brand-soft);
+  --color-brand-soft-fg: var(--brand-soft-fg);
+  --color-brand-border: var(--brand-border);
   --color-ok: var(--ok);
-  --font-sans: system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans", sans-serif;
+  --color-ok-soft: var(--ok-soft);
+  --color-ok-soft-fg: var(--ok-soft-fg);
+  --color-ok-border: var(--ok-border);
+  --color-warn: var(--warn);
+  --color-warn-soft: var(--warn-soft);
+  --color-warn-soft-fg: var(--warn-soft-fg);
+  --color-warn-border: var(--warn-border);
+  --color-danger: var(--danger);
+  --color-danger-soft: var(--danger-soft);
+  --color-danger-soft-fg: var(--danger-soft-fg);
+  --color-danger-border: var(--danger-border);
+  --color-chart-2: var(--chart-2);
+  --shadow-card: var(--elev-card);
+  --shadow-brand: var(--elev-brand);
+  --font-sans: var(--font-inter), system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans", sans-serif;
+  --animate-rise: rise 220ms ease-out both;
+  --animate-shimmer: shimmer 1.4s ease-in-out infinite;
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: 100% 0;
+  }
+  100% {
+    background-position: -100% 0;
+  }
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-sans);
+  /* Fintech-style aligned figures: amounts line up in lists. */
+  font-variant-numeric: tabular-nums;
   -webkit-tap-highlight-color: transparent;
+  transition: background-color 200ms ease, color 200ms ease;
+}
+
+/* Small transitions only, and none for people who ask for reduced motion. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* A light island keeps its own text colour even inside a dark page. */
+[data-theme="light"]:not(:root) {
+  color: var(--foreground);
 }

@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useState, useTransition } from "react";
 import { loadMoreExpensesAction } from "@/app/actions";
 import { useIdentity } from "@/app/_components/identity";
-import { Button, Card, Empty, Notice } from "@/app/_components/ui";
+import { Button, buttonClass, Card, Empty, Notice } from "@/app/_components/ui";
 import { formatDate, money } from "@/app/_lib/format";
 import type { ExpenseRow } from "@/server/context";
 
@@ -12,16 +12,29 @@ export function BalanceSummary({ balances, baseCurrency, expenseCount }: { balan
   const { me, group } = useIdentity();
   const mine = me ? (balances[me] ?? 0) : 0;
   return (
-    <Card className="flex items-center justify-between gap-3">
-      <div>
+    <Card className="relative flex items-center justify-between gap-3 overflow-hidden" data-testid="balance-summary">
+      {/* A soft glow in the balance colour (decorative). */}
+      <span
+        aria-hidden="true"
+        className={`pointer-events-none absolute -right-10 -top-12 h-36 w-36 rounded-full opacity-20 blur-2xl ${mine > 0 ? "bg-ok" : mine < 0 ? "bg-danger" : "bg-brand"}`}
+      />
+      <div className="relative min-w-0">
         <p className="text-sm text-muted">Your balance</p>
-        <p className={`text-xl font-bold ${mine > 0 ? "text-ok" : mine < 0 ? "text-danger" : ""}`}>
-          {mine === 0 ? "You're settled up" : mine > 0 ? `You get back ${money(mine, baseCurrency)}` : `You owe ${money(-mine, baseCurrency)}`}
+        {/* R51: the balance in words; the amount is large, green when you are owed and red when you owe. */}
+        <p className={`font-bold ${mine > 0 ? "text-ok" : mine < 0 ? "text-danger" : ""}`}>
+          {mine === 0 ? (
+            <span className="text-2xl tracking-tight">You&apos;re settled up</span>
+          ) : (
+            <>
+              <span className="block text-sm font-semibold">{mine > 0 ? "You get back" : "You owe"}</span>{" "}
+              <span className="block text-3xl tracking-tight">{money(Math.abs(mine), baseCurrency)}</span>
+            </>
+          )}
         </p>
-        <p className="text-sm text-muted">{expenseCount === 1 ? "1 expense" : `${expenseCount} expenses`}</p>
+        <p className="mt-1 text-sm text-muted">{expenseCount === 1 ? "1 expense" : `${expenseCount} expenses`}</p>
       </div>
       {mine !== 0 && (
-        <Link href={`/g/${group.token}/settle`} className="inline-flex min-h-11 shrink-0 items-center whitespace-nowrap rounded-xl bg-brand px-4 font-semibold text-brand-fg">
+        <Link href={`/g/${group.token}/settle`} className={buttonClass("primary", "relative shrink-0 whitespace-nowrap")}>
           Settle up
         </Link>
       )}
@@ -80,7 +93,7 @@ export function ExpenseList({ initial, hasMore: initialHasMore, baseCurrency }: 
           const payer = e.payers.length === 1 ? nameOf(e.payers[0].memberId) : `${e.payers.length} people`;
           return (
             <li key={e.id}>
-              <Link href={`/g/${group.token}/expenses/${e.id}`} className="flex min-h-16 items-center gap-3 rounded-2xl border border-border bg-card px-4 py-3 hover:border-brand">
+              <Link href={`/g/${group.token}/expenses/${e.id}`} className="flex min-h-16 items-center gap-3 rounded-2xl border border-border bg-card px-4 py-3 shadow-card transition-colors hover:border-brand">
                 <div className="flex w-10 shrink-0 flex-col items-center text-xs font-semibold uppercase leading-tight text-muted">
                   {formatDate(e.expenseDate)
                     .replace(/ \d{4}$/, "")
@@ -100,7 +113,7 @@ export function ExpenseList({ initial, hasMore: initialHasMore, baseCurrency }: 
                 </div>
                 <p className={`flex shrink-0 flex-col items-end text-xs font-semibold leading-tight ${line.tone}`}>
                   <span className="whitespace-nowrap">{line.label}</span>
-                  {line.amount && <span className="whitespace-nowrap text-sm">{line.amount}</span>}
+                  {line.amount && <span className="whitespace-nowrap text-base font-bold">{line.amount}</span>}
                 </p>
               </Link>
             </li>

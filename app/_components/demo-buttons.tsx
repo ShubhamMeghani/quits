@@ -42,9 +42,9 @@ export function ResetDemoButton() {
       setMessage(r.ok ? { tone: "ok", text: "Demo data restored." } : { tone: "error", text: r.message });
     });
   return (
-    <div className="flex flex-col gap-2 rounded-2xl border border-amber-300 bg-amber-50 p-4">
-      <p className="font-semibold text-amber-900">This is a demo group</p>
-      <p className="text-sm text-amber-900">Reset it to bring back the original sample data. The link stays the same.</p>
+    <div className="flex flex-col gap-2 rounded-2xl border border-warn-border bg-warn-soft p-4">
+      <p className="font-semibold text-warn-soft-fg">This is a demo group</p>
+      <p className="text-sm text-warn-soft-fg">Reset it to bring back the original sample data. The link stays the same.</p>
       {confirming ? (
         <div className="grid grid-cols-2 gap-2">
           <Button variant="secondary" onClick={() => setConfirming(false)}>

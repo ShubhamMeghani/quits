@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| Spec | [SPEC.md](SPEC.md) **v1.4**. If SPEC.md and this plan disagree, SPEC.md wins. |
+| Spec | [SPEC.md](SPEC.md) **v1.5**. If SPEC.md and this plan disagree, SPEC.md wins. |
 | Production | https://quits-go.vercel.app (Vercel, deploys from `main`) |
 | Stack | Next.js (App Router, TS) · Tailwind · Vitest · Supabase Postgres (server-only, RLS on, no policies) · Gemini `gemini-3.5-flash-lite` · Frankfurter v2 · Vercel Hobby · GitHub Actions (ubuntu-24.04) · Node 24 |
 | Tests | `npm test` (unit, `lib/` + `server/token.ts`) · `npm run test:db` (DB integration; loads `.env.local`; skips when `SUPABASE_DB_URL` is absent) · `npm run test:db:clean` (removes leftover `__test__` groups) · `npm run lint` · `npm run build` · `npm run eval` (receipt eval; loads `.env.local`) |
@@ -247,6 +247,23 @@ No GitHub secrets are needed: CI runs only lint and unit tests, which make no ne
 
 ---
 
+## Phase 10 — Settle wording and visual redesign (SPEC v1.5)
+
+**Goal:** Settle leads with the outcome in plain words ("3 payments instead of 10"); the whole app gets a modern dark look with a light theme, without changing any label or behaviour, and the UPI QR always stays scannable.
+
+| # | Task | Mode | Satisfies |
+|---|---|---|---|
+| 10.1 | `paymentHeadline` in `lib/simplify.ts` + unit tests; Settle main view: headline + "Simplified" badge; naive/greedy/optimal, algorithm and one-sentence explanation under "How?". | AUTO | R22 · AC-37, AC-57 |
+| 10.2 | Design tokens for dark (default) and light in `app/globals.css`; every hard-coded palette class mapped to a token; `lib/theme.ts` (preference, pre-paint script, theme colour); Dark / Light / System control on the Group screen. | AUTO | R71 · AC-58 |
+| 10.3 | Look: gradient primary buttons, elevated cards, large green/red amounts, `lib/avatar.ts` initials avatars, highlighted active tab, empty-state icons, shimmer skeletons, reduced-motion-safe transitions, self-hosted Inter (`next/font`), dark PWA `theme_color`. | AUTO | R71 |
+| 10.4 | UPI QR as a light island: `#000000` on `#ffffff`, 4-module quiet zone, on screen, full screen and in the saved PNG. | AUTO | R24, R71 · AC-58 |
+| 10.5 | Headless audit, 24 screens × {dark, light} × {360, 1440} px: horizontal scroll, wrapped labels, tap targets, computed text contrast, text overflow, QR island, theme applied, font, request hosts; System theme and reduced motion. | AUTO | R50, R51, R71 · AC-58 |
+| 10.6 | **Pending (human).** Push, then AC-37 (Settle wording on prod) and AC-58 on the phone. | HUMAN | AC-37, AC-58 |
+
+**Done when:** AC-57 Pass; AC-37 and AC-58 Pass after the push and phone check.
+
+---
+
 ## SPEC change proposals
 
 **Status: approved 2026-10-16 and applied in SPEC v0.4.** These were wording changes only; the code already followed them.
@@ -317,6 +334,13 @@ No GitHub secrets are needed: CI runs only lint and unit tests, which make no ne
   - **AC-44 Pass (Claude):** method changed to a local check (D-37). Control: local production build → 200 `{"ok":true}`; with `SUPABASE_URL=https://invalid.example` for that process only → 503 `{"ok":false}` (twice, `no-store`). Prod `/api/health` 200; keep-alive `workflow_dispatch` (2026-10-16) and `schedule` (2026-10-17) runs succeeded.
   - **AC-41 Pass (human, REST):** with the publishable key, all 14 tables return `42501` permission denied (no rows).
   - **Open:** AC-42 (production network log) on the laptop; AC-56 ("Your groups", commit `102056f`) waits for a push and the phone check; AC-25 and AC-52 are Should fails from the eval numbers.
+- **2026-10-18, SPEC v1.5: Settle wording and visual redesign (Phase 10):**
+  - **R22 / D-38:** Settle shows "3 payments instead of 10" + "Simplified"; the naive / greedy / optimal counts, the algorithm and one sentence on minimum-payment simplification are under "How?". AC-37 wording updated; AC-57 (unit) added.
+  - **R71 / D-39 (Should):** dark default + light; Dark / Light / System on the Group screen (`quits:theme`, try/catch, applied before first paint); design tokens; gradient primary buttons; large green/red amounts with tabular figures; coloured avatars; highlighted active tab; empty-state icons; shimmer skeletons; transitions off under reduced motion; self-hosted Inter; PWA `theme_color` `#0b1211`; the UPI QR always black on white with a 4-module quiet zone. AC-58 added.
+  - **Unit:** tests/unit/theme.test.ts (token sets match, System = Light, every text/background pair ≥ 4.5:1 in both themes, theme colour = dark background, preference parser + pre-paint script with blocked storage, avatars stable and AA, QR colours and margin) and tests/unit/simplify.test.ts › AC-57.
+  - **Headless audit** (local `next start`): 24 screens (home, about, offline, 404, member picker, expenses, add, new/detail/edit/itemized expense, settle, settle + "How?", full-screen QR, activity, group, members, member, settings, search, recurring, share, scan, receipt review) × dark/light × 360/1440 px = 96 runs, all clean: no horizontal scroll, no wrapped button labels, tap targets ≥ 44 px, 4,060 text elements at AA against their computed background, no text overflow, QR on white on every settle view, theme applied on every page, Inter loaded, requests only to the app origin and `data:` images. System theme follows the OS; reduced motion stops animations.
+  - **Found and fixed during the audit:** "Stop repeating" wrapped at 360 px (Pause/Resume now takes only its width); the large QR amount was clipped by "Copy UPI ID" at 360 px (stacked on phones; a text-overflow check was added to the audit); the "you" card squeezed its label (now wraps); the group 404 ignored the light theme and the font because Next renders it client-side in its own error document (now applies both itself).
+  - Labels and behaviour unchanged (all spec labels kept; no server or data change).
 
 ---
 
@@ -372,7 +396,7 @@ Rows P1-1 to P1-10 are the Phase 1 checks; each one de-risks the spec ACs shown 
 | AC-34 (Should) | Unit | 2 | Pass | tests/unit/misc.test.ts › AC-34 (Jan 31 clamping; idempotent second call) |
 | AC-35 (Should) | Deploy | 6 | Pass | local DB test (tests/db/features.test.ts › AC-35): monthly rule starting two months ago → exactly 3 expenses after one open, still 3 after the next; dates = start, +1 month, +2 months (= today). **Prod Pass 2026-10-17 (human):** monthly rule from two months ago → exactly 3 expenses; still 3 after another reload. |
 | AC-36 | Unit | 2 | Pass | tests/unit/misc.test.ts › AC-36 (seed balances exact; greedy 4, optimal 3) |
-| AC-37 | Desktop | 6 / 7 | Pass | local headless Chrome 1440×900, fresh profile: "Try the demo" → group open in 0.73 s; demo banner; 15 expenses; itemized beach-shack receipt with per-item breakdown; USD expense shows "1 USD = 95.98 INR"; Settle shows Optimal 3 · Greedy 4 · Naive 10 with "Showing the optimal plan". **Prod Pass 2026-10-17 (human, incognito):** Try the demo opened within 5 s; banner, ≥ 15 expenses, itemized beach-shack breakdown, USD rate, Settle Optimal 3 · Greedy 4 · Naive N with "Showing the optimal plan". |
+| AC-37 | Desktop | 6 / 7 | Partial | local headless Chrome 1440×900, fresh profile: "Try the demo" → group open in 0.73 s; demo banner; 15 expenses; itemized beach-shack receipt with per-item breakdown; USD expense shows "1 USD = 95.98 INR"; Settle shows Optimal 3 · Greedy 4 · Naive 10 with "Showing the optimal plan". **Prod Pass 2026-10-17 (human, incognito):** Try the demo opened within 5 s; banner, ≥ 15 expenses, itemized beach-shack breakdown, USD rate, Settle Optimal 3 · Greedy 4 · Naive N with "Showing the optimal plan". **SPEC v1.5 re-check needed:** the Settle bullet changed (D-38). Local headless (dark/light, 360/1440): demo Settle shows "3 payments instead of 10" + "Simplified", no algorithm tags in the main view; "How?" shows Naive 10 · Greedy 4 · Optimal 3 and "Showing the optimal plan". Prod check after push (10.6). |
 | AC-38 | Deploy | 6 | Pass | local DB test (tests/db/features.test.ts › AC-38): after deleting an expense, reset restores the exact target balances under the same token; a demo backdated 8 days is deleted when the next demo is created; reset on a non-demo group → NOT_FOUND. UI reset works in headless Chrome. **Prod Pass 2026-10-17 (human):** deleted a demo expense, Reset demo → expense back, Settle numbers unchanged, same URL. Parts 2–3 by the DB test above. |
 | AC-39 | Phone + Desktop | 7 | Pass | local headless Chrome 360×740, 11 screens: scrollWidth = innerWidth = 360 on all; all buttons/links/inputs ≥ 44 px (one header link fixed); 1440×900: centered ≤ 640 px column. **Prod 2026-10-17 (human): desktop part Pass** (centred column ≤ 640 px at ~1440 px; add, settle, scan completed). **Phone Pass 2026-10-18 (human, production):** every screen fits the phone width with no sideways scroll; buttons easy to tap. |
 | AC-40 (Should) | Phone | 7 | Pass | P1-9 Pass on the Samsung (standalone, Q icon) with the Phase 1 build. **Phone Pass 2026-10-18 (human, production):** installed PWA opened from the home-screen icon on the latest build (standalone, Q icon). |
@@ -392,3 +416,5 @@ Rows P1-1 to P1-10 are the Phase 1 checks; each one de-risks the spec ACs shown 
 | AC-54 (Should) | Unit | 8 | Pass | tests/unit/share.test.ts › AC-54 (two-payment and settled-up summaries; reminders for ₹1,20,000 and ₹1,200.50; wa.me encoding incl. ₹ → %E2%82%B9, newline %0A, space %20) |
 | AC-55 (Should) | Phone + Desktop | 8 | Pass | local: Settle shows "Share summary" + "Copy" and one "Remind … on WhatsApp" link per suggestion; the link decodes to the exact reminder ("Hi Kabir, a gentle reminder from Quits: please pay Aarav ₹4,000 for …"). **Prod 2026-10-17 (human): desktop Copy Pass.**. **Phone Pass 2026-10-18 (human, production):** "Remind" opened WhatsApp with the reminder prefilled and a contact picker; "Share summary" opened the share sheet with the summary. |
 | AC-56 (Should) | Unit + Phone | 9 | Partial | unit Pass: tests/unit/recent-groups.test.ts › AC-56 (14 tests: add/update/order/remove/cap 20/corrupt and blocked storage). Local headless Chrome 360 px: two groups listed newest first with "You: …", Demo label and last opened; ✕ removes, still gone after reload; 404 → "No longer available"; no listed token sent on home load. Phone check pending (9.5) |
+| AC-57 | Unit | 10 | Pass | tests/unit/simplify.test.ts › AC-57 ("3 payments instead of 6", "1 payment instead of 2" + Simplified; "2 payments" without badge; none when settled; demo balances → "3 payments instead of 10") |
+| AC-58 (Should) | Unit + Phone | 10 | Partial | unit Pass: tests/unit/theme.test.ts (tokens, AA in both themes, theme colour, preference + pre-paint script, avatars, QR #000/#fff + 4-module margin). Headless audit Pass: 96 runs (24 screens × dark/light × 360/1440 px) clean. Phone check pending (10.6) |

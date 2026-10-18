@@ -26,7 +26,7 @@ export default async function ExpensesPage({ params }: PageProps<"/g/[token]">) 
           <ul className="flex flex-col gap-2">
             {drafts.map((d) => (
               <li key={d.id}>
-                <Link href={`/g/${token}/receipts/${d.id}`} className="flex min-h-14 items-center gap-3 rounded-2xl border border-dashed border-brand bg-teal-50 px-4">
+                <Link href={`/g/${token}/receipts/${d.id}`} className="flex min-h-14 items-center gap-3 rounded-2xl border border-dashed border-brand bg-brand-soft px-4">
                   <ReceiptIcon className="h-6 w-6 text-brand" />
                   <span className="min-w-0 flex-1 truncate font-semibold">{d.merchant ?? "Receipt"}</span>
                   <span className="text-sm font-semibold">{d.totalMinor > 0 ? money(d.totalMinor, d.currency) : "Tap your items"}</span>

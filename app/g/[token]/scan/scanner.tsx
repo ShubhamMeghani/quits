@@ -99,7 +99,7 @@ export function Scanner() {
       {status.kind === "working" && (
         <Notice>
           <span className="inline-flex items-center gap-2" aria-live="polite">
-            <span className="h-4 w-4 animate-spin rounded-full border-2 border-teal-700 border-t-transparent" aria-hidden="true" />
+            <span className="h-4 w-4 animate-spin rounded-full border-2 border-brand border-t-transparent" aria-hidden="true" />
             {status.text}
           </span>
         </Notice>

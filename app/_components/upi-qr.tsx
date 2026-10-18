@@ -11,11 +11,17 @@ import { Button } from "./ui";
 
 export type UpiPayee = { name: string; upiId: string; upiName: string | null };
 
+/**
+ * R71: the QR is ALWAYS black modules on white with a 4-module quiet zone (the QR standard), in both
+ * themes, so every UPI app can scan it from a screen or from the saved image.
+ */
+export const QR_OPTIONS = { margin: 4, errorCorrectionLevel: "M", color: { dark: "#000000", light: "#ffffff" } } as const;
+
 function useQrDataUrl(text: string, width: number) {
   const [url, setUrl] = useState<{ text: string; url: string } | null>(null);
   useEffect(() => {
     let cancelled = false;
-    QRCode.toDataURL(text, { width, margin: 2, errorCorrectionLevel: "M" }).then((u) => !cancelled && setUrl({ text, url: u }));
+    QRCode.toDataURL(text, { ...QR_OPTIONS, width }).then((u) => !cancelled && setUrl({ text, url: u }));
     return () => {
       cancelled = true;
     };
@@ -34,7 +40,7 @@ function loadImage(src: string): Promise<HTMLImageElement> {
 
 /** A PNG with the QR plus payee and amount, for scanning from the gallery in any UPI app. */
 async function saveQrImage(link: string, payee: UpiPayee, amountMinor: number) {
-  const qr = await loadImage(await QRCode.toDataURL(link, { width: 640, margin: 2, errorCorrectionLevel: "M" }));
+  const qr = await loadImage(await QRCode.toDataURL(link, { ...QR_OPTIONS, width: 640 }));
   const canvas = document.createElement("canvas");
   canvas.width = 720;
   canvas.height = 1000;
@@ -101,12 +107,13 @@ export function UpiQr({ payee, amountMinor, groupName }: { payee: UpiPayee; amou
 
   return (
     <div className="flex flex-col gap-3">
-      <div className="flex flex-col items-center gap-2 rounded-2xl border border-border bg-white p-3">
+      {/* A light island: black-on-white QR and dark caption text in both themes. */}
+      <div data-theme="light" data-testid="upi-qr" className="flex flex-col items-center gap-2 rounded-2xl border border-border bg-white p-3">
         {qr ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={qr} alt={`UPI QR code to pay ${payee.name} ${money(amountMinor, "INR")}`} width={220} height={220} className="h-[220px] w-[220px]" />
         ) : (
-          <div className="h-[220px] w-[220px] animate-pulse rounded-xl bg-slate-200" aria-label="Loading QR code" />
+          <div className="h-[220px] w-[220px] animate-pulse rounded-xl bg-track" aria-label="Loading QR code" />
         )}
         <p className="text-center text-sm text-muted">Scan with any UPI app — amount is filled in</p>
       </div>
@@ -125,9 +132,10 @@ export function UpiQr({ payee, amountMinor, groupName }: { payee: UpiPayee; amou
       {saveState === "saved" && <p className="text-sm text-muted">Saved to Downloads. In your UPI app, choose “scan from gallery”.</p>}
       {saveState === "error" && <p className="text-sm font-medium text-danger">Couldn&apos;t save the image. Take a screenshot of the QR instead.</p>}
 
-      <div className="flex items-center gap-3 rounded-2xl border border-border bg-card p-3">
+      {/* Phones: the large amount gets its own line and "Copy UPI ID" sits below, so neither is clipped. */}
+      <div className="flex flex-col gap-3 rounded-2xl border border-border bg-card p-3 shadow-card sm:flex-row sm:items-center">
         <div className="min-w-0 flex-1">
-          <p className="text-2xl font-bold">{money(amountMinor, "INR")}</p>
+          <p className="whitespace-nowrap text-3xl font-bold tracking-tight">{money(amountMinor, "INR")}</p>
           <p className="truncate text-sm text-muted">to {payee.upiId}</p>
         </div>
         <Button variant="secondary" onClick={copy} aria-label={`Copy UPI ID ${payee.upiId}`}>
@@ -137,16 +145,16 @@ export function UpiQr({ payee, amountMinor, groupName }: { payee: UpiPayee; amou
       </div>
 
       {amountMinor > UPI_SOFT_LIMIT_MINOR && (
-        <p className="text-sm font-medium text-amber-800">UPI apps may limit a single payment to ₹1,00,000. You may need to pay in parts.</p>
+        <p className="text-sm font-medium text-warn">UPI apps may limit a single payment to ₹1,00,000. You may need to pay in parts.</p>
       )}
 
-      <a href={link} className="inline-flex min-h-11 flex-col items-center justify-center rounded-xl px-3 text-center text-sm font-semibold text-brand hover:bg-teal-50">
+      <a href={link} className="inline-flex min-h-11 flex-col items-center justify-center rounded-xl px-3 text-center text-sm font-semibold text-brand hover:bg-brand-soft">
         Pay via UPI app
         <span className="text-xs font-normal text-muted">May be blocked by some UPI apps</span>
       </a>
 
       {full && (
-        <div role="dialog" aria-modal="true" aria-label="UPI QR code, full screen" className="fixed inset-0 z-50 flex flex-col items-center justify-center gap-4 bg-white p-4">
+        <div role="dialog" aria-modal="true" aria-label="UPI QR code, full screen" data-theme="light" className="fixed inset-0 z-50 flex flex-col items-center justify-center gap-4 bg-white p-4 text-foreground">
           <button type="button" onClick={() => setFull(false)} aria-label="Close" className="absolute right-3 top-3 inline-flex h-12 w-12 items-center justify-center rounded-full border border-border">
             <CloseIcon />
           </button>
