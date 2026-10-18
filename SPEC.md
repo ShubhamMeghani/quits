@@ -4,7 +4,7 @@
 
 | | |
 |---|---|
-| Version | v1.2 |
+| Version | v1.3 |
 | Date | 2026-10-16 |
 | Status | Ready for build. All open questions are decided (§10.1). Build order is in `PLAN.md`. |
 | Course | Applied Data Science & AI, IISc |
@@ -243,7 +243,14 @@ Requirement IDs are stable. R59 and R60 were added in v0.5 and sit in their topi
   - WHEN a group link is opened on a device with no remembered identity for that group, THE SYSTEM SHALL show the member picker before any group content. The picker lists active members plus "I'm not on the list", which adds a member.
   - WHEN a member is picked, THE SYSTEM SHALL store that member's ID in `localStorage`, keyed by token. It SHALL label that member "You" and record them as the actor of this device's changes.
   - WHEN "Switch person" is tapped, THE SYSTEM SHALL clear the stored identity and show the picker.
-- **R5 [Should]** THE SYSTEM SHALL list groups opened on this device on the home screen.
+- **R5 [Should]** "Your groups" on the home page, without accounts (D-36):
+  - WHEN a group page is opened, THE SYSTEM SHALL store on this device only (`localStorage` key `quits:recent`, at most 20 groups): the group token, the group name (refreshed on each visit), the member picked on this device (if any), the last-opened time, and whether it is a demo group.
+  - WHEN the home page is opened, THE SYSTEM SHALL list these groups under "Your groups", newest first. Each shows its name, "You: {member}" if a member was picked, when it was last opened, a "Demo" label for demo groups, and a ✕ button that removes it from this device's list only.
+  - WHEN a listed group's link turns out to be gone (404), THE SYSTEM SHALL show it as "No longer available", with the ✕ button.
+  - THE SYSTEM SHALL NOT send the list to the server. Opening an entry only opens its link.
+  - IF storage is blocked or its contents are unreadable, THEN the list SHALL simply be empty, and nothing else SHALL fail.
+  - **Limits**, also stated in the home page's small print: the list is per device and not synced; clearing browser data clears it; the groups themselves are not affected by removing an entry or losing the list.
+  - The list logic SHALL live in the pure module `lib/recent-groups.ts` (add or update, order, remove, mark unavailable, the cap of 20, tolerant parsing).
 
 ### 5.2 Members
 - **R6 [Must]** WHEN a user adds or renames a member, or sets a member's optional UPI ID, THE SYSTEM SHALL save it.
@@ -731,6 +738,11 @@ Unless marked *Should*, every AC is Must. Amounts are in ₹; the tests use pais
   - On a phone, "Remind" opens WhatsApp with the reminder prefilled and a contact picker, and "Share summary" opens the share sheet with the summary.
   - On desktop, "Copy" puts the summary on the clipboard.
 
+**Your groups (v1.3)**
+- **AC-56 [Unit + Phone, *Should*] (R5):**
+  - Unit: `lib/recent-groups.ts` adds a new group at the top; a revisit updates the name, member, demo flag and time and moves it to the top; the list is newest first; remove drops only that token; the list is capped at 20 (oldest dropped); corrupt, non-JSON or wrongly shaped storage gives an empty list (or keeps only the valid entries) without throwing; storage that throws on read or write gives an empty list.
+  - Phone: open two groups and pick a member in each. Both appear under "Your groups" on the home page, newest first, with "You: {member}". Tap ✕ on one: it disappears, and after a reload it is still gone. The other group still opens, and the removed group still opens from its link (opening it adds it back to the list, like any visit).
+
 ## 7. Deliverables
 
 | Deliverable | Location |
@@ -752,6 +764,7 @@ Unless marked *Should*, every AC is Must. Amounts are in ₹; the tests use pais
 ## 8. Non-goals
 
 - User accounts, logins, OTP, or per-member permissions.
+- Syncing "Your groups" across devices or browsers: the list is per device (R5, D-36).
 - **Edit-conflict detection.** Concurrent edits follow **last write wins**; the activity log shows both edits.
 - **Vercel Cron, or any server-side scheduler.** Recurring expenses are created lazily on group open; the keep-alive is the GitHub Action only.
 - Processing, receiving or verifying payments; UPI collect requests; payment callbacks.
@@ -827,6 +840,7 @@ Unless marked *Should*, every AC is Must. Amounts are in ₹; the tests use pais
 | D-33 | Receipt eval set (2026-10-17) | The eval set is **at least 5** real receipts (was 10–15): 5 were collected and checked against the paper bills. Results always say "n = 5, small sample", since one receipt moves a per-receipt rate by 20 points (R37, AC-24). |
 | D-34 | Receipt eval run 2 (2026-10-17) | Two receipt-prompt gaps change real users' splits, so they are product bug fixes: an add-on line printed under an item was read as a separate item and counted twice (r01, ₹150), and a delivery app's platform fee was dropped (r04, ₹14.99). The prompt now says add-on lines are part of the item's amount, and platform, packaging, convenience and delivery fees go in `service_charge` (§4.3). Run 3 is not blind for r01/r04. |
 | D-35 | Receipt eval run 2 (2026-10-17) | As for type-to-add (D-31), every receipt run is also reported as **answer rate** + **accuracy when answered**, from the saved results; a 25 s timeout is no answer, not a misread (R37). No receipt re-runs after run 3. |
+| D-36 | Feature request (2026-10-18) | **"Your groups" without accounts.** Each device keeps its own list in `localStorage` (token, name, picked member, last opened, demo flag; at most 20). Nothing about the list goes to the server, so it costs no privacy and needs no login. A 404 is only learned when the link is opened, and the entry is then shown as "No longer available". The limits (per device, not synced, cleared with browser data, groups unaffected) are stated in R5 and on the home page (AC-56). Replaces the earlier minimal list (name only, 10 groups). |
 | D-22 | OQ-19 (2026-10-17) | Share and reminder messages use **"₹"** (e.g. `₹1,20,000`), not "Rs", to match the rest of the app. The exact strings in §4.3 are updated. |
 | D-17 | OQ-17 | When Frankfurter v2 has no rate for the exact date, use the most recent rate on or before `expense_date`, and store and show its `fx_rate_date` (R16). |
 
@@ -850,3 +864,4 @@ None open. New questions found during the build are added here with a proposed d
 | v1.0 | 2026-10-17 | **Type-to-add reliability, after investigating the eval failures** (all errors were HTTP 503 "high demand"; no 429; thinking is not the cause).<br>**D-28 (Q1):** "Couldn't read that — try again" with a Try again button, a smaller "or fill in the form", and "Still reading… Gemini is busy" after about 6 s.<br>**D-29 (Q2):** the limit rises from 15 s to 20 s, and the single retry waits about 1 s.<br>**D-30 (Q3):** Gemini's real HTTP status is recorded in the route log and in the NL eval results.<br>**Updated:** R61, R64 (wording and limit), R66 (failure reasons recorded; earlier runs kept), AC-50.<br>**Not applied:** Q4 (fallback model); the thinking level stays at the default.<br>Counts unchanged: 70 requirements (49 Must, 21 Should), 55 ACs. |
 | v1.1 | 2026-10-17 | **Eval reporting.**<br>**D-31:** every NL run (1–3) is also reported as answer rate + accuracy when answered, in REPORT.md and on `/about`; run 3 stays the main result, no more NL re-runs (R66).<br>**D-32:** the receipt eval saves each receipt's predicted values; run 1 kept, run 2 added (R37).<br>**D-33:** R37 asks for at least 5 real receipts (was 10–15), and results state "n = 5, small sample"; AC-24 and the `/about` method note updated.<br>Counts unchanged: 70 requirements (49 Must, 21 Should), 55 ACs. |
 | v1.2 | 2026-10-17 | **Receipt prompt fixes and receipt answer rate.**<br>**D-34:** §4.3 adds two field rules: add-on lines are part of their item's amount; platform, packaging, convenience and delivery fees go in `service_charge`. Product bug fixes found by receipt eval run 2 (r01, r04); run 3 is not blind for r01/r04.<br>**D-35:** every receipt run also reports answer rate + accuracy when answered (R37), in REPORT.md and on `/about`.<br>Counts unchanged: 70 requirements (49 Must, 21 Should), 55 ACs. |
+| v1.3 | 2026-10-18 | **"Your groups" on the home page, without accounts (Should).**<br>**R5** rewritten: per-device list (token, name refreshed on each visit, picked member, last opened, demo flag; at most 20), newest first, with "You: {member}", last opened, a "Demo" label and ✕ remove; "No longer available" after a 404; nothing sent to the server; empty list if storage is blocked; limits stated in the spec and on the home page; pure module `lib/recent-groups.ts`.<br>**AC-56** added (Unit + Phone, Should). **D-36** added. Non-goal added: syncing the list across devices.<br>Counts: 70 requirements (49 Must, 21 Should), **56 ACs**. |

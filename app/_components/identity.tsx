@@ -1,14 +1,15 @@
 "use client";
 
 // R4: self-declared identity, remembered per group on this device (localStorage).
-// R5 (Should): groups opened on this device are listed on the home screen.
+// R5 (Should, D-36): each visit is recorded in this device's "Your groups" list (lib/recent-groups.ts).
 import { createContext, useCallback, useContext, useEffect, useMemo, useSyncExternalStore } from "react";
+import { updateRecent } from "@/app/_lib/recent-store";
+import { recordVisit } from "@/lib/recent-groups";
 
 export type ShellMember = { id: string; name: string; upiId: string | null; upiName: string | null; archived: boolean };
 export type ShellGroup = { token: string; name: string; baseCurrency: string; isDemo: boolean };
 
 const meKey = (token: string) => `quits:me:${token}`;
-const RECENT_KEY = "quits:recent";
 const listeners = new Set<() => void>();
 
 function safeGet(key: string): string | null {
@@ -44,22 +45,6 @@ export function rememberMe(token: string, memberId: string) {
   safeSet(meKey(token), memberId);
 }
 
-export type RecentGroup = { token: string; name: string; openedAt: number };
-
-export function readRecent(): RecentGroup[] {
-  try {
-    const parsed = JSON.parse(safeGet(RECENT_KEY) ?? "[]");
-    return Array.isArray(parsed) ? parsed.filter((g) => typeof g?.token === "string" && typeof g?.name === "string") : [];
-  } catch {
-    return [];
-  }
-}
-
-function touchRecent(token: string, name: string) {
-  const rest = readRecent().filter((g) => g.token !== token);
-  safeSet(RECENT_KEY, JSON.stringify([{ token, name, openedAt: Date.now() }, ...rest].slice(0, 10)));
-}
-
 type Ctx = {
   group: ShellGroup;
   members: ShellMember[];
@@ -88,9 +73,12 @@ export function IdentityProvider({ group, members, children }: { group: ShellGro
   const me: string | null | undefined =
     stored === undefined ? undefined : stored && members.some((m) => m.id === stored) ? stored : null;
 
+  // R5: once the stored identity is known, record the visit (name refreshed, picked member, demo flag).
+  const memberName = me === undefined ? undefined : me ? (members.find((m) => m.id === me)?.name ?? null) : null;
   useEffect(() => {
-    touchRecent(group.token, group.name);
-  }, [group.token, group.name]);
+    if (memberName === undefined) return;
+    updateRecent((list) => recordVisit(list, { token: group.token, name: group.name, memberName, demo: group.isDemo }, Date.now()));
+  }, [group.token, group.name, group.isDemo, memberName]);
 
   const setMe = useCallback((id: string | null) => safeSet(meKey(group.token), id), [group.token]);
   const value = useMemo<Ctx>(() => {

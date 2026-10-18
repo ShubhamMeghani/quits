@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| Spec | [SPEC.md](SPEC.md) **v1.2**. If SPEC.md and this plan disagree, SPEC.md wins. |
+| Spec | [SPEC.md](SPEC.md) **v1.3**. If SPEC.md and this plan disagree, SPEC.md wins. |
 | Production | https://quits-go.vercel.app (Vercel, deploys from `main`) |
 | Stack | Next.js (App Router, TS) · Tailwind · Vitest · Supabase Postgres (server-only, RLS on, no policies) · Gemini `gemini-3.5-flash-lite` · Frankfurter v2 · Vercel Hobby · GitHub Actions (ubuntu-24.04) · Node 24 |
 | Tests | `npm test` (unit, `lib/` + `server/token.ts`) · `npm run test:db` (DB integration; loads `.env.local`; skips when `SUPABASE_DB_URL` is absent) · `npm run test:db:clean` (removes leftover `__test__` groups) · `npm run lint` · `npm run build` · `npm run eval` (receipt eval; loads `.env.local`) |
@@ -230,6 +230,23 @@ No GitHub secrets are needed: CI runs only lint and unit tests, which make no ne
 
 ---
 
+## Phase 9 — "Your groups" on the home page, without accounts (Should) (SPEC v1.3)
+
+**Goal:** each device remembers the groups opened on it, so the home page lists them with the member you picked, when you last opened them and a Demo label. Nothing about the list goes to the server (D-36).
+
+| # | Task | Mode | Satisfies |
+|---|---|---|---|
+| 9.1 | `lib/recent-groups.ts` (pure): parse (tolerant; reads the pre-v1.3 `{ token, name, openedAt }` shape), record a visit (add or update, move to top), remove, mark unavailable, cap 20, load/save with blocked storage handled, `tokenFromPath`, `formatLastOpened`. Unit tests. | AUTO | R5 · AC-56 (unit) |
+| 9.2 | `app/_lib/recent-store.ts` (browser glue: `useSyncExternalStore` snapshot, cross-tab `storage` events). `IdentityProvider` records each visit once the stored identity is known (name refreshed, picked member, demo flag). The "Group not found" page marks a listed token "No longer available". | AUTO | R5 |
+| 9.3 | Home page "Your groups": newest first; name, "You: {member}", last opened, Demo label, ✕ (44 px) that removes from this device only; "No longer available" rows without a link; small print with the limits. Links use `prefetch={false}` so listing sends nothing to the server. | AUTO | R5 |
+| 9.4 | Headless Chrome at 360 px: create a group + open the demo → both listed; no request carries a listed token; ✕ + reload; simulated 404 → "No longer available"; corrupt storage → empty list. | AUTO | R5 · AC-56 |
+| 9.5 | **Pending (human).** Push, then AC-56 on the phone. | HUMAN | AC-56 |
+
+**Done when:** AC-56 Pass.
+**Prove it:** `npm run lint && npm run typecheck && npm test && npm run test:db && npm run build`, plus the phone check.
+
+---
+
 ## SPEC change proposals
 
 **Status: approved 2026-10-16 and applied in SPEC v0.4.** These were wording changes only; the code already followed them.
@@ -290,6 +307,11 @@ No GitHub secrets are needed: CI runs only lint and unit tests, which make no ne
   - **8A:** `lib/nlparse.ts`, the parse route (per-group limit plus the shared daily AI limit; one retry on a transient model error inside the 15 s deadline), "Type it" on Add expense, 20 drafted NL sentences (5 ambiguous), `npm run eval:nl` with a `--check` mode, and /about.
   - **The NL eval was NOT run:** it waits for the human's 10 sentences and the review of all 30.
   - **8B:** `lib/share.ts` (exact strings, "₹"), plus Share summary, Copy and Remind on Settle.
+- **2026-10-18, SPEC v1.3 "Your groups" (Phase 9):**
+  - R5 rewritten (per-device list; D-36), AC-56 added (Unit + Phone, Should), non-goal: syncing the list. Counts: 70 requirements, 56 ACs.
+  - `lib/recent-groups.ts` + 14 unit tests (tests/unit/recent-groups.test.ts): add, revisit update + move to top, member keep/clear, newest-first order, remove, cap 20, corrupt/non-JSON/wrongly shaped storage, pre-v1.3 shape, unavailable marking, blocked storage, token format = server `TOKEN_RE`, last-opened formatting.
+  - Replaces the earlier list in `identity.tsx` (name only, 10 groups); the `quits:recent` key is kept so existing lists carry over.
+  - Headless Chrome (local `next start`, 360 px): a created group ("You: Meera") and the demo ("Demo", "You: Aarav") listed newest first with "Opened today, …"; home load made 12 requests, none containing either token; ✕ buttons 44×44; removed entry still gone after reload, and its link still opens; a 404 token → "No longer available" with no link, removable; corrupt storage → no list, page fine; no horizontal scroll.
 
 ---
 
@@ -364,3 +386,4 @@ Rows P1-1 to P1-10 are the Phase 1 checks; each one de-risks the spec ACs shown 
 | AC-53 | Phone | 8 | Partial | local headless Chrome (360 px, real Gemini): "Rohan paid 600 for pizza, split with Kabir and me" → 600.00, payer Rohan, participants Aarav, Rohan, Kabir (D-21), Food & Drinks; expense count unchanged until Save; "Karan paid 300…" → payer blank + highlighted + Save disabled + "Couldn't find “Karan”"; "maine 450 diye auto ke, sab mein" → 450.00, you, all 5, Transport. Phone (typing + keyboard mic) pending (8.11) |
 | AC-54 (Should) | Unit | 8 | Pass | tests/unit/share.test.ts › AC-54 (two-payment and settled-up summaries; reminders for ₹1,20,000 and ₹1,200.50; wa.me encoding incl. ₹ → %E2%82%B9, newline %0A, space %20) |
 | AC-55 (Should) | Phone + Desktop | 8 | Partial | local: Settle shows "Share summary" + "Copy" and one "Remind … on WhatsApp" link per suggestion; the link decodes to the exact reminder ("Hi Kabir, a gentle reminder from Quits: please pay Aarav ₹4,000 for …"). **Prod 2026-10-17 (human): desktop Copy Pass.** Phone Remind / Share summary pending. |
+| AC-56 (Should) | Unit + Phone | 9 | Partial | unit Pass: tests/unit/recent-groups.test.ts › AC-56 (14 tests: add/update/order/remove/cap 20/corrupt and blocked storage). Local headless Chrome 360 px: two groups listed newest first with "You: …", Demo label and last opened; ✕ removes, still gone after reload; 404 → "No longer available"; no listed token sent on home load. Phone check pending (9.5) |
