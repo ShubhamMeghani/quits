@@ -4,7 +4,7 @@
 
 | | |
 |---|---|
-| Version | v1.6 |
+| Version | v1.7 |
 | Date | 2026-10-16 |
 | Status | Ready for build. All open questions are decided (§10.1). Build order is in `PLAN.md`. |
 | Course | Applied Data Science & AI, IISc |
@@ -53,7 +53,7 @@ Quits is a free, mobile-first web app for Indian students to track shared expens
 - **S6 Recurring rent.** Monthly rent appears automatically the next time the group is opened after its due date.
 - **S8 Type-to-add.** On Add expense, a student types or dictates (through the keyboard mic) "Rahul paid 600 for pizza, split with Amit and me". The form fills in; they check it and tap Save.
 - **S9 Nudge.** On Settle, a student taps "Remind" next to "Rohan -> Aarav ₹1,200". WhatsApp opens with a polite message prefilled, and they pick Rohan as the contact.
-- **S7 Evaluator demo.** On desktop: "Try the demo" opens realistic data. Settle says "3 payments instead of 10" ("How?" shows optimal fewer than greedy), a UPI QR code is visible, there is an itemized receipt, and the About page shows the eval metrics.
+- **S7 Evaluator demo.** On desktop: the `/demo` link (or "Try a demo group →" on the home page) opens realistic data. Settle says "3 payments instead of 10" ("How?" shows optimal fewer than greedy), a UPI QR code is visible, there is an itemized receipt, and the About page shows the eval metrics.
 
 ## 3. Constraints
 
@@ -255,6 +255,10 @@ Requirement IDs are stable. R59 and R60 were added in v0.5 and sit in their topi
   - a back chevron with a small Quits mark, as one link to `/` with the accessible name "All groups";
   - a tap target of at least 44 × 44 px;
   - it SHALL work in the installed PWA, which has no browser back button.
+- **R73 [Should]** The home page and a shareable demo link (v1.7, D-41):
+  - WHEN the home page is opened, THE SYSTEM SHALL show "Your groups" first if this device has any (R5), then "Start a group" as the primary, prominent action (R1). Directly under its "Create group" button it SHALL show the demo as a small secondary text link, "Just looking? Try a demo group →", not a large button.
+  - WHEN `/demo` is opened in a browser, THE SYSTEM SHALL create a fresh demo group (R47) and open it, showing "Setting up the demo…" meanwhile and a "Try again" button if creation fails. Each visit creates a new demo group.
+  - The demo group SHALL be created by the page in the browser, not by the HTTP request itself, so link-preview bots that fetch a shared `/demo` link create no group. `/demo` is `noindex`.
 
 ### 5.2 Members
 - **R6 [Must]** WHEN a user adds or renames a member, or sets a member's optional UPI ID, THE SYSTEM SHALL save it.
@@ -445,7 +449,7 @@ Requirement IDs are stable. R59 and R60 were added in v0.5 and sit in their topi
   - *Status (v0.6): partially met — rules can be paused, resumed or stopped (deleted), but not edited (D-20).*
 
 ### 5.12 Demo mode
-- **R47 [Must]** WHEN a visitor taps "Try the demo", THE SYSTEM SHALL do the following, within 5 s:
+- **R47 [Must]** WHEN a visitor opens the demo (the home page's "Try a demo group →" link, or `/demo` directly, R73), THE SYSTEM SHALL do the following, within 5 s:
   1. Delete demo groups created more than 7 days ago (lazy cleanup).
   2. Create a **new** demo group (`is_demo = true`) from the fixed seed in `lib/demo-seed.ts`.
   3. Open it.
@@ -689,7 +693,7 @@ Unless marked *Should*, every AC is Must. Amounts are in ₹; the tests use pais
 
 **Demo**
 - **AC-36 [Unit] (R48):** balances computed from `lib/demo-seed.ts` are Aarav +400000, Priya +300000, Rohan +300000, Sneha −600000 and Kabir −400000 paise. Greedy gives 4 payments and optimal gives 3.
-- **AC-37 [Desktop] (R22, R47, R48):** in a fresh incognito window, "Try the demo" opens the group within 5 s. It shows:
+- **AC-37 [Desktop] (R22, R47, R48):** in a fresh incognito window, opening `/demo` (or tapping "Try a demo group →" on the home page) opens the group within 5 s. It shows:
   - the demo banner;
   - ≥ 15 expenses;
   - an itemized receipt expense with a per-item breakdown;
@@ -773,6 +777,13 @@ Unless marked *Should*, every AC is Must. Amounts are in ₹; the tests use pais
 - **AC-59 [Desktop + Phone, *Should*] (R72):**
   - Headless, every group screen at 360 px and 1440 px in both themes: exactly one link named "All groups" to `/`, at least 44 × 44 px, before the group name (left of it in the header, above it on the member picker). Tapping it on Settle opens the home page, and "Your groups" lists the group.
   - Phone: in the installed PWA, from Settle tap the chevron + Quits mark; the home page opens with "Your groups"; tapping the group opens it again.
+
+**Home page and demo link (v1.7)**
+- **AC-60 [Desktop + Phone, *Should*] (R73, R47):**
+  - Headless at 360 px and 1440 px in both themes: with groups on the device, the home page shows "Your groups" above "Start a group", and "Try a demo group →" directly below "Create group" as a text link (tap target ≥ 44 px); with none, "Start a group" comes first.
+  - Opening `/demo` in a fresh browser lands on `/g/{token}` with the demo's member picker ("Flat 302 · HSR Layout") within 5 s; opening it again gives a different token.
+  - A plain HTTP GET of `/demo` returns 200 with no redirect (the request itself creates no group) and a robots `noindex` meta tag.
+  - Phone: https://quits-go.vercel.app/demo opens a fresh demo.
 
 ## 7. Deliverables
 
@@ -876,6 +887,7 @@ Unless marked *Should*, every AC is Must. Amounts are in ₹; the tests use pais
 | D-38 | UI review (2026-10-18) | The Settle screen leads with the outcome in plain words ("3 payments instead of 10", "Simplified") instead of three algorithm tags; the naive / greedy / optimal comparison stays one tap away under "How?" for evaluators (R22, AC-37, AC-57). |
 | D-39 | UI review (2026-10-18) | **Fintech look, dark by default.** Design tokens (CSS variables) for a dark and a light theme, a Dark / Light / System control remembered per device, AA contrast checked by a unit test, self-hosted Inter, coloured member avatars. The UPI QR is a fixed light island (black on white, 4-module quiet zone) so theming can never break scanning (R71, AC-58). |
 | D-40 | UI review (2026-10-18) | **A way home from every group screen.** The installed PWA has no browser back button, and "Your groups" (R5) lives on the home page, so the group header starts with a back chevron + Quits mark linking to `/` ("All groups", ≥ 44 px). Also on the member picker (R72, AC-59). |
+| D-41 | Home review (2026-10-18) | **Groups first, demo second; `/demo` for evaluators.** A returning user mostly wants their groups, and a new user wants to start one, so "Your groups" then "Start a group" lead the home page and the demo becomes a small link. `/demo` gives evaluators one URL. It creates the group from the browser (the same server action as the link), not on the HTTP GET, because shared links are fetched by link-preview bots, which would otherwise create a demo group on every unfurl (R73, AC-60). |
 | D-22 | OQ-19 (2026-10-17) | Share and reminder messages use **"₹"** (e.g. `₹1,20,000`), not "Rs", to match the rest of the app. The exact strings in §4.3 are updated. |
 | D-17 | OQ-17 | When Frankfurter v2 has no rate for the exact date, use the most recent rate on or before `expense_date`, and store and show its `fx_rate_date` (R16). |
 
@@ -903,3 +915,4 @@ None open. New questions found during the build are added here with a proposed d
 | v1.4 | 2026-10-18 | **AC-44 method.** The 503 check now uses the production build started locally with `SUPABASE_URL=https://invalid.example` for that process only, instead of a broken Preview environment variable on Vercel (**D-37**). Wording only; R57 unchanged. Counts: 70 requirements (49 Must, 21 Should), 56 ACs. |
 | v1.5 | 2026-10-18 | **Settle wording and visual redesign.**<br>**R22** rewritten: the main view says "{listed} payments instead of {naive}" with a "Simplified" badge, no algorithm tags; naive / greedy / optimal and a one-sentence explanation under "How?" (**D-38**). Goal and S7 wording and **AC-37** updated; **AC-57** (Unit) added.<br>**R71** added (Should): dark default + light, Dark / Light / System on the Group screen (remembered per device), design tokens, money colours, avatars, active nav tab, empty states, skeletons, reduced-motion-safe transitions, self-hosted font, AA contrast, dark `theme_color`, and a UPI QR that is always black on white with a quiet zone (**D-39**); **AC-58** (Unit + Phone, Should) added.<br>Counts: **71 requirements (49 Must, 22 Should), 58 ACs**. |
 | v1.6 | 2026-10-18 | **Navigation home and visual polish.**<br>**R72** added (Should): an "All groups" link (back chevron + Quits mark, ≥ 44 px) at the left of every group header and on the member picker, for the installed PWA (**D-40**); **AC-59** added (Desktop + Phone, Should).<br>**Visual only, no requirement change:** compact last-opened times in "Your groups" ("Today · 12:36", "Yesterday", "12 Oct"); shorter Group-screen subtitles; a category icon in a soft coloured circle on expense rows, with the date as secondary text; body and subtitle text about 10% smaller (inputs stay 16 px) and slightly tighter spacing; secondary lines wrap instead of truncating (only the user's own text, such as descriptions and names, may be cut).<br>Counts: **72 requirements (49 Must, 23 Should), 59 ACs**. |
+| v1.7 | 2026-10-18 | **Home page layout and `/demo`.**<br>**R73** added (Should): "Your groups" first (if any), then "Start a group" as the primary action, and the demo as a small "Just looking? Try a demo group →" link under "Create group"; `/demo` creates a fresh demo group in the browser and opens it, `noindex` (**D-41**); **AC-60** added.<br>**Wording:** "Try the demo" is no longer on the home page, so **R47**, **AC-37** and **S7** now say: the `/demo` link or "Try a demo group →".<br>Counts: **73 requirements (49 Must, 24 Should), 60 ACs**. |

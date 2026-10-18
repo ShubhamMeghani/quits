@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| Spec | [SPEC.md](SPEC.md) **v1.6**. If SPEC.md and this plan disagree, SPEC.md wins. |
+| Spec | [SPEC.md](SPEC.md) **v1.7**. If SPEC.md and this plan disagree, SPEC.md wins. |
 | Production | https://quits-go.vercel.app (Vercel, deploys from `main`) |
 | Stack | Next.js (App Router, TS) · Tailwind · Vitest · Supabase Postgres (server-only, RLS on, no policies) · Gemini `gemini-3.5-flash-lite` · Frankfurter v2 · Vercel Hobby · GitHub Actions (ubuntu-24.04) · Node 24 |
 | Tests | `npm test` (unit, `lib/` + `server/token.ts`) · `npm run test:db` (DB integration; loads `.env.local`; skips when `SUPABASE_DB_URL` is absent) · `npm run test:db:clean` (removes leftover `__test__` groups) · `npm run lint` · `npm run build` · `npm run eval` (receipt eval; loads `.env.local`) |
@@ -281,6 +281,22 @@ No GitHub secrets are needed: CI runs only lint and unit tests, which make no ne
 
 ---
 
+## Phase 12 — Home page layout and the `/demo` link (SPEC v1.7)
+
+**Goal:** returning users see their groups first, new users see "Start a group"; the demo becomes a small link, and evaluators get one URL: https://quits-go.vercel.app/demo.
+
+| # | Task | Mode | Satisfies |
+|---|---|---|---|
+| 12.1 | Home: "Your groups" (if any) → "Start a group" card (primary) → "Just looking? Try a demo group →" directly under "Create group" (`CreateGroupForm` `belowSubmit` slot). The big "Try the demo" button is gone. | AUTO | R73, R5, R1 |
+| 12.2 | `/demo` page: runs the demo server action in the browser and replaces the URL with the new group; "Setting up the demo…", "Try again" on failure; `noindex`. The home link points to it (no prefetch). | AUTO | R73, R47 · AC-60 |
+| 12.3 | SPEC v1.7 (R73, AC-60, D-41; R47, AC-37 and S7 reworded); README demo link. | AUTO | — |
+| 12.4 | Audit: home order (with and without groups), demo link position/size, `/demo` twice (time, new token), `curl /demo` (200, no redirect, noindex). | AUTO | AC-60 |
+| 12.5 | **Pending (human).** Push, then AC-60 on the phone and AC-37 via `/demo` on production. | HUMAN | AC-37, AC-60 |
+
+**Done when:** AC-60 Pass.
+
+---
+
 ## SPEC change proposals
 
 **Status: approved 2026-10-16 and applied in SPEC v0.4.** These were wording changes only; the code already followed them.
@@ -363,6 +379,9 @@ No GitHub secrets are needed: CI runs only lint and unit tests, which make no ne
   - **Visual only:** compact last-opened times; shorter Group-screen subtitles ("Find expenses and see charts" etc.); category icons on expense rows with the date as small secondary text; text about 10% smaller (inputs 16 px), slightly tighter spacing; search result details wrap between parts instead of truncating; buttons at least 44 px wide (fixed the 43 px "Remove person" ✕).
   - **Audit** (local `next start`, 25 checks × dark/light × 360/1440 px = 100 runs): all clean, including the new checks: no truncated text except the user's own (descriptions, names: 56 allowed cuts), "All groups" correct on all 76 group-screen runs, and Settle → All groups → "Your groups" in all four combinations; 4,276 text elements at AA; requests only to the app origin.
   - **Android navigation bar (PWA):** there is no web API to colour it directly; Chrome takes it from the manifest, and both `theme_color` and `background_color` are already the dark background (`#0b1211`, since v1.5). Reinstall the PWA so Chrome rebuilds it with the new colours.
+- **2026-10-18, SPEC v1.7: home page layout and `/demo` (Phase 12):**
+  - **R73 / D-41 (Should):** home shows "Your groups" first (if any), then "Start a group" as the primary action, with "Just looking? Try a demo group →" as a small link right under "Create group". `/demo` creates a fresh demo in the browser (not on the HTTP GET, so link-preview bots create nothing) and opens it; `noindex`. AC-60 added; R47, AC-37 and S7 reworded ("Try the demo" button removed). README: the `/demo` link for evaluators.
+  - **Checks:** `curl /demo` → 200, no `Location`, `<meta name="robots" content="noindex, nofollow">`. Headless: `/demo` opened the demo picker ("Flat 302 · HSR Layout") in 1.9 s and 1.0 s with two different tokens. Audit 104 runs (26 checks × dark/light × 360/1440 px) all clean, including home order without groups (Start a group first) and with groups (Your groups first), the demo link directly under "Create group" (≥ 44 px tall, small text), "All groups" on all 76 group-screen runs, and no non-user truncation.
 
 ---
 
@@ -418,7 +437,7 @@ Rows P1-1 to P1-10 are the Phase 1 checks; each one de-risks the spec ACs shown 
 | AC-34 (Should) | Unit | 2 | Pass | tests/unit/misc.test.ts › AC-34 (Jan 31 clamping; idempotent second call) |
 | AC-35 (Should) | Deploy | 6 | Pass | local DB test (tests/db/features.test.ts › AC-35): monthly rule starting two months ago → exactly 3 expenses after one open, still 3 after the next; dates = start, +1 month, +2 months (= today). **Prod Pass 2026-10-17 (human):** monthly rule from two months ago → exactly 3 expenses; still 3 after another reload. |
 | AC-36 | Unit | 2 | Pass | tests/unit/misc.test.ts › AC-36 (seed balances exact; greedy 4, optimal 3) |
-| AC-37 | Desktop | 6 / 7 | Partial | local headless Chrome 1440×900, fresh profile: "Try the demo" → group open in 0.73 s; demo banner; 15 expenses; itemized beach-shack receipt with per-item breakdown; USD expense shows "1 USD = 95.98 INR"; Settle shows Optimal 3 · Greedy 4 · Naive 10 with "Showing the optimal plan". **Prod Pass 2026-10-17 (human, incognito):** Try the demo opened within 5 s; banner, ≥ 15 expenses, itemized beach-shack breakdown, USD rate, Settle Optimal 3 · Greedy 4 · Naive N with "Showing the optimal plan". **SPEC v1.5 re-check needed:** the Settle bullet changed (D-38). Local headless (dark/light, 360/1440): demo Settle shows "3 payments instead of 10" + "Simplified", no algorithm tags in the main view; "How?" shows Naive 10 · Greedy 4 · Optimal 3 and "Showing the optimal plan". Prod check after push (10.6). |
+| AC-37 | Desktop | 6 / 7 | Partial | local headless Chrome 1440×900, fresh profile: "Try the demo" → group open in 0.73 s; demo banner; 15 expenses; itemized beach-shack receipt with per-item breakdown; USD expense shows "1 USD = 95.98 INR"; Settle shows Optimal 3 · Greedy 4 · Naive 10 with "Showing the optimal plan". **Prod Pass 2026-10-17 (human, incognito):** Try the demo opened within 5 s; banner, ≥ 15 expenses, itemized beach-shack breakdown, USD rate, Settle Optimal 3 · Greedy 4 · Naive N with "Showing the optimal plan". **SPEC v1.5 re-check needed:** the Settle bullet changed (D-38). Local headless (dark/light, 360/1440): demo Settle shows "3 payments instead of 10" + "Simplified", no algorithm tags in the main view; "How?" shows Naive 10 · Greedy 4 · Optimal 3 and "Showing the optimal plan". Prod check after push (10.6). **SPEC v1.7:** the entry point is now `/demo` (or "Try a demo group →"); local headless `/demo` → demo picker in 1.9 s. Prod re-check after push (12.5). |
 | AC-38 | Deploy | 6 | Pass | local DB test (tests/db/features.test.ts › AC-38): after deleting an expense, reset restores the exact target balances under the same token; a demo backdated 8 days is deleted when the next demo is created; reset on a non-demo group → NOT_FOUND. UI reset works in headless Chrome. **Prod Pass 2026-10-17 (human):** deleted a demo expense, Reset demo → expense back, Settle numbers unchanged, same URL. Parts 2–3 by the DB test above. |
 | AC-39 | Phone + Desktop | 7 | Pass | local headless Chrome 360×740, 11 screens: scrollWidth = innerWidth = 360 on all; all buttons/links/inputs ≥ 44 px (one header link fixed); 1440×900: centered ≤ 640 px column. **Prod 2026-10-17 (human): desktop part Pass** (centred column ≤ 640 px at ~1440 px; add, settle, scan completed). **Phone Pass 2026-10-18 (human, production):** every screen fits the phone width with no sideways scroll; buttons easy to tap. |
 | AC-40 (Should) | Phone | 7 | Pass | P1-9 Pass on the Samsung (standalone, Q icon) with the Phase 1 build. **Phone Pass 2026-10-18 (human, production):** installed PWA opened from the home-screen icon on the latest build (standalone, Q icon). |
@@ -441,3 +460,4 @@ Rows P1-1 to P1-10 are the Phase 1 checks; each one de-risks the spec ACs shown 
 | AC-57 | Unit | 10 | Pass | tests/unit/simplify.test.ts › AC-57 ("3 payments instead of 6", "1 payment instead of 2" + Simplified; "2 payments" without badge; none when settled; demo balances → "3 payments instead of 10") |
 | AC-58 (Should) | Unit + Phone | 10 | Partial | unit Pass: tests/unit/theme.test.ts (tokens, AA in both themes, theme colour, preference + pre-paint script, avatars, QR #000/#fff + 4-module margin). Headless audit Pass: 96 runs (24 screens × dark/light × 360/1440 px) clean. Phone check pending (10.6) |
 | AC-59 (Should) | Desktop + Phone | 11 | Partial | local headless (dark/light, 360/1440 px): "All groups" present once, `href="/"`, 58×44 px, before the group name on all 76 group-screen runs (header and member picker); tapping it on Settle opens `/` with "Your groups" listing the group. Phone (installed PWA) pending (11.6) |
+| AC-60 (Should) | Desktop + Phone | 12 | Partial | local: home order Pass in dark/light × 360/1440 (Start a group first without groups; Your groups first with groups; "Try a demo group →" directly under "Create group", ≥ 44 px, small text). `/demo` → demo picker in 1.9 s / 1.0 s, different tokens. `curl /demo` → 200, no redirect, `noindex, nofollow`. Phone pending (12.5) |

@@ -3,13 +3,14 @@
 // R1: create a group (name, base currency, ≥ 2 members). The creator is the first member and is
 // remembered on this device; the share screen (R2) opens next.
 import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import { useState, useTransition, type ReactNode } from "react";
 import { createGroupAction } from "@/app/actions";
 import { SUPPORTED_CURRENCIES } from "@/lib/currency";
 import { rememberMe } from "./identity";
 import { Button, Field, inputClass, Notice } from "./ui";
 
-export function CreateGroupForm() {
+/** `belowSubmit` sits directly under the Create group button (the home page puts the demo link there, R73). */
+export function CreateGroupForm({ belowSubmit }: { belowSubmit?: ReactNode } = {}) {
   const router = useRouter();
   const [name, setName] = useState("");
   const [currency, setCurrency] = useState("INR");
@@ -77,6 +78,7 @@ export function CreateGroupForm() {
       <Button type="submit" disabled={pending || !name.trim() || names.length < 2}>
         {pending ? "Creating…" : "Create group"}
       </Button>
+      {belowSubmit}
       <p className="text-sm text-muted">No sign-up. Anyone with the group link can view and edit it.</p>
     </form>
   );

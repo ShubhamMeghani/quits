@@ -2,7 +2,7 @@
 
 Split bills. Settle up. Call it quits.
 
-**Live app:** https://quits-go.vercel.app — tap **Try the demo**. No sign-up is needed.
+**Live app:** https://quits-go.vercel.app. No sign-up is needed. **Demo for evaluators:** https://quits-go.vercel.app/demo opens a fresh sample group (or tap **Try a demo group →** under "Start a group").
 
 Quits is a free, mobile-first bill-splitting web app for Indian students. It's the course project for Applied Data Science & AI at IISc.
 
@@ -32,7 +32,7 @@ Quits is a free, mobile-first bill-splitting web app for Indian students. It's t
 
 ## Demo (for evaluators)
 
-1. Open https://quits-go.vercel.app and tap **Try the demo**. A fresh sample group opens: "Flat 302 · HSR Layout".
+1. Open **https://quits-go.vercel.app/demo**. A fresh sample group opens: "Flat 302 · HSR Layout". Each visit makes a new copy, so evaluators never see each other's changes. (On the home page, the same demo is the **Try a demo group →** link under "Start a group".)
 2. Pick a name, for example Aarav.
 3. **Settle:** the exact plan needs **3** payments, where greedy needs 4. Each payment has a UPI QR code; the demo's UPI IDs are fake.
 4. **Expenses:** "Goa trip — beach shack dinner" is an itemized receipt with a per-item breakdown. "AI study tool subscription" was paid in USD and shows the rate used.
